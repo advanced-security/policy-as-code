@@ -1,4 +1,4 @@
-# advanced-security-compliance
+# policy-as-code
 
 This Action was designed to allow users to configure their Risk threshold for security issues reported by [GitHub Code Scanning](https://docs.github.com/en/code-security/secure-coding/automatically-scanning-your-code-for-vulnerabilities-and-errors/about-code-scanning), [Secret Scanning](https://docs.github.com/en/code-security/secret-security/about-secret-scanning) and [Dependabot Security](https://docs.github.com/en/code-security/supply-chain-security/managing-vulnerabilities-in-your-projects-dependencies/configuring-dependabot-security-updates#about-configuring-dependabot-security-updates).
 
@@ -11,12 +11,12 @@ https://user-images.githubusercontent.com/2083085/131956624-e3f5140a-40e6-4067-9
 
 ### Action
 
-Here is how you can quickly setup advanced-security-compliance. 
+Here is how you can quickly setup policy-as-code. 
 
 ```yaml
-# Compliance
-- name: Advance Security Compliance Action
-  uses: GeekMasher/advanced-security-compliance@v1.6.3
+# Policy as Code
+- name: Advance Security Policy as Code
+  uses: advanced-security/policy-as-code@v2.0
 ```
 
 #### Action Examples
@@ -58,8 +58,8 @@ Here is an example of using a simple yet cross-organization using Policy as Code
 
 ```yaml
 # Compliance
-- name: Advance Security Compliance Action
-  uses: GeekMasher/advanced-security-compliance@v1.6.2
+- name: Advance Security Policy as Code
+  uses: advanced-security/policy-as-code@v2.0
   with:
     # The owner/repo of where the policy is stored  
     policy: GeekMasher/security-queries
@@ -220,37 +220,3 @@ Some things to consider when using imports:
   - `GitHub Action / CLI directory`
   - `Cloned Repository Directory`
 - Imports are only allowed from a number of predefined paths to prevent loading data on the system (AKA, path traversal). 
-
-
-## Dependency Typosquatting
-
-Dependency Typosquatting is a package or library with malicious intent to compromise supply chains or CI systems by extracting data from the environment to a threat actor.
-
-Built into this tool is the ability to look up every package known in your supply chain from the GitHub Dependency Graph and check if it matches against [a list of know malicious packages](ghascompliance/defaults/typosquatting.txt).
-
-
-## Licensing Notice
-
-```
-MIT License
-
-Copyright (c) 2021 Mathew Payne
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```

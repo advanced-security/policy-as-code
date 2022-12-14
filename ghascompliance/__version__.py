@@ -1,15 +1,15 @@
 #!/usr/bin/env python
-__version__ = "1.6.3"
+__version__ = "2.0.0"
 
-__title__ = "GitHub Advanced Security Compliance"
+__title__ = "GitHub Advanced Security Policy as Code"
 __name__ = "ghascompliance"
 
-__description__ = "GitHub Advanced Security Compliance"
+__description__ = "GitHub Advanced Security Policy as Code"
 __summary__ = """\
-GitHub Advanced Security Compliance
+GitHub Advanced Security Policy as Code
 """
 
-__url__ = "https://github.com/GeekMasher/advanced-security-Compliance"
+__url__ = "https://github.com/advanced-security/policy-as-code"
 
 __author__ = "GeekMasher"
 __email__ = ""
@@ -20,7 +20,7 @@ __mEmail__ = ""
 __contributors__ = ["GeekMasher"]
 
 __license__ = "MIT License"
-__copyright__ = "Copyright (c) 2021, GeekMasher"
+__copyright__ = "Copyright (c) 2022, GitHub"
 
 __banner__ = """\
  _____  _   _   ___   _____ _____                       _ _                      
