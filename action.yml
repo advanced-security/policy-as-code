@@ -41,8 +41,8 @@ runs:
   steps:
     # Make sure 3.9 is installed
     - uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
+      with:
+        python-version: '3.9'
 
     - shell: bash
       run: |
