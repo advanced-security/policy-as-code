@@ -1,5 +1,5 @@
-name: 'ghascompliance'
-description: 'ghascompliance'
+name: 'policy-as-code'
+description: 'Advance Security Policy as Code'
 
 inputs:
   severity:
@@ -32,7 +32,6 @@ inputs:
     description: Policy as Code branch
     default: main
 
-
   argvs:
     description: 'Additional Arguments'
 
@@ -40,6 +39,11 @@ inputs:
 runs:
   using: "composite"
   steps:
+    # Make sure 3.9 is installed
+    - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
     - shell: bash
       run: |
         echo "::group::Installing Dependencies"
@@ -47,6 +51,7 @@ runs:
         python3 -m pip install pipenv && python3 -m pipenv install --system
         popd
         echo "::endgroup::"
+
     - shell: bash
       run: |
         PYTHONPATH=${{ github.action_path }} && export PYTHONPATH=${{ github.action_path }}
