@@ -1,4 +1,4 @@
-name: 'policy-as-code'
+name: 'ghas-policy-as-code'
 description: 'Advance Security Policy as Code'
 
 inputs:
