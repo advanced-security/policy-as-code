@@ -1,0 +1,40 @@
+{
+    repository(owner: "$owner", name: "$repo") {
+        name
+        licenseInfo {
+            name
+        }
+        dependencyGraphManifests {
+            totalCount
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+            edges {
+                node {
+                    filename
+                    dependencies {
+                        edges {
+                            node {
+                                packageName
+                                packageManager
+                                requirements
+                                repository {
+                                    isArchived
+                                    isDisabled
+                                    isEmpty
+                                    isFork
+                                    isSecurityPolicyEnabled
+                                    isInOrganization
+                                    licenseInfo {
+                                        name
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
