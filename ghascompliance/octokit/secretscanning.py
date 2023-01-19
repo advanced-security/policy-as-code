@@ -51,6 +51,11 @@ class SecretScanning(OctoRequests):
             "/repos/{owner}/{repo}/pulls/{pull_number}/commits", pull_number=pull_number
         )
         response = requests.get(full_url, headers=self.headers)
+        if response.status_code != 200:
+            Octokit.warning(
+                f"Failed to get commits for pull request {pull_number}: {response.status_code}"
+            )
+            return []
 
         commits = []
         for commit in response.json():
