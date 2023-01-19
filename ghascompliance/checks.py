@@ -316,7 +316,7 @@ class Checks:
                 "Total Secret Scanning Alerts (Pull Request) :: " + str(len(alerts))
             )
         else:
-        Octokit.info("Total Secret Scanning Alerts :: " + str(len(alerts)))
+            Octokit.info("Total Secret Scanning Alerts :: " + str(len(alerts)))
 
         self.writeResults("secretscanning", alerts)
 
