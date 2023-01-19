@@ -9,7 +9,7 @@ rm -rf "$VENDOR/*/"
 
 echo "[+] Install all dependencies"
 pipenv run pip freeze > "$VENDOR/requirements.txt"
-pip install requests --target=$VENDOR
+pip install -r "$VENDOR/requirements.txt" --target=$VENDOR
 
 echo "[+] Clean up vendor folder"
 rm -rf $VENDOR/*dist-info && \
