@@ -28,3 +28,24 @@ class TestPolicyLoading(unittest.TestCase):
         self.assertEqual(
             github.get("api.graphql"), "https://ghes.example.com/api/graphql"
         )
+
+    def testInPullRequest(self):
+        # main ref
+        github = GitHub("advanced-security/policy-as-code", ref="refs/heads/main")
+        self.assertEqual(github.inPullRequest(), False)
+        # pr ref
+        github = GitHub("advanced-security/policy-as-code", ref="refs/pull/1/merge")
+        self.assertEqual(github.inPullRequest(), True)
+
+    def testGetPullRequestNumber(self):
+        github = GitHub("advanced-security/policy-as-code", ref="refs/pull/1/merge")
+        pr_id = github.getPullRequestNumber()
+        self.assertTrue(isinstance(pr_id, int))
+        self.assertEqual(pr_id, 1)
+
+        # not a pull request
+        github = GitHub("advanced-security/policy-as-code", ref="refs/heads/main")
+        pr_id = github.getPullRequestNumber()
+        self.assertTrue(isinstance(pr_id, int))
+        # we default to 0
+        self.assertEqual(pr_id, 0)
