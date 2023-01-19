@@ -83,6 +83,17 @@ class GitHub:
             # Public repos
             return "https://" + instance + "/" + self.repository
 
+    def inPullRequest(self) -> bool:
+        """Check if in Pull Request"""
+        return self.ref.startswith("refs/pull/")
+
+    def getPullRequestNumber(self) -> int:
+        """Get Pull Request Number"""
+        if self.inPullRequest():
+            return int(self.ref.split("/")[2])
+        else:
+            return 0
+
 
 class Octokit:
     __ERRORS__ = []
