@@ -106,6 +106,10 @@ class Dependencies(OctoRequests):
         https://docs.github.com/en/graphql/reference/objects#dependencygraphmanifestconnection
         """
 
+        # if dependencies are in a PR
+        if self.github.inPullRequest():
+            return self.getPRDependencies()
+
         variables = {"owner": self.github.owner, "repo": self.github.repo}
 
         query_template = self.queries.get("GetDependencyInfo")
@@ -139,13 +143,20 @@ class Dependencies(OctoRequests):
             Octokit.error(json.dumps(response, indent=2))
             raise Exception("Query failed to run")
 
-        results = []
-
         repo = response.get("data", {}).get("repository", {})
         # repo_name = repo.get('name')
         # repo_license = repo.get('licenseInfo', {}).get('name')
 
-        manifests = repo.get("dependencyGraphManifests", {}).get("edges", [])
+        results = self.processManifests(
+            repo.get("dependencyGraphManifests", {}).get("edges", [])
+        )
+
+        self.dependencies = results
+        return results
+
+    def processManifests(self, manifests: list) -> list:
+        """Process the manifests and return a list of dependencies"""
+        results = []
 
         for manifest in manifests:
             manifest = manifest.get("node", {})
@@ -209,8 +220,69 @@ class Dependencies(OctoRequests):
                     }
                 )
 
-        self.dependencies = results
         return results
+
+    def getPRDependencies(self) -> list:
+        """Diff the dependencies against the base branch
+        
+        https://docs.github.com/en/enterprise-cloud@latest/rest/dependency-graph/dependency-review?apiVersion=2022-11-28#get-a-diff-of-the-dependencies-between-commits
+        https://docs.github.com/en/enterprise-server@3.6/rest/dependency-graph/dependency-review#get-a-diff-of-the-dependencies-between-commits
+        """
+        base, head = self.getPullRequestBaseHead()
+        Octokit.debug(f"Creating diff for PR: `{base}...{head}`")
+
+        full_url = self.github.get("api.rest") + self.format(
+            "/repos/{owner}/{repo}/dependency-graph/compare/{base}...{head}",
+            base=base,
+            head=head,
+        )
+        diff_response = requests.get(full_url, headers=self.headers)
+        if diff_response.status_code != 200:
+            Octokit.warning(
+                f"Failed to get diff information for dependencies: {base}...{head}"
+            )
+            return dependencies
+
+        dependencies = []
+        for dependency in diff_response.json():
+            if dependency.get("change_type") == "added":
+                name = dependency.get("name")
+                manager = dependency.get("ecosystem")
+                manager_path = dependency.get("manifest")
+                version = dependency.get("version")
+                license = dependency.get("license", "NA")
+                # API might return null
+                if not license:
+                    license = "NA"
+
+                dependencies.append(
+                    {
+                        "name": name,
+                        # TODO: change to PURL format
+                        "full_name": f"{manager}://{name}#{version}",
+                        "manager": manager,
+                        "manager_path": manager_path,
+                        "version": version,
+                        "license": license,
+                    }
+                )
+
+        return dependencies
+
+    def getPullRequestBaseHead(self) -> tuple[str, str]:
+        pull_number = self.github.getPullRequestNumber()
+
+        full_url = self.github.get("api.rest") + self.format(
+            "/repos/{owner}/{repo}/pulls/{pull_number}", pull_number=pull_number
+        )
+        pr_response = requests.get(full_url, headers=self.headers)
+        if pr_response.status_code != 200:
+            Octokit.warning(
+                f"Failed to get diff information for dependencies: `{pull_number}`"
+            )
+            return ("", "")
+        resp = pr_response.json()
+        return (resp.get("base", {}).get("ref"), resp.get("head", {}).get("ref"))
 
     def getQuery(self, name: str) -> str:
         """Get the query for the given name"""
@@ -219,19 +291,20 @@ class Dependencies(OctoRequests):
 
 if __name__ == "__main__":
     # Dependency Analysis CLI tool
-    # > export PYTHONPATH=$(pwd)
+    # > export PYTHONPATH=$(pwd):$(pwd)/vendor
+    # export GITHUB_REPOSITORY=octodemo/demo-ghas-geekmasher
+    # export GITHUB_REF=refs/pull/33/merge
     # > python ./ghascompliance/octokit/dependabot.py
     github = GitHub(
         repository=os.environ.get("GITHUB_REPOSITORY"),
         token=os.environ.get("GITHUB_TOKEN"),
+        ref=os.environ.get("GITHUB_REF"),
     )
-    dependencies = Dependencies(github=github)
-    # dependencies.getDependencies()
+    deps = Dependencies(github=github)
+    dependencies = deps.getDependencies()
 
-    alerts = dependencies.getOpenAlerts()
-
-    print(f"Count of Dependencies: {len(dependencies.dependencies)}")
-    for index, dependency in enumerate(dependencies.dependencies):
+    print(f"Count of Dependencies: {len(dependencies)}")
+    for index, dependency in enumerate(dependencies):
         name = dependency.get("name")
         version = dependency.get("version")
         manager = dependency.get("manager")
@@ -239,12 +312,14 @@ if __name__ == "__main__":
 
         print(f"{index:<4} [{manager:^12}] {name} == {version} ('{license}')")
 
-    print(f"Count of Dependencies: {len(alerts)}")
-    for index, alert in enumerate(alerts):
-        name = alert.get("securityVulnerability", {}).get("package", {}).get("name")
-        manager = (
-            alert.get("securityVulnerability", {}).get("package", {}).get("ecosystem")
-        )
-        alert_id = alert.get("securityAdvisory", {}).get("ghsaId")
-        severity = alert.get("securityAdvisory", {}).get("severity")
-        print(f"{index:<4} [{manager:^12}] {alert_id:<20} ({severity:^12}) <-> {name}")
+    # alerts = deps.getOpenAlerts()
+    # print(f"Count of Alerts: {len(alerts)}")
+
+    # for index, alert in enumerate(alerts):
+    #     name = alert.get("securityVulnerability", {}).get("package", {}).get("name")
+    #     manager = (
+    #         alert.get("securityVulnerability", {}).get("package", {}).get("ecosystem")
+    #     )
+    #     alert_id = alert.get("securityAdvisory", {}).get("ghsaId")
+    #     severity = alert.get("securityAdvisory", {}).get("severity")
+    #     print(f"{index:<4} [{manager:^12}] {alert_id:<20} ({severity:^12}) <-> {name}")
