@@ -1,0 +1,34 @@
+{
+    repository(owner: "$owner", name: "$repo") {
+        vulnerabilityAlerts(first: 100, states: [OPEN], $cursor) {
+            totalCount
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+            edges {
+                node {
+                    createdAt
+                    dismissReason
+                    securityVulnerability {
+                        package {
+                            ecosystem
+                            name
+                        }
+                    }
+                    securityAdvisory {
+                        ghsaId
+                        severity
+                        cwes(first: 100) {
+                            edges {
+                                node {
+                                    cweId
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
