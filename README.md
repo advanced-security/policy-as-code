@@ -59,12 +59,13 @@ pipenv run python -m ghascompliance
 | :-------------- | :-------------------------------------- | :-------------------------------------- | :--------------------------------------------------------------------------------------------------------- |
 | Code Scanning   | :white_check_mark: / :x:                | :white_check_mark: / :x:                | Code Scanning is a code analysis tool that scans your code for security vulnerabilities and coding errors. |
 | Secret Scanning | :white_check_mark: / :white_check_mark: | :white_check_mark: / :white_check_mark: | Secret Scanning is a code analysis tool that scans your code for secrets.                                  |
-| Dependabot      | :white_check_mark: / :x:                | :x: / :x: [2]                           | Dependabot is a tool that automates discovery and remediation of vulnerabilities in your dependencies.     |
-| Licensing       | :white_check_mark: / :x:                | :x: / :x: [2]                           | Licensing is a tool that scans your code for licensing issues.                                             |
+| Dependabot      | :white_check_mark: / :x: [3]            | :x: / :x: [2]                           | Dependabot is a tool that automates discovery and remediation of vulnerabilities in your dependencies.     |
+| Licensing       | :white_check_mark: / :x: [3]            | :x: / :x: [2]                           | Licensing is a tool that scans your code for licensing issues.                                             |
 
 *Notes:*
 
 1. Br/PR = Branches / Pull Requests
+3. :white_check_mark: [`dependency-review-action`](https://github.com/actions/dependency-review-action) is supports this feature
 2. :warning: GraphQL API not supported by GitHub Enterprise Server as of `3.7`
 
 
