@@ -52,6 +52,22 @@ pipenv run python -m ghascompliance
 - [Dependencies](examples/scripts/dependencies.sh)
 - [Policies](examples/scripts/policies.sh)
 
+
+## Features
+
+| Feature         | github.com (Br/PR)                      | enterprise server (Br/PR)               | Description                                                                                                |
+| :-------------- | :-------------------------------------- | :-------------------------------------- | :--------------------------------------------------------------------------------------------------------- |
+| Code Scanning   | :white_check_mark: / :x:                | :white_check_mark: / :x:                | Code Scanning is a code analysis tool that scans your code for security vulnerabilities and coding errors. |
+| Secret Scanning | :white_check_mark: / :white_check_mark: | :white_check_mark: / :white_check_mark: | Secret Scanning is a code analysis tool that scans your code for secrets.                                  |
+| Dependabot      | :white_check_mark: / :x:                | :x: / :x: [2]                           | Dependabot is a tool that automates discovery and remediation of vulnerabilities in your dependencies.     |
+| Licensing       | :white_check_mark: / :x:                | :x: / :x: [2]                           | Licensing is a tool that scans your code for licensing issues.                                             |
+
+*Notes:*
+
+1. Br/PR = Branches / Pull Requests
+2. :warning: GraphQL API not supported by GitHub Enterprise Server as of `3.7`
+
+
 ## Policy as Code / PaC
 
 Here is an example of using a simple yet cross-organization using Policy as Code:
