@@ -208,7 +208,13 @@ class Checks:
         dependabot = Dependencies(self.github)
 
         alerts = self.getResults("dependencies", dependabot.getDependencies)
-        Octokit.info("Total Dependency Graph Dependencies :: " + str(len(alerts)))
+        if self.github.inPullRequest():
+            Octokit.info(
+                "Total Dependency Graph Dependencies (Pull Request) :: "
+                + str(len(alerts))
+            )
+        else:
+            Octokit.info("Total Dependency Graph Dependencies :: " + str(len(alerts)))
 
         for dependency in alerts:
             Octokit.debug(" > {full_name} - {license}".format(**dependency))
@@ -305,6 +311,11 @@ class Checks:
         secretscanning = SecretScanning(self.github)
 
         alerts = secretscanning.getOpenAlerts()
+        if self.github.inPullRequest():
+            Octokit.info(
+                "Total Secret Scanning Alerts (Pull Request) :: " + str(len(alerts))
+            )
+        else:
         Octokit.info("Total Secret Scanning Alerts :: " + str(len(alerts)))
 
         self.writeResults("secretscanning", alerts)
