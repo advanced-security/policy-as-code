@@ -46,15 +46,8 @@ runs:
 
     - shell: bash
       run: |
-        echo "::group::Installing Dependencies"
-        pushd ${{ github.action_path }}
-        python3 -m pip install pipenv && python3 -m pipenv install --system
-        popd
-        echo "::endgroup::"
-
-    - shell: bash
-      run: |
-        PYTHONPATH=${{ github.action_path }} && export PYTHONPATH=${{ github.action_path }}
+        echo "Running Policy as Code..."
+        export PYTHONPATH=${{ github.action_path }}/vendor
         python3 -m ghascompliance \
           --severity "${{ inputs.severity }}" \
           --action "${{ inputs.action }}" \
