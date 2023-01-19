@@ -16,7 +16,7 @@ Here is how you can quickly setup policy-as-code.
 ```yaml
 # Policy as Code
 - name: Advance Security Policy as Code
-  uses: advanced-security/policy-as-code@v2.0
+  uses: advanced-security/policy-as-code@v2.1.0
 ```
 
 #### Action Examples
@@ -76,7 +76,7 @@ Here is an example of using a simple yet cross-organization using Policy as Code
 ```yaml
 # Compliance
 - name: Advance Security Policy as Code
-  uses: advanced-security/policy-as-code@v2.0
+  uses: advanced-security/policy-as-code@v2.1.0
   with:
     # The owner/repo of where the policy is stored  
     policy: GeekMasher/security-queries
