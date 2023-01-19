@@ -111,7 +111,9 @@ class Dependencies(OctoRequests):
         query_template = self.queries.get("GetDependencyInfo")
         query = Template(query_template).substitute(**variables)
 
-        while True:
+        retries = 0
+
+        while retries < 3:
             # paginate through the results
             request = requests.post(
                 self.github.get("api.graphql"),
@@ -121,7 +123,8 @@ class Dependencies(OctoRequests):
             )
             if request.status_code == 200:
                 break
-            Octokit.debug(f"Retring GraphQL API: retry {retry}")
+            retries += 1
+            Octokit.debug(f"Retring GraphQL API: retry {retries}")
 
         if request.status_code != 200:
             raise Exception(
