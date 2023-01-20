@@ -19,10 +19,13 @@ class CodeScanning(OctoRequests):
     def getOpenAlerts(self, response: dict = {}):
         """Get all Open Code Scanning Alerts
 
+        For a pull request, a filter is applied on the alerts to see if they are
+        present in the merge base. If they are not, they are not returned.
+
         https://docs.github.com/en/enterprise-cloud@latest/rest/code-scanning#list-code-scanning-alerts-for-a-repository
         """
         if self.github.inPullRequest():
-            # filter alerts that are present in the diff
+            # Append only alerts that are not present in the base branch
             results = []
             for alert in response:
                 if not self.checkAlertIfPresentInBase(alert.get("number")):
@@ -31,7 +34,11 @@ class CodeScanning(OctoRequests):
         return response
 
     def checkAlertIfPresentInBase(self, alert_number: int) -> bool:
-        """Get list of instances for an alert
+        """Get list of instances for an alert and check if it is present in the
+        base branch.
+
+        This is slow as each alert is checked individually. The API doesn't
+        support an other way as of early 2023.
 
         https://docs.github.com/en/enterprise-cloud@latest/rest/code-scanning#list-instances-of-a-code-scanning-alert
         """
