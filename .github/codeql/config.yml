@@ -1,0 +1,5 @@
+name: "My CodeQL Config"
+# https://docs.github.com/en/enterprise-cloud@latest/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/customizing-code-scanning
+
+paths-ignore:
+  - vendor
