@@ -57,11 +57,11 @@ pipenv run python -m ghascompliance
 
 | Feature         | github.com (Br/PR)                      | enterprise server (Br/PR)               | Description                                                                                                |
 | :-------------- | :-------------------------------------- | :-------------------------------------- | :--------------------------------------------------------------------------------------------------------- |
-| Code Scanning   | :white_check_mark: / :x:                | :white_check_mark: / :x:                | Code Scanning is a code analysis tool that scans your code for security vulnerabilities and coding errors. |
+| Code Scanning   | :white_check_mark: / :white_check_mark: | :white_check_mark: / :white_check_mark: | Code Scanning is a code analysis tool that scans your code for security vulnerabilities and coding errors. |
 | Secret Scanning | :white_check_mark: / :white_check_mark: | :white_check_mark: / :white_check_mark: | Secret Scanning is a code analysis tool that scans your code for secrets.                                  |
 | Dependabot      | :white_check_mark: / :white_check_mark: | :x: [2] / :white_check_mark: [3]        | Dependabot is a tool that automates discovery and remediation of vulnerabilities in your dependencies.     |
 | Dependencies    | :white_check_mark: / :white_check_mark: | :x: [2] / :white_check_mark: [3]        | Dependencies is a tool that scans your code for dependencies.                                              |
-| Licensing       | :white_check_mark: / :white_check_mark: | :x: / :white_check_mark: [3]            | Licensing is a tool that scans your code for licensing issues.                                             |
+| Licensing       | :white_check_mark: / :white_check_mark: | :x: [2] / :white_check_mark: [3]        | Licensing is a tool that scans your code for licensing issues.                                             |
 
 *Notes:*
 
