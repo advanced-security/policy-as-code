@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+import urllib.parse
 from string import Template
 from ghascompliance.octokit.octokit import GitHub, OctoRequests, Octokit
 
@@ -136,6 +137,7 @@ class Dependencies(OctoRequests):
             Octokit.debug(f"Retring GraphQL API: retry {retries}")
 
         if request.status_code != 200:
+            Octokit.warning("Make sure that Dependency Graph is enabled")
             raise Exception(
                 "Query failed to run by returning code of {}. {}".format(
                     request.status_code, query
@@ -234,8 +236,8 @@ class Dependencies(OctoRequests):
         https://docs.github.com/en/enterprise-server@3.6/rest/dependency-graph/dependency-review#get-a-diff-of-the-dependencies-between-commits
         """
         pr_info = self.getPullRequestInfo()
-        base = pr_info.get("base", {}).get("ref")
-        head = pr_info.get("head", {}).get("ref")
+        base = urllib.parse.quote(pr_info.get("base", {}).get("ref"))
+        head = urllib.parse.quote(pr_info.get("head", {}).get("ref"))
 
         Octokit.debug(f"Creating diff for PR: `{base}...{head}`")
 
@@ -249,7 +251,7 @@ class Dependencies(OctoRequests):
             Octokit.warning(
                 f"Failed to get diff information for dependencies: {base}...{head}"
             )
-            return self.dependencies
+            return (self.dependencies, self.alerts)
 
         for dependency in diff_response.json():
             if dependency.get("change_type") == "added":
