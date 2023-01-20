@@ -292,8 +292,6 @@ class Dependencies(OctoRequests):
 if __name__ == "__main__":
     # Dependency Analysis CLI tool
     # > export PYTHONPATH=$(pwd):$(pwd)/vendor
-    # export GITHUB_REPOSITORY=octodemo/demo-ghas-geekmasher
-    # export GITHUB_REF=refs/pull/33/merge
     # > python ./ghascompliance/octokit/dependabot.py
     github = GitHub(
         repository=os.environ.get("GITHUB_REPOSITORY"),
@@ -312,14 +310,14 @@ if __name__ == "__main__":
 
         print(f"{index:<4} [{manager:^12}] {name} == {version} ('{license}')")
 
-    # alerts = deps.getOpenAlerts()
-    # print(f"Count of Alerts: {len(alerts)}")
+    alerts = deps.getOpenAlerts()
+    print(f"Count of Alerts: {len(alerts)}")
 
-    # for index, alert in enumerate(alerts):
-    #     name = alert.get("securityVulnerability", {}).get("package", {}).get("name")
-    #     manager = (
-    #         alert.get("securityVulnerability", {}).get("package", {}).get("ecosystem")
-    #     )
-    #     alert_id = alert.get("securityAdvisory", {}).get("ghsaId")
-    #     severity = alert.get("securityAdvisory", {}).get("severity")
-    #     print(f"{index:<4} [{manager:^12}] {alert_id:<20} ({severity:^12}) <-> {name}")
+    for index, alert in enumerate(alerts):
+        name = alert.get("securityVulnerability", {}).get("package", {}).get("name")
+        manager = (
+            alert.get("securityVulnerability", {}).get("package", {}).get("ecosystem")
+        )
+        alert_id = alert.get("securityAdvisory", {}).get("ghsaId")
+        severity = alert.get("securityAdvisory", {}).get("severity")
+        print(f"{index:<4} [{manager:^12}] {alert_id:<20} ({severity:^12}) <-> {name}")
