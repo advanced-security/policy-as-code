@@ -127,6 +127,8 @@ class Checks:
         dependencies = self.getResults("dependencies", dependabot.getDependencies)
 
         Octokit.info("Total Dependabot Alerts :: " + str(len(alerts)))
+        if self.github.inPullRequest():
+            Octokit.info("Dependabot Alerts from Pull Request")
 
         for alert in alerts:
             package = alert.get("securityVulnerability", {}).get("package", {})
@@ -208,13 +210,10 @@ class Checks:
         dependabot = Dependencies(self.github)
 
         alerts = self.getResults("dependencies", dependabot.getDependencies)
+
+        Octokit.info("Total Dependency Graph Dependencies :: " + str(len(alerts)))
         if self.github.inPullRequest():
-            Octokit.info(
-                "Total Dependency Graph Dependencies (Pull Request) :: "
-                + str(len(alerts))
-            )
-        else:
-            Octokit.info("Total Dependency Graph Dependencies :: " + str(len(alerts)))
+            Octokit.info("Dependencies from Pull Request")
 
         for dependency in alerts:
             Octokit.debug(" > {full_name} - {license}".format(**dependency))
@@ -249,6 +248,8 @@ class Checks:
         dependencies = self.getResults("dependencies", dependabot.getDependencies)
 
         Octokit.info("Total Dependency Graph :: " + str(len(dependencies)))
+        if self.github.inPullRequest():
+            Octokit.info("Dependencies from Pull Request")
 
         policy = self.policy.policy.get("dependencies", {}).get("warnings", {})
 
@@ -311,12 +312,10 @@ class Checks:
         secretscanning = SecretScanning(self.github)
 
         alerts = secretscanning.getOpenAlerts()
+
+        Octokit.info("Total Secret Scanning Alerts :: " + str(len(alerts)))
         if self.github.inPullRequest():
-            Octokit.info(
-                "Total Secret Scanning Alerts (Pull Request) :: " + str(len(alerts))
-            )
-        else:
-            Octokit.info("Total Secret Scanning Alerts :: " + str(len(alerts)))
+            Octokit.info("Secret Scanning Alerts from Pull Request")
 
         self.writeResults("secretscanning", alerts)
 
