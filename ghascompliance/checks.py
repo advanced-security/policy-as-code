@@ -63,6 +63,8 @@ class Checks:
 
         alerts = codescanning.getOpenAlerts(params={"ref": self.github.ref})
         Octokit.info("Total Code Scanning Alerts :: " + str(len(alerts)))
+        if self.github.inPullRequest():
+            Octokit.info("Code Scanning Alerts from Pull Request (alert diff)")
 
         self.writeResults("code-scanning", alerts)
 
