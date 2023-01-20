@@ -17,7 +17,7 @@ class GitHub:
         token=None,
         instance="https://github.com",
         ref=None,
-        **kwargs
+        **kwargs,
     ):
         self.__dict__ = dict()
 
@@ -197,6 +197,8 @@ class OctoRequests(Octokit):
             "Authorization": "token " + self.github.token,
         }
 
+        self.parameters = {}
+
         super().__init__()
 
     def format(self, string: str, **kwargs):
@@ -218,6 +220,24 @@ class OctoRequests(Octokit):
 
         return False
 
+    def getPullRequestInfo(self) -> tuple[str, str]:
+        """Get the base and head for the current pull request
+
+        https://docs.github.com/en/enterprise-cloud@latest/rest/pulls/pulls#get-a-pull-request
+        """
+
+        pull_number = self.github.getPullRequestNumber()
+
+        full_url = self.github.get("api.rest") + self.format(
+            "/repos/{owner}/{repo}/pulls/{pull_number}", pull_number=pull_number
+        )
+        pr_response = requests.get(full_url, headers=self.headers)
+        if pr_response.status_code != 200:
+            Octokit.warning(f"Failed to get PR information for: `{pull_number}`")
+            return {}
+
+        return pr_response.json()
+
     def request(method, url, params={}):
         def decorator(func):
             def wrap(self, **kwargs):
@@ -227,7 +247,7 @@ class OctoRequests(Octokit):
 
                 Octokit.debug("OctoRequests :: {}".format(func))
 
-                full_params = {**params, **kwargs.get("params", {})}
+                full_params = {**params, **self.parameters, **kwargs.get("params", {})}
 
                 page = 1
                 while True:

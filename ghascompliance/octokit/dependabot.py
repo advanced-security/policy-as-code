@@ -294,25 +294,6 @@ class Dependencies(OctoRequests):
 
         return (self.dependencies, self.alerts)
 
-    def getPullRequestInfo(self) -> tuple[str, str]:
-        """Get the base and head for the current pull request
-
-        https://docs.github.com/en/enterprise-cloud@latest/rest/pulls/pulls#get-a-pull-request
-        """
-        pull_number = self.github.getPullRequestNumber()
-
-        full_url = self.github.get("api.rest") + self.format(
-            "/repos/{owner}/{repo}/pulls/{pull_number}", pull_number=pull_number
-        )
-        pr_response = requests.get(full_url, headers=self.headers)
-        if pr_response.status_code != 200:
-            Octokit.warning(
-                f"Failed to get diff information for dependencies: `{pull_number}`"
-            )
-            return {}
-
-        return pr_response.json()
-
     def getQuery(self, name: str) -> str:
         """Get the query for the given name"""
         return self.queries.get(name, "")
