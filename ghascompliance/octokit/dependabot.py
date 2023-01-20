@@ -12,6 +12,7 @@ class Dependencies(OctoRequests):
         self.headers["Accept"] = "application/vnd.github.hawkgirl-preview+json"
 
         self.dependencies = []
+        self.alerts = []
 
         # get current file path
         self.query_path = os.path.join(
@@ -35,6 +36,10 @@ class Dependencies(OctoRequests):
 
     def getOpenAlerts(self, response: dict = {}):
         """Get Open Security Dependencies Alerts"""
+
+        # if dependencies are in a PR
+        if self.github.inPullRequest():
+            return self.getPRDependencies()[1]
 
         variables = {"owner": self.github.owner, "repo": self.github.repo}
 
@@ -108,7 +113,7 @@ class Dependencies(OctoRequests):
 
         # if dependencies are in a PR
         if self.github.inPullRequest():
-            return self.getPRDependencies()
+            return self.getPRDependencies()[0]
 
         variables = {"owner": self.github.owner, "repo": self.github.repo}
 
@@ -224,11 +229,14 @@ class Dependencies(OctoRequests):
 
     def getPRDependencies(self) -> list:
         """Diff the dependencies against the base branch
-        
+
         https://docs.github.com/en/enterprise-cloud@latest/rest/dependency-graph/dependency-review?apiVersion=2022-11-28#get-a-diff-of-the-dependencies-between-commits
         https://docs.github.com/en/enterprise-server@3.6/rest/dependency-graph/dependency-review#get-a-diff-of-the-dependencies-between-commits
         """
-        base, head = self.getPullRequestBaseHead()
+        pr_info = self.getPullRequestInfo()
+        base = pr_info.get("base", {}).get("ref")
+        head = pr_info.get("head", {}).get("ref")
+
         Octokit.debug(f"Creating diff for PR: `{base}...{head}`")
 
         full_url = self.github.get("api.rest") + self.format(
@@ -241,9 +249,8 @@ class Dependencies(OctoRequests):
             Octokit.warning(
                 f"Failed to get diff information for dependencies: {base}...{head}"
             )
-            return dependencies
+            return self.dependencies
 
-        dependencies = []
         for dependency in diff_response.json():
             if dependency.get("change_type") == "added":
                 name = dependency.get("name")
@@ -255,7 +262,7 @@ class Dependencies(OctoRequests):
                 if not license:
                     license = "NA"
 
-                dependencies.append(
+                self.dependencies.append(
                     {
                         "name": name,
                         # TODO: change to PURL format
@@ -267,9 +274,31 @@ class Dependencies(OctoRequests):
                     }
                 )
 
-        return dependencies
+                for vuln in dependency.get("vulnerabilities"):
+                    self.alerts.append(
+                        {
+                            "createdAt": pr_info.get("created_at"),
+                            "dismissReason": None,
+                            "securityVulnerability": {
+                                "package": {
+                                    "name": name,
+                                    "ecosystem": manager,
+                                }
+                            },
+                            "securityAdvisory": {
+                                "ghsaId": vuln.get("advisory_ghsa_id"),
+                                "severity": vuln.get("severity"),
+                            },
+                        }
+                    )
 
-    def getPullRequestBaseHead(self) -> tuple[str, str]:
+        return (self.dependencies, self.alerts)
+
+    def getPullRequestInfo(self) -> tuple[str, str]:
+        """Get the base and head for the current pull request
+
+        https://docs.github.com/en/enterprise-cloud@latest/rest/pulls/pulls#get-a-pull-request
+        """
         pull_number = self.github.getPullRequestNumber()
 
         full_url = self.github.get("api.rest") + self.format(
@@ -280,9 +309,9 @@ class Dependencies(OctoRequests):
             Octokit.warning(
                 f"Failed to get diff information for dependencies: `{pull_number}`"
             )
-            return ("", "")
-        resp = pr_response.json()
-        return (resp.get("base", {}).get("ref"), resp.get("head", {}).get("ref"))
+            return {}
+
+        return pr_response.json()
 
     def getQuery(self, name: str) -> str:
         """Get the query for the given name"""
@@ -320,4 +349,5 @@ if __name__ == "__main__":
         )
         alert_id = alert.get("securityAdvisory", {}).get("ghsaId")
         severity = alert.get("securityAdvisory", {}).get("severity")
+
         print(f"{index:<4} [{manager:^12}] {alert_id:<20} ({severity:^12}) <-> {name}")
