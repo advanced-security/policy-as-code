@@ -3,16 +3,14 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
+[packages]
+pyyaml = "*"
+ghastoolkit = "==0.1.13"
+
 [dev-packages]
 black = "==21.5b1"
 sphinx = "*"
 myst-parser = "*"
-
-[packages]
-pyyaml = "*"
-requests = "*"
-ghastoolkit = "0.1.12"
-
 
 [scripts]
 main = "python -m ghascompliance"
