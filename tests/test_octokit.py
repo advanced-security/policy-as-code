@@ -52,8 +52,5 @@ class TestPolicyLoading(unittest.TestCase):
 
         # not a pull request
         GitHub.init("advanced-security/policy-as-code", reference="refs/heads/main")
-        pr_id = GitHub.repository.getPullRequestNumber()
-        self.assertTrue(isinstance(pr_id, int))
-        # we default to 0
-        self.assertEqual(pr_id, 0)
+        self.assertFalse(GitHub.repository.isInPullRequest())
 
