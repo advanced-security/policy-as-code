@@ -24,10 +24,9 @@ licensing:
 
 # General Dependency Alerts
 dependencies:
-  conditions:
-    names:
-      - org.projectlombok:lombok
-      - com.google.guava:guava
+  # conditions:
+  #   names:
+  #     - org.projectlombok:lombok
   # warnings:
   #   ids:
   #     - Maintenance
