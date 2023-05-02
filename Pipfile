@@ -8,9 +8,9 @@ pyyaml = "*"
 ghastoolkit = "==0.1.13"
 
 [dev-packages]
-black = "==21.5b1"
 sphinx = "*"
 myst-parser = "*"
+black = "*"
 
 [scripts]
 main = "python -m ghascompliance"
@@ -18,4 +18,3 @@ test = "python -m unittest discover -s ./tests -p 'test_*.py'"
 fmt = "black ghascompliance tests"
 lint = "black --check ghascompliance tests"
 vendor = "./vendor/update.sh"
-
