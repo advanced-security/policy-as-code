@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = "2.1.2"
+__version__ = "3.0.0"
 
 __title__ = "GitHub Advanced Security Policy as Code"
 __name__ = "ghascompliance"
@@ -20,7 +20,7 @@ __mEmail__ = ""
 __contributors__ = ["GeekMasher"]
 
 __license__ = "MIT License"
-__copyright__ = "Copyright (c) 2022, GitHub"
+__copyright__ = "Copyright (c) 2023, GitHub"
 
 __banner__ = """\
  _____  _   _   ___   _____ _____                       _ _                      

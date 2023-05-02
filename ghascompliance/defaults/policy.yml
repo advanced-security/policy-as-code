@@ -20,9 +20,14 @@ licensing:
     ids:
       - Other
       - NA
+      - NOASSERTION
 
 # General Dependency Alerts
-# dependencies:
+dependencies:
+  conditions:
+    names:
+      - org.projectlombok:lombok
+      - com.google.guava:guava
   # warnings:
   #   ids:
   #     - Maintenance
