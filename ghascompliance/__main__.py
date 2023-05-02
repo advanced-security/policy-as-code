@@ -89,7 +89,9 @@ if __name__ == "__main__":
         token=arguments.github_token,
     )
 
-    Octokit.info(f"GitHub Repository :: {GitHub.repository.owner}/{GitHub.repository.repo}")
+    Octokit.info(
+        f"GitHub Repository :: {GitHub.repository.owner}/{GitHub.repository.repo}"
+    )
     Octokit.info(f"GitHub Instance :: {GitHub.instance}")
     Octokit.info(f"GitHub Reference (branch/pr) :: {GitHub.repository.reference}")
 

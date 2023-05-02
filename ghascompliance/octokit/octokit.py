@@ -101,4 +101,3 @@ class Octokit:
                 event = yaml.safe_load(handle)
             Octokit.__EVENT__ = event
         return event
-

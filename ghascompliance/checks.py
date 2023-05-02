@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from typing import *
 
-from ghastoolkit import GitHub 
+from ghastoolkit import GitHub
 from ghastoolkit.octokit.codescanning import CodeScanning
 from ghastoolkit.octokit.dependencygraph import DependencyGraph, Dependencies
 from ghastoolkit.octokit.dependabot import Dependabot
@@ -14,9 +14,8 @@ from ghascompliance.octokit import Octokit
 
 
 __HERE__ = os.path.dirname(os.path.realpath(__file__))
-GRAPHQL_QUERIES = [
-    os.path.join(__HERE__, "octokit", "graphql")
-]
+GRAPHQL_QUERIES = [os.path.join(__HERE__, "octokit", "graphql")]
+
 
 class Checks:
     def __init__(
@@ -159,7 +158,7 @@ class Checks:
 
             # Find the dependency from the graph
             dependency = dependencies.find(name)
-            
+
             if not dependency:
                 Octokit.warning(f"Unable to find alert in DependencyGraph :: {name}")
                 continue
@@ -228,7 +227,7 @@ class Checks:
         if GitHub.repository.isInPullRequest():
             Octokit.info("Dependencies from Pull Request")
             # TODO check this
-        
+
         if not self.policy.policy and not self.policy.policy.get("licensing"):
             Octokit.debug("Skipping as licensing policy not set")
             return licensing_errors
@@ -236,9 +235,13 @@ class Checks:
         # Warnings (NA, etc)
         warnings = Dependencies()
 
-        warnings_ids = self.policy.policy.get("licensing", {}).get("warnings", {}).get("ids", [])
-        warnings_names = self.policy.policy.get("licensing", {}).get("warnings", {}).get("names", [])
- 
+        warnings_ids = (
+            self.policy.policy.get("licensing", {}).get("warnings", {}).get("ids", [])
+        )
+        warnings_names = (
+            self.policy.policy.get("licensing", {}).get("warnings", {}).get("names", [])
+        )
+
         warnings.extend(dependencies.findLicenses(warnings_ids))
         warnings.extend(dependencies.findNames(warnings_names))
 
@@ -251,16 +254,26 @@ class Checks:
                         warning, warning.licence
                     )
                 )
-        
-        ignores_ids = self.policy.policy.get("licensing", {}).get("ingores", {}).get("ids", [])
-        ignores_names = self.policy.policy.get("licensing", {}).get("ingores", {}).get("names", [])
+
+        ignores_ids = (
+            self.policy.policy.get("licensing", {}).get("ingores", {}).get("ids", [])
+        )
+        ignores_names = (
+            self.policy.policy.get("licensing", {}).get("ingores", {}).get("names", [])
+        )
 
         # License Checks (GPL, etc)
         violations = Dependencies()
 
-        violations_ids = self.policy.policy.get("licensing", {}).get("conditions", {}).get("ids", [])
-        violations_names = self.policy.policy.get("licensing", {}).get("conditions", {}).get("names", [])
- 
+        violations_ids = (
+            self.policy.policy.get("licensing", {}).get("conditions", {}).get("ids", [])
+        )
+        violations_names = (
+            self.policy.policy.get("licensing", {})
+            .get("conditions", {})
+            .get("names", [])
+        )
+
         violations.extend(dependencies.findLicenses(violations_ids))
         violations.extend(dependencies.findNames(violations_names))
 
@@ -270,9 +283,7 @@ class Checks:
                 continue
 
             Octokit.error(
-                "Dependency Graph Alert :: {} = {}".format(
-                    violation, violation.licence
-                )
+                "Dependency Graph Alert :: {} = {}".format(violation, violation.licence)
             )
 
             licensing_errors += 1
@@ -311,9 +322,7 @@ class Checks:
             #  none is set to just check if the name or pattern is discovered
             if self.policy.checkViolation("none", "dependencies", names=names, ids=ids):
                 Octokit.error(
-                    "Dependency Graph Alert :: {}".format(
-                        dependency.fullname
-                    )
+                    "Dependency Graph Alert :: {}".format(dependency.fullname)
                 )
                 dependency_errors += 1
 
@@ -338,7 +347,6 @@ class Checks:
             Octokit.info("Secret Scanning Alerts from Pull Request")
 
         for alert in alerts:
-
             alert_creation_time = datetime.strptime(
                 alert.get("created_at"), "%Y-%m-%dT%XZ"
             )
