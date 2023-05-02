@@ -23,7 +23,7 @@ licensing:
       - NOASSERTION
 
 # General Dependency Alerts
-dependencies:
+# dependencies:
   # conditions:
   #   names:
   #     - org.projectlombok:lombok
