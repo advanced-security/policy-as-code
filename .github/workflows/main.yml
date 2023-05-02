@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip pipenv
-          pipenv sync
+          pipenv sync -d
 
       # Unit tests
       - name: Run Unit tests
@@ -34,7 +34,7 @@ jobs:
 
       - name: Run Formatter
         run: |
-          pipenv run fmt
+          pipenv run lint
 
 
   action-test:
