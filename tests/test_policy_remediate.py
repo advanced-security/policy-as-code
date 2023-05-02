@@ -24,7 +24,6 @@ class TestPolicyLoading(unittest.TestCase):
         return super().setUp()
 
     def testLoadingGeneral(self):
-
         self.policy.loadPolicy(self.example)
 
         self.assertIsNotNone(self.policy.remediate)

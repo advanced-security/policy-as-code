@@ -13,9 +13,7 @@ from ghascompliance.octokit.octokit import GitHub
 class TestPolicyLoading(unittest.TestCase):
     def setUp(self) -> None:
         # reset
-        GitHub.init(
-            "advanced-security/policy-as-code", instance="https://github.com"
-        )
+        GitHub.init("advanced-security/policy-as-code", instance="https://github.com")
 
     def testGitHubInstance(self):
         instance = "https://github.com"
@@ -31,9 +29,7 @@ class TestPolicyLoading(unittest.TestCase):
 
         self.assertEqual(GitHub.instance, instance)
         self.assertEqual(GitHub.api_rest, "https://ghes.example.com/api")
-        self.assertEqual(
-            GitHub.api_graphql, "https://ghes.example.com/api/graphql"
-        )
+        self.assertEqual(GitHub.api_graphql, "https://ghes.example.com/api/graphql")
 
     def testInPullRequest(self):
         # main ref
@@ -53,4 +49,3 @@ class TestPolicyLoading(unittest.TestCase):
         # not a pull request
         GitHub.init("advanced-security/policy-as-code", reference="refs/heads/main")
         self.assertFalse(GitHub.repository.isInPullRequest())
-
