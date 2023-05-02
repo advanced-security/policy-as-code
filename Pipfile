@@ -15,5 +15,6 @@ myst-parser = "*"
 [scripts]
 main = "python -m ghascompliance"
 test = "python -m unittest discover -s ./tests -p 'test_*.py'"
+fmt = "black ghascompliance tests"
 vendor = "./vendor/update.sh"
 format = "black ."
