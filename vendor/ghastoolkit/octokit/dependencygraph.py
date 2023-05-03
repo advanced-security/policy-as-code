@@ -1,3 +1,4 @@
+import fnmatch
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -20,7 +21,7 @@ class Dependency:
 
     licence: Optional[str] = None
 
-    def getPurl(self, version: bool = True) -> str:
+    def getPurl(self) -> str:
         """Get PURL
         https://github.com/package-url/purl-spec
         """
@@ -30,7 +31,7 @@ class Dependency:
         if self.namespace:
             result += f"{self.namespace}/"
         result += f"{self.name}"
-        if version and self.version:
+        if self.version:
             result += f"@{self.version}"
 
         return result
@@ -38,41 +39,20 @@ class Dependency:
     @staticmethod
     def fromPurl(purl: str) -> "Dependency":
         dep = Dependency("")
-        # version (at end)
-        if "@" in purl:
-            pkg, dep.version = purl.split("@", 1)
-        else:
-            pkg = purl
+        pkg, dep.version = purl.split("@", 1)
 
-        slashes = pkg.count("/")
-        if slashes == 0 and pkg.count(":", 1):
-            # basic purl `npm:name`
-            manager, dep.name = pkg.split(":", 1)
-        elif slashes == 2:
+        if pkg.count("/") == 2:
             manager, dep.namespace, dep.name = pkg.split("/", 3)
-        elif slashes == 1:
+        elif pkg.count("/") == 1:
             manager, dep.name = pkg.split("/", 2)
-        elif slashes > 2:
+        elif pkg.count("/") > 2:
             manager, dep.namespace, dep.name = pkg.split("/", 2)
         else:
             raise Exception(f"Unable to parse PURL :: {purl}")
 
-        if manager.startswith("pkg:"):
-            _, dep.manager = manager.split(":", 1)
-        else:
-            dep.manager = manager
+        _, dep.manager = manager.split(":", 1)
 
         return dep
-
-    @property
-    def fullname(self) -> str:
-        """Full Name of the Dependency"""
-        if self.namespace:
-            sep = "/"
-            if self.manager == "maven":
-                sep = ":"
-            return f"{self.namespace}{sep}{self.name}"
-        return self.name
 
     def __str__(self) -> str:
         return self.getPurl()
@@ -127,24 +107,6 @@ class Dependencies(list[Dependency]):
                 if any(regex.search(dep.licence or "NA") for regex in regex_list)
             ]
         )
-
-    def findUnknownLicenses(
-        self, licenses: Optional[list[str]] = None
-    ) -> "Dependencies":
-        licenses = licenses or ["NA", "NOASSERTION"]
-        return self.findLicenses(licenses)
-
-    def contains(self, dependency: Dependency) -> bool:
-        purl = dependency.getPurl(version=False)
-        for dep in self:
-            if dep.name == dependency.name or dep.getPurl(version=False) == purl:
-                return True
-        return False
-
-    def find(self, name: str) -> Optional[Dependency]:
-        for dep in self:
-            if dep.name == name or dep.fullname == name:
-                return dep
 
     def findNames(self, names: list[str]) -> "Dependencies":
         """Find by Name using wildcards"""

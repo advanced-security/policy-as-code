@@ -1,6 +1,8 @@
 import logging
 from typing import Optional
 
+from requests import options
+
 from ghastoolkit import GitHub, Repository
 from ghastoolkit.octokit.octokit import GraphQLRequest
 
@@ -28,8 +30,7 @@ class Dependabot:
                 .get("vulnerabilityAlerts", {})
             )
 
-            for alert in alerts.get("edges", []):
-                results.append(alert.get("node", {}))
+            results.extend(alerts.get("edges", []))
 
             if not alerts.get("pageInfo", {}).get("hasNextPage"):
                 logger.debug(f"GraphQL cursor hit end page")

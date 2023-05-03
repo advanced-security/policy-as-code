@@ -1,12 +1,13 @@
 import os
 import json
+from ghastoolkit.octokit.octokit import GitHub, Repository
 import yaml
 import shutil
 import fnmatch
 import datetime
 import tempfile
 import subprocess
-from typing import List
+from typing import List, Optional
 from urllib.parse import urlparse
 from ghascompliance.consts import SEVERITIES, TECHNOLOGIES, LICENSES
 from ghascompliance.octokit import Octokit
@@ -22,13 +23,13 @@ class Policy:
 
     def __init__(
         self,
-        severity="error",
-        repository=None,
-        token=None,
-        isGithubAppToken=False,
-        path=None,
-        branch=None,
-        instance="https://github.com",
+        severity: str = "error",
+        repository: Optional[str] = None,
+        token: Optional[str] = None,
+        isGithubAppToken: bool = False,
+        path: Optional[str] = None,
+        branch: Optional[str] = None,
+        instance: str = "https://github.com",
     ):
         self.risk_level = severity
 
@@ -40,8 +41,13 @@ class Policy:
         self.instance = instance
         self.token = token
         self.isGithubAppToken = isGithubAppToken
-        self.branch = branch
-        self.repository = repository
+
+        if repository:
+            self.repository = Repository.parseRepository(repository)
+            self.repository.branch = branch
+        else:
+            self.repository = None
+
         self.repository_path = path
 
         self.temp_repo = None
@@ -52,51 +58,26 @@ class Policy:
             self.loadLocalConfig(path)
 
     def loadFromRepo(self):
-        instance = urlparse(self.instance).netloc
-        if self.token:
-            if not self.isGithubAppToken:
-                repo = "https://" + self.token + "@" + instance + "/" + self.repository
-            else:
-                repo = (
-                    "https://"
-                    + "x-access-token:"
-                    + self.token
-                    + "@"
-                    + instance
-                    + "/"
-                    + self.repository
-                )
-        else:
-            repo = "https://" + instance + "/" + self.repository
+        """ Load policy from repository"""
+        if not self.repository:
+            raise Exception(f"Loading from repository but no repository is set")
 
-        self.temp_repo = os.path.join(tempfile.gettempdir(), "repo")
-
-        if os.path.exists(self.temp_repo):
+        # setup
+        self.repository.clone_path = os.path.join(tempfile.gettempdir(), "repo")
+        Octokit.debug(f"Clone Policy URL :: {self.repository.clone_url}")
+        
+        if os.path.exists(self.repository.clone_path):
             Octokit.debug("Deleting existing temp path")
-            shutil.rmtree(self.temp_repo)
+            shutil.rmtree(self.repository.clone_path)
 
         Octokit.info(f"Cloning policy repo - {self.repository}")
+        self.repository.clone(clobber=True, depth=1)
 
-        cmd = ["git", "clone", "--depth=1"]
-
-        if self.branch:
-            cmd.extend(["-b", self.branch])
-
-        cmd.extend([repo, self.temp_repo])
-
-        Octokit.debug(f"Running command - {cmd}")
-
-        with open(os.devnull, "w") as null:
-            subprocess.run(
-                cmd,
-                stdout=null,
-                stderr=null,
-            )
-
-        if not os.path.exists(self.temp_repo):
+        if not os.path.exists(self.repository.clone_path):
             raise Exception("Repository failed to clone")
-
-        full_path = os.path.join(self.temp_repo, self.repository_path)
+        
+        # get the policy file
+        full_path = self.repository.getFile(self.repository_path or "policy.yml")
 
         self.loadLocalConfig(full_path)
 

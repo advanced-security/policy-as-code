@@ -1,11 +1,13 @@
+import json
 import os
 import inspect
 import logging
+from os.path import isdir
 from string import Template
 from typing import Any, Optional, Union
-from dataclasses import field, is_dataclass
 
 from requests import Session
+from requests.models import Response
 from ratelimit import limits, sleep_and_retry
 
 from ghastoolkit.octokit.github import GitHub, Repository
@@ -44,36 +46,6 @@ class Octokit:
         return formatted_path
 
 
-class OctoItem:
-    """OctoItem"""
-
-    __data__: dict = field(default_factory=dict)
-
-    def get(self, name) -> Any:
-        return self.__getattr__(name)
-
-    def __getattr__(self, name) -> Any:
-        """Get Attr"""
-        if hasattr(self, name):
-            return getattr(self, name)
-        elif self.__data__ and self.__data__.get(name):
-            return self.__data__.get(name)
-        raise Exception(f"Unknown key: {name}")
-
-
-def loadOctoItem(classtype, data: dict):
-    if not issubclass(classtype, OctoItem) and is_dataclass(classtype):
-        raise Exception(f"Class should be a OctoItem")
-
-    initdata = {}
-    for key, value in data.items():
-        if classtype.__annotations__.get(key):
-            initdata[key] = value
-    new = classtype(**initdata)
-    new.__data__ = data
-    return new
-
-
 class RestRequest:
     PER_PAGE = 100
     VERSION: str = "2022-11-28"
@@ -101,7 +73,6 @@ class RestRequest:
                 args_index = 0
                 response = False
                 func_info = inspect.getfullargspec(func)
-                return_type = func_info.annotations.get("return")
                 defaults = func_info.defaults or ()
 
                 # if len(func_info.args) - 1 != len(defaults):
@@ -135,22 +106,6 @@ class RestRequest:
                 # if return_type and not type(result) is return_type.__origin__:
                 #     name = f"{self.__class__.__name__}.{func.__name__}()"
                 #     raise Exception(f"Unexpected type returned for `{name}`")
-
-                # return is a list
-                if return_type.__origin__ == Union:
-                    logger.debug(f"Ignoring Union type")
-                elif (
-                    return_type
-                    and isinstance(result, return_type.__origin__)
-                    and return_type.__origin__ == list
-                ):
-                    subtype = return_type.__args__[0]
-                    if issubclass(subtype, OctoItem):
-                        new_results = []
-                        for rslt in result:
-                            new_results.append(loadOctoItem(subtype, rslt))
-
-                        return new_results
 
                 return result
 
@@ -255,11 +210,9 @@ class GraphQLRequest:
         self.loadQueries(DEFAULT_GRAPHQL_PATHS)
 
     def query(self, name: str, options: dict[str, Any] = {}) -> dict:
-        logger.debug(f"Loading Query by Name :: {name}")
         query_content = self.queries.get(name)
-
         if not query_content:
-            raise Exception(f"Failed to load GraphQL query :: {name}")
+            return {}
 
         cursor = f'after: "{self.cursor}"' if self.cursor != "" else ""
 
@@ -282,11 +235,7 @@ class GraphQLRequest:
 
     def loadQueries(self, paths: list[str]):
         for path in paths:
-            if not os.path.exists(path):
-                logger.debug(f"Query load path does not exist :: {path}")
-                continue
             if not os.path.isdir(path):
-                logger.debug(f"Query path is not a dir :: {path}")
                 continue
             for file in os.listdir(path):
                 root = os.path.join(path, file)

@@ -40,7 +40,7 @@ class Repository:
 
     def getPullRequestNumber(self) -> int:
         """Get Pull Request Number"""
-        if self.isInPullRequest() and self.reference:
+        if self.reference:
             return int(self.reference.split("/")[2])
         return 0
 
@@ -80,8 +80,6 @@ class GitHub:
     api_rest: str = "https://api.github.com"
     api_graphql: str = "https://api.github.com/graphql"
 
-    enterprise: Optional[str] = None
-
     github_app: bool = False
 
     @staticmethod
@@ -93,7 +91,6 @@ class GitHub:
         branch: Optional[str] = None,
         token: Optional[str] = os.environ.get("GITHUB_TOKEN"),
         instance: Optional[str] = None,
-        enterprise: Optional[str] = None,
     ) -> None:
         if repository:
             GitHub.repository = Repository.parseRepository(repository)
@@ -112,13 +109,10 @@ class GitHub:
             GitHub.instance = instance
             GitHub.api_rest, GitHub.api_graphql = GitHub.parseInstance(instance)
 
-        GitHub.enterprise = enterprise
-
         return
 
     @staticmethod
     def parseInstance(instance: str) -> Tuple[str, str]:
-        """Parse GitHub Instance"""
         url = urlparse(instance)
 
         # GitHub Cloud (.com)
@@ -126,6 +120,6 @@ class GitHub:
             api = url.scheme + "://api." + url.netloc
             return (api, f"{api}/graphql")
         # GitHub Ent Server
-        api = url.scheme + "://" + url.netloc + "/api/v3"
+        api = url.scheme + "://" + url.netloc + "/api"
 
         return (api, f"{api}/graphql")
