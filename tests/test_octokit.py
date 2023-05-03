@@ -28,8 +28,8 @@ class TestPolicyLoading(unittest.TestCase):
         GitHub.init("GeekMasher/advanced-security-compliance", instance=instance)
 
         self.assertEqual(GitHub.instance, instance)
-        self.assertEqual(GitHub.api_rest, "https://ghes.example.com/api")
-        self.assertEqual(GitHub.api_graphql, "https://ghes.example.com/api/graphql")
+        self.assertEqual(GitHub.api_rest, "https://ghes.example.com/api/v3")
+        self.assertEqual(GitHub.api_graphql, "https://ghes.example.com/api/v3/graphql")
 
     def testInPullRequest(self):
         # main ref
