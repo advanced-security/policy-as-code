@@ -15,7 +15,6 @@ class TestPolicyLoadingRemote(unittest.TestCase):
         return super().setUp()
 
     def tearDown(self):
-
         if os.path.exists(self.policy.temp_repo):
             shutil.rmtree(self.policy.temp_repo)
 

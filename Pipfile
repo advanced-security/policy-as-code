@@ -3,19 +3,18 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
-[dev-packages]
-black = "==21.5b1"
-sphinx = "*"
-myst-parser = "*"
-
 [packages]
 pyyaml = "*"
-requests = "*"
+ghastoolkit = "==0.1.14"
 
-[requires]
-python_version = "3.10"
+[dev-packages]
+sphinx = "*"
+myst-parser = "*"
+black = "*"
 
 [scripts]
 main = "python -m ghascompliance"
+test = "python -m unittest discover -s ./tests -p 'test_*.py'"
+fmt = "black ghascompliance tests"
+lint = "black --check ghascompliance tests"
 vendor = "./vendor/update.sh"
-format = "black ."

@@ -3,9 +3,11 @@ import json
 import argparse
 import logging
 
+from ghastoolkit.octokit.github import GitHub
+
 from ghascompliance.__version__ import __name__ as tool_name, __banner__, __url__
 from ghascompliance.consts import SEVERITIES
-from ghascompliance.octokit import Octokit, GitHub
+from ghascompliance.octokit import Octokit
 from ghascompliance.policy import Policy
 from ghascompliance.checks import *
 
@@ -80,16 +82,18 @@ if __name__ == "__main__":
     if not arguments.github_repository:
         raise Exception("Github Repository required")
 
-    github = GitHub(
-        repository=arguments.github_repository,
+    GitHub.init(
+        arguments.github_repository,
         instance=arguments.github_instance,
+        reference=arguments.github_ref,
         token=arguments.github_token,
-        ref=arguments.github_ref,
     )
 
-    Octokit.info(f"GitHub Repository :: {github.repo}")
-    Octokit.info(f"GitHub Instance :: {github.instance}")
-    Octokit.info(f"GitHub Reference (branch/pr) :: {github.ref}")
+    Octokit.info(
+        f"GitHub Repository :: {GitHub.repository.owner}/{GitHub.repository.repo}"
+    )
+    Octokit.info(f"GitHub Instance :: {GitHub.instance}")
+    Octokit.info(f"GitHub Reference (branch/pr) :: {GitHub.repository.reference}")
 
     if arguments.list_severities:
         for severity in SEVERITIES:
@@ -157,7 +161,6 @@ if __name__ == "__main__":
     Octokit.endGroup()
 
     checks = Checks(
-        github,
         policy,
         debugging=arguments.debug,
         display=arguments.display,

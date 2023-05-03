@@ -11,41 +11,41 @@ from ghascompliance.octokit.octokit import GitHub
 
 
 class TestPolicyLoading(unittest.TestCase):
+    def setUp(self) -> None:
+        # reset
+        GitHub.init("advanced-security/policy-as-code", instance="https://github.com")
+
     def testGitHubInstance(self):
         instance = "https://github.com"
-        github = GitHub("GeekMasher/advanced-security-compliance", instance=instance)
+        GitHub.init("GeekMasher/advanced-security-compliance", instance=instance)
 
-        self.assertEqual(github.get("instance"), instance)
-        self.assertEqual(github.get("api.rest"), "https://api.github.com")
-        self.assertEqual(github.get("api.graphql"), "https://api.github.com/graphql")
+        self.assertEqual(GitHub.instance, instance)
+        self.assertEqual(GitHub.api_rest, "https://api.github.com")
+        self.assertEqual(GitHub.api_graphql, "https://api.github.com/graphql")
 
     def testGitHubServerInstance(self):
         instance = "https://ghes.example.com"
-        github = GitHub("GeekMasher/advanced-security-compliance", instance=instance)
+        GitHub.init("GeekMasher/advanced-security-compliance", instance=instance)
 
-        self.assertEqual(github.get("instance"), instance)
-        self.assertEqual(github.get("api.rest"), "https://ghes.example.com/api/v3")
-        self.assertEqual(
-            github.get("api.graphql"), "https://ghes.example.com/api/graphql"
-        )
+        self.assertEqual(GitHub.instance, instance)
+        self.assertEqual(GitHub.api_rest, "https://ghes.example.com/api/v3")
+        self.assertEqual(GitHub.api_graphql, "https://ghes.example.com/api/v3/graphql")
 
     def testInPullRequest(self):
         # main ref
-        github = GitHub("advanced-security/policy-as-code", ref="refs/heads/main")
-        self.assertEqual(github.inPullRequest(), False)
+        GitHub.init("advanced-security/policy-as-code", reference="refs/heads/main")
+        self.assertEqual(GitHub.repository.isInPullRequest(), False)
+
         # pr ref
-        github = GitHub("advanced-security/policy-as-code", ref="refs/pull/1/merge")
-        self.assertEqual(github.inPullRequest(), True)
+        GitHub.init("advanced-security/policy-as-code", reference="refs/pull/1/merge")
+        self.assertEqual(GitHub.repository.isInPullRequest(), True)
 
     def testGetPullRequestNumber(self):
-        github = GitHub("advanced-security/policy-as-code", ref="refs/pull/1/merge")
-        pr_id = github.getPullRequestNumber()
+        GitHub.init("advanced-security/policy-as-code", reference="refs/pull/1/merge")
+        pr_id = GitHub.repository.getPullRequestNumber()
         self.assertTrue(isinstance(pr_id, int))
         self.assertEqual(pr_id, 1)
 
         # not a pull request
-        github = GitHub("advanced-security/policy-as-code", ref="refs/heads/main")
-        pr_id = github.getPullRequestNumber()
-        self.assertTrue(isinstance(pr_id, int))
-        # we default to 0
-        self.assertEqual(pr_id, 0)
+        GitHub.init("advanced-security/policy-as-code", reference="refs/heads/main")
+        self.assertFalse(GitHub.repository.isInPullRequest())

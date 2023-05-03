@@ -16,7 +16,6 @@ __SCHEMA_VALIDATION__ = "Schema Validation Failed :: {msg} - {value}"
 
 
 class Policy:
-
     __BLOCK_ITEMS__ = ["ids", "names", "imports", "remediate"]
     __SECTION_ITEMS__ = ["level", "remediate", "conditions", "warnings", "ignores"]
     __IMPORT_ALLOWED_TYPES__ = ["txt"]
@@ -47,7 +46,6 @@ class Policy:
 
         self.temp_repo = None
 
-
         if repository and repository != "":
             self.loadFromRepo()
         elif path and path != "":
@@ -59,7 +57,15 @@ class Policy:
             if not self.isGithubAppToken:
                 repo = "https://" + self.token + "@" + instance + "/" + self.repository
             else:
-                repo = "https://" + "x-access-token:" + self.token + "@" + instance + "/" + self.repository
+                repo = (
+                    "https://"
+                    + "x-access-token:"
+                    + self.token
+                    + "@"
+                    + instance
+                    + "/"
+                    + self.repository
+                )
         else:
             repo = "https://" + instance + "/" + self.repository
 
@@ -106,7 +112,6 @@ class Policy:
         self.loadPolicy(policy)
 
     def loadPolicy(self, policy: dict):
-
         if not policy.get("general"):
             policy["general"] = {}
 
@@ -131,7 +136,6 @@ class Policy:
         self.policy = policy
 
     def loadPolicySection(self, name: str, data: dict):
-
         time_to_remediate_policy = False
 
         for section, section_data in data.items():
@@ -172,7 +176,6 @@ class Policy:
                     )
 
                 for block in Policy.__BLOCK_ITEMS__:
-
                     Octokit.debug(f"Importing > {section} - {block}")
 
                     import_path = section_data.get("imports", {}).get(block)
@@ -440,7 +443,6 @@ class Policy:
         ]
 
         for value in [license, dependency_full, dependency_name, dependency_short_name]:
-
             # return false (ignore) if name or id is defined in the ignore portion of the policy
             if self.matchContent(value, ingore_ids) or self.matchContent(
                 value, ingore_names

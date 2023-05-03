@@ -2,17 +2,32 @@
 set -e
 
 export VENDOR="$(pwd)/vendor"
-echo "Vendor path: $VENDOR"
+echo "[+] Vendor path: $VENDOR"
 
 echo "[+] Delete all folders in vendor"
 rm -rf "$VENDOR/*/"
 
-echo "[+] Install all dependencies"
-pipenv run pip freeze > "$VENDOR/requirements.txt"
-pip install -r "$VENDOR/requirements.txt" --target=$VENDOR --upgrade
+if [ -f $PWD/Pipfile ]; then
+    echo "[+] Install all dependencies (pipenv)"
+    pipenv run pip freeze > "$VENDOR/requirements.txt"
+    pip install -r "$VENDOR/requirements.txt" --target=$VENDOR --upgrade
 
-echo "[+] Clean up vendor folder"
-rm -rf $VENDOR/*dist-info && \
-    rm -rf $VENDOR/requirements.txt
+    echo "[+] Clean up vendor folder"
+    rm -rf $VENDOR/*dist-info && \
+        rm -rf $VENDOR/requirements.txt
 
-echo "Completed vendor update"
+elif [ -f $PWD/requirements.txt ]; then
+    echo "[+] Install all dependencies (pip -> requirements)"
+    pip install -r $PWD/requirements.txt --target=$VENDOR --upgrade
+
+    echo "[+] Clean up vendor folder"
+    rm -rf $VENDOR/*dist-info && \
+        rm -rf $VENDOR/requirements.txt
+
+else 
+    echo "[!] Unsupported Python installer, please update the 'vendor/update.sh' script"
+    exit 1
+fi
+
+echo "[+] Completed vendor update"
+

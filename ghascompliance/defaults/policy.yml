@@ -20,9 +20,13 @@ licensing:
     ids:
       - Other
       - NA
+      - NOASSERTION
 
 # General Dependency Alerts
 # dependencies:
+  # conditions:
+  #   names:
+  #     - org.projectlombok:lombok
   # warnings:
   #   ids:
   #     - Maintenance

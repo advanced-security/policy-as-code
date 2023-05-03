@@ -1,26 +1,31 @@
 import os
 import json
 from datetime import datetime
-from typing import Callable, List
+from typing import *
+
+from ghastoolkit import GitHub
+from ghastoolkit.octokit.codescanning import CodeScanning
+from ghastoolkit.octokit.dependencygraph import DependencyGraph, Dependencies
+from ghastoolkit.octokit.dependabot import Dependabot
+from ghastoolkit.octokit.secretscanning import SecretScanning
 
 from ghascompliance.policy import Policy
-from ghascompliance.octokit import Octokit, GitHub
-from ghascompliance.octokit.codescanning import CodeScanning
-from ghascompliance.octokit.secretscanning import SecretScanning
-from ghascompliance.octokit.dependabot import Dependencies
+from ghascompliance.octokit import Octokit
+
+
+__HERE__ = os.path.dirname(os.path.realpath(__file__))
+GRAPHQL_QUERIES = [os.path.join(__HERE__, "octokit", "graphql")]
 
 
 class Checks:
     def __init__(
         self,
-        github: GitHub,
         policy: Policy,
         display: bool = False,
         debugging: bool = False,
         results_path: str = ".compliance",
         caching: bool = True,
     ):
-        self.github = github
         self.policy = policy
 
         self.display = display
@@ -59,11 +64,13 @@ class Checks:
         Octokit.createGroup("Code Scanning Results")
         code_scanning_errors = 0
 
-        codescanning = CodeScanning(self.github)
+        codescanning = CodeScanning()
 
-        alerts = codescanning.getOpenAlerts(params={"ref": self.github.ref})
+        alerts = codescanning.getAlerts("open")
+
         Octokit.info("Total Code Scanning Alerts :: " + str(len(alerts)))
-        if self.github.inPullRequest():
+
+        if GitHub.repository.isInPullRequest():
             Octokit.info("Code Scanning Alerts from Pull Request (alert diff)")
 
         self.writeResults("code-scanning", alerts)
@@ -119,44 +126,46 @@ class Checks:
 
     def checkDependabot(self):
         Octokit.createGroup("Dependabot Results")
-
         dependabot_errors = 0
 
-        dependabot = Dependencies(self.github)
+        # Alerts
+        dependabot = Dependabot(GitHub.repository)
+        # Load the GraphQL Queries from the repo
+        dependabot.graphql.loadQueries(GRAPHQL_QUERIES)
+        alerts = dependabot.getAlerts()
 
-        # Get all Dependencies data
-        alerts = self.getResults("dependabot", dependabot.getOpenAlerts)
-        dependencies = self.getResults("dependencies", dependabot.getDependencies)
+        # Dependencies
+        depgraph = DependencyGraph()
+        dependencies = depgraph.getDependencies()
 
         Octokit.info("Total Dependabot Alerts :: " + str(len(alerts)))
-        if self.github.inPullRequest():
+
+        if GitHub.repository.isInPullRequest():
             Octokit.info("Dependabot Alerts from Pull Request")
 
         for alert in alerts:
             package = alert.get("securityVulnerability", {}).get("package", {})
-
-            full_name = Dependencies.createDependencyName(
-                package.get("ecosystem", "N/A"), package.get("name", "N/A")
-            )
+            name = package.get("name", "N/A")
 
             if alert.get("dismissReason") is not None:
                 Octokit.debug(
                     "Skipping Dependabot alert :: {} - {} ".format(
-                        full_name,
+                        name,
                         alert.get("dismissReason"),
                     )
                 )
                 continue
 
             # Find the dependency from the graph
-            dependency: dict = None
-            for dep in dependencies:
-                if dep.get("full_name").startswith(full_name):
-                    dependency = dep
-                    break
+            dependency = dependencies.find(name)
+
+            if not dependency:
+                Octokit.warning(f"Unable to find alert in DependencyGraph :: {name}")
+                continue
 
             advisory = alert.get("securityAdvisory", {})
-            severity = advisory.get("severity").lower()
+            severity = advisory.get("severity", "note").lower()
+            full_name = dependency.fullname
 
             alert_creation_time = datetime.strptime(
                 alert.get("createdAt"), "%Y-%m-%dT%XZ"
@@ -173,11 +182,11 @@ class Checks:
 
             names = []
             #  maven://org.apache.commons
-            names.append(full_name)
+            names.append(name)
+
             if dependency:
-                full_name = dependency.get("full_name")
                 #  maven://org.apache.commons#1.0
-                names.append(dependency.get("full_name"))
+                names.append(full_name)
             else:
                 Octokit.debug(
                     "Dependency Graph to Dependabot alert match failed :: " + full_name
@@ -209,28 +218,75 @@ class Checks:
 
         licensing_errors = 0
 
-        dependabot = Dependencies(self.github)
+        # Dependencies
+        depgraph = DependencyGraph()
+        dependencies = depgraph.getDependencies()
 
-        alerts = self.getResults("dependencies", dependabot.getDependencies)
+        Octokit.info("Total Dependencies in Graph :: " + str(len(dependencies)))
 
-        Octokit.info("Total Dependency Graph Dependencies :: " + str(len(alerts)))
-        if self.github.inPullRequest():
+        if GitHub.repository.isInPullRequest():
             Octokit.info("Dependencies from Pull Request")
+            # TODO check this
 
-        for dependency in alerts:
-            Octokit.debug(" > {full_name} - {license}".format(**dependency))
+        if not self.policy.policy and not self.policy.policy.get("licensing"):
+            Octokit.debug("Skipping as licensing policy not set")
+            return licensing_errors
 
-            if self.policy.checkLicensingViolation(
-                dependency.get("license"), dependency
-            ):
-                if self.display:
-                    Octokit.error(
-                        "Dependency Graph Alert :: {full_name} = {license}".format(
-                            **dependency
-                        )
+        # Warnings (NA, etc)
+        warnings = Dependencies()
+
+        warnings_ids = (
+            self.policy.policy.get("licensing", {}).get("warnings", {}).get("ids", [])
+        )
+        warnings_names = (
+            self.policy.policy.get("licensing", {}).get("warnings", {}).get("names", [])
+        )
+
+        warnings.extend(dependencies.findLicenses(warnings_ids))
+        warnings.extend(dependencies.findNames(warnings_names))
+
+        for warning in warnings:
+            Octokit.warning(f" > {warning} - {warning.licence}")
+
+            if self.display:
+                Octokit.warning(
+                    "Dependency License Warning :: {} = {}".format(
+                        warning, warning.licence
                     )
+                )
 
-                licensing_errors += 1
+        ignores_ids = (
+            self.policy.policy.get("licensing", {}).get("ingores", {}).get("ids", [])
+        )
+        ignores_names = (
+            self.policy.policy.get("licensing", {}).get("ingores", {}).get("names", [])
+        )
+
+        # License Checks (GPL, etc)
+        violations = Dependencies()
+
+        violations_ids = (
+            self.policy.policy.get("licensing", {}).get("conditions", {}).get("ids", [])
+        )
+        violations_names = (
+            self.policy.policy.get("licensing", {})
+            .get("conditions", {})
+            .get("names", [])
+        )
+
+        violations.extend(dependencies.findLicenses(violations_ids))
+        violations.extend(dependencies.findNames(violations_names))
+
+        for violation in violations:
+            if violation.name in ignores_names or violation.licence in ignores_ids:
+                Octokit.debug(f"Skipping {violation} because in ignore list...")
+                continue
+
+            Octokit.error(
+                "Dependency Graph Alert :: {} = {}".format(violation, violation.licence)
+            )
+
+            licensing_errors += 1
 
         Octokit.info("Dependency Graph violations :: " + str(licensing_errors))
 
@@ -246,56 +302,27 @@ class Checks:
 
         dependency_errors = 0
 
-        dependabot = Dependencies(self.github)
-        dependencies = self.getResults("dependencies", dependabot.getDependencies)
+        depgraph = DependencyGraph()
+        dependencies = depgraph.getDependencies()
 
         Octokit.info("Total Dependency Graph :: " + str(len(dependencies)))
-        if self.github.inPullRequest():
+        if GitHub.repository.isInPullRequest():
             Octokit.info("Dependencies from Pull Request")
 
         policy = self.policy.policy.get("dependencies", {}).get("warnings", {})
 
         for dependency in dependencies:
-
             ids = []
-
             names = []
             # manager + name
-            names.append(
-                Dependencies.createDependencyName(
-                    dependency.get("manager"), dependency.get("name")
-                )
-            )
+            names.append(dependency.fullname)
             # manager + name + version
-            names.append(dependency.get("full_name"))
+            names.append(dependency.getPurl())
 
             #  none is set to just check if the name or pattern is discovered
             if self.policy.checkViolation("none", "dependencies", names=names, ids=ids):
-                if self.display:
-                    Octokit.error(
-                        "Dependency Graph Alert :: {}".format(
-                            dependency.get("full_name")
-                        )
-                    )
-                dependency_errors += 1
-
-            #
-            if "Maintenance" in policy.get("ids", []):
-                for main in dependency.get("maintenance", []):
-                    Octokit.warning(
-                        "{main:<18} - {full_name}".format(
-                            **dependency, main=main.title()
-                        )
-                    )
-                    dependency_errors += 1
-
-            if "Organization" in policy.get("ids", []) and not dependency.get(
-                "organization"
-            ):
-                Octokit.warning(
-                    "Dependency Graph Maintenance Alert :: {error:<18} - {full_name}".format(
-                        **dependency, error="Non-Org Repo"
-                    )
+                Octokit.error(
+                    "Dependency Graph Alert :: {}".format(dependency.fullname)
                 )
                 dependency_errors += 1
 
@@ -311,18 +338,15 @@ class Checks:
 
         secrets_errors = 0
 
-        secretscanning = SecretScanning(self.github)
+        secretscanning = SecretScanning()
 
-        alerts = secretscanning.getOpenAlerts()
+        alerts = secretscanning.getAlerts("open")
 
         Octokit.info("Total Secret Scanning Alerts :: " + str(len(alerts)))
-        if self.github.inPullRequest():
+        if GitHub.repository.isInPullRequest():
             Octokit.info("Secret Scanning Alerts from Pull Request")
 
-        self.writeResults("secretscanning", alerts)
-
         for alert in alerts:
-
             alert_creation_time = datetime.strptime(
                 alert.get("created_at"), "%Y-%m-%dT%XZ"
             )
