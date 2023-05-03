@@ -58,14 +58,14 @@ class Policy:
             self.loadLocalConfig(path)
 
     def loadFromRepo(self):
-        """ Load policy from repository"""
+        """Load policy from repository"""
         if not self.repository:
             raise Exception(f"Loading from repository but no repository is set")
 
         # setup
         self.repository.clone_path = os.path.join(tempfile.gettempdir(), "repo")
         Octokit.debug(f"Clone Policy URL :: {self.repository.clone_url}")
-        
+
         if os.path.exists(self.repository.clone_path):
             Octokit.debug("Deleting existing temp path")
             shutil.rmtree(self.repository.clone_path)
@@ -75,7 +75,7 @@ class Policy:
 
         if not os.path.exists(self.repository.clone_path):
             raise Exception("Repository failed to clone")
-        
+
         # get the policy file
         full_path = self.repository.getFile(self.repository_path or "policy.yml")
 
