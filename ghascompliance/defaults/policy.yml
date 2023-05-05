@@ -20,6 +20,7 @@ licensing:
     ids:
       - Other
       - NA
+      - None
       - NOASSERTION
 
 # General Dependency Alerts

@@ -36,6 +36,20 @@ jobs:
         run: |
           pipenv run lint
 
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: run 
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run action
+      uses: ./
+      with:
+        action: continue
+        policy: advanced-security/policy-as-code-testing
+        policy-path: policy.yml
+        token: "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
+        argvs: --display --github-repository advanced-security/policy-as-code-testing --github-ref refs/heads/main
 
   action-test:
     runs-on: ubuntu-latest
