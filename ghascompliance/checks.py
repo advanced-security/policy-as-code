@@ -204,9 +204,10 @@ class Checks:
                 ids=ids,
                 creation_time=alert_creation_time,
             ):
-                Octokit.error(
-                    f"Dependabot Alert :: {alert.advisory.ghsa_id} ({alert.severity}) - {alert.purl}"
-                )
+                if self.display:
+                    Octokit.error(
+                        f"Dependabot Alert :: {alert.advisory.ghsa_id} ({alert.severity}) - {alert.purl}"
+                    )
 
                 dependabot_errors += 1
 
@@ -296,10 +297,11 @@ class Checks:
             if violation.name in ignores_names or violation.licence in ignores_ids:
                 Octokit.debug(f"Skipping {violation} because in ignore list...")
                 continue
-
-            Octokit.error(
-                "Dependency Graph Alert :: {} = {}".format(violation, violation.licence)
-            )
+            
+            if self.display:
+                Octokit.error(
+                    "Dependency Graph Alert :: {} = {}".format(violation, violation.licence)
+                )
 
             licensing_errors += 1
 
@@ -343,9 +345,10 @@ class Checks:
 
             #  none is set to just check if the name or pattern is discovered
             if self.policy.checkViolation("none", "dependencies", names=names, ids=ids):
-                Octokit.error(
-                    "Dependency Graph Alert :: {}".format(dependency.fullname)
-                )
+                if self.display:
+                    Octokit.error(
+                        "Dependency Graph Alert :: {}".format(dependency.fullname)
+                    )
                 dependency_errors += 1
 
         Octokit.info("Dependency Graph violations :: " + str(dependency_errors))
@@ -380,9 +383,10 @@ class Checks:
             if self.policy.checkViolation(
                 "critical", "secretscanning", ids=ids, creation_time=alert_creation_time
             ):
-                Octokit.info(f"Unresolved Secret - {alert}")
+                if self.display:
+                    Octokit.info(f"Unresolved Secret - {alert}")
 
-            secrets_errors += 1
+                secrets_errors += 1
 
         Octokit.info("Secret Scanning violations :: " + str(secrets_errors))
 
