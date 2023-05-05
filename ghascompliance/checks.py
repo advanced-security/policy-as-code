@@ -72,7 +72,9 @@ class Checks:
 
         if GitHub.repository.isInPullRequest():
             Octokit.info("Code Scanning Alerts from Pull Request (alert diff)")
-            pr_base = GitHub.repository.getPullRequestInfo().get("base", {}).get("ref", "")
+            pr_base = (
+                GitHub.repository.getPullRequestInfo().get("base", {}).get("ref", "")
+            )
             alerts = codescanning.getAlertsInPR(pr_base)
 
         else:
@@ -173,12 +175,14 @@ class Checks:
             dependency = dependencies.findPurl(alert.purl)
 
             if not dependency:
-                Octokit.error(f"Unable to find alert in DependencyGraph :: {alert.purl}")
+                Octokit.error(
+                    f"Unable to find alert in DependencyGraph :: {alert.purl}"
+                )
                 continue
 
             severity = alert.severity.lower()
 
-            alert_creation_time = alert.createdAt() 
+            alert_creation_time = alert.createdAt()
 
             ids = []
             #  GitHub Advisory
@@ -190,7 +194,7 @@ class Checks:
                 # org.apache.commons
                 dependency.fullname,
                 #  maven://org.apache.commons
-                dependency.getPurl(version=False)
+                dependency.getPurl(version=False),
             ]
 
             if self.policy.checkViolation(
@@ -200,7 +204,9 @@ class Checks:
                 ids=ids,
                 creation_time=alert_creation_time,
             ):
-                Octokit.error(f"Dependabot Alert :: {alert.advisory.ghsa_id} ({alert.severity}) - {alert.purl}")
+                Octokit.error(
+                    f"Dependabot Alert :: {alert.advisory.ghsa_id} ({alert.severity}) - {alert.purl}"
+                )
 
                 dependabot_errors += 1
 
@@ -235,7 +241,7 @@ class Checks:
             licenses.load(license_path)
 
         Octokit.info(f"Loaded extra licensing information :: {len(licenses.data)}")
-        
+
         dependencies.applyLicenses(licenses)
 
         Octokit.info("Total Dependencies in Graph :: " + str(len(dependencies)))
