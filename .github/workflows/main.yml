@@ -49,7 +49,7 @@ jobs:
         policy: advanced-security/policy-as-code-testing
         policy-path: policy.yml
         token: ${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}
-        args: --github-repository "advanced-security/policy-as-code-testing" --github-ref "refs/heads/main"
+        args: --continue --debug --github-repository "advanced-security/policy-as-code-testing" --github-ref "refs/heads/main"
 
   action-test:
     runs-on: ubuntu-latest
