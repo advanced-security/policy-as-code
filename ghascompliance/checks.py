@@ -297,10 +297,12 @@ class Checks:
             if violation.name in ignores_names or violation.licence in ignores_ids:
                 Octokit.debug(f"Skipping {violation} because in ignore list...")
                 continue
-            
+
             if self.display:
                 Octokit.error(
-                    "Dependency Graph Alert :: {} = {}".format(violation, violation.licence)
+                    "Dependency Graph Alert :: {} = {}".format(
+                        violation, violation.licence
+                    )
                 )
 
             licensing_errors += 1
