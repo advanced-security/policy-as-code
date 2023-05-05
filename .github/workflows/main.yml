@@ -45,10 +45,11 @@ jobs:
     - name: Run action
       uses: ./
       with:
+        action: continue
         policy: advanced-security/policy-as-code-testing
         policy-path: policy.yml
-        token: ${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}
-        args: --continue --debug --github-repository "advanced-security/policy-as-code-testing" --github-ref "refs/heads/main"
+        token: "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
+        argvs: --debug --github-repository advanced-security/policy-as-code-testing --github-ref refs/heads/main
 
   action-test:
     runs-on: ubuntu-latest
