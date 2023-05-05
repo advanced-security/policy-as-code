@@ -386,7 +386,7 @@ class Checks:
                 "critical", "secretscanning", ids=ids, creation_time=alert_creation_time
             ):
                 if self.display:
-                    Octokit.info(f"Unresolved Secret - {alert}")
+                    Octokit.error(f"Unresolved Secret - {alert}")
 
                 secrets_errors += 1
 
