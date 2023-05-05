@@ -44,7 +44,6 @@ jobs:
     - uses: actions/checkout@v3
     - name: Run action
       uses: ./
-      env:
       with:
         policy: advanced-security/policy-as-code-testing
         policy-path: policy.yml
