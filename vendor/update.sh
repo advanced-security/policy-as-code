@@ -9,6 +9,9 @@ rm -rf "$VENDOR/*/"
 
 if [ -f $PWD/Pipfile ]; then
     echo "[+] Install all dependencies (pipenv)"
+    
+    pipenv clean
+    pipenv install --deploy
     pipenv run pip freeze > "$VENDOR/requirements.txt"
     pip install -r "$VENDOR/requirements.txt" --target=$VENDOR --upgrade
 
