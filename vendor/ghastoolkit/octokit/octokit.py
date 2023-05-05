@@ -49,8 +49,11 @@ class OctoItem:
 
     __data__: dict = field(default_factory=dict)
 
-    def get(self, name) -> Any:
-        return self.__getattr__(name)
+    def get(self, name: str, default: Any = None) -> Any:
+        try:
+            return self.__getattr__(name)
+        except:
+            return default
 
     def __getattr__(self, name) -> Any:
         """Get Attr"""
@@ -117,14 +120,16 @@ class RestRequest:
                     # if provided
                     if len(args) > args_index:
                         argv_value = args[args_index]
+                    elif kwargs.get(argv):
+                        argv_value = kwargs.get(argv)
 
-                    if not argv_value and len(defaults) < 0:
+                    elif not argv_value and len(defaults) < 0:
                         argv_value = defaults[len(defaults) - args_index]
 
                     params[argv] = argv_value
                     args_index += 1
 
-                result = rest.get(url, parameters=params)
+                result = rest.get(url, parameters=params, authenticated=authenticated)
 
                 if response:
                     return func(self, responce=result, **kwargs)
@@ -182,7 +187,12 @@ class RestRequest:
             raise Exception(f"GitHub Token required for this request")
 
         result = []
-        params = parameters
+        params = {}
+        # if the parameter is in the path, ignore it
+        for key, param in parameters.items():
+            if "{" + key + "}" not in path:
+                params[key] = param
+
         params["per_page"] = RestRequest.PER_PAGE
 
         page = 1  # index starts at 1

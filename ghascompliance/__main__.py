@@ -1,5 +1,4 @@
 import os
-import json
 import argparse
 import logging
 
@@ -201,7 +200,7 @@ if __name__ == "__main__":
         Octokit.error("Unacceptable Threshold of Risk has been hit!")
         exit(1)
     elif arguments.action == "continue":
-        Octokit.debug("Skipping threshold break check...")
+        Octokit.info("Skipping threshold break check...")
     elif errors == 0:
         Octokit.info("Acceptable risk and no threshold reached.")
     else:

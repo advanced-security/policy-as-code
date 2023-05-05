@@ -1,8 +1,11 @@
+from dataclasses import dataclass
 import logging
 from typing import Optional
 
-from ghastoolkit import GitHub, Repository
+from ghastoolkit.octokit.github import GitHub, Repository
 from ghastoolkit.octokit.octokit import GraphQLRequest
+from ghastoolkit.supplychain.advisories import Advisory
+from ghastoolkit.supplychain.dependencyalert import DependencyAlert
 
 
 logger = logging.getLogger("ghastoolkit.octokit.dependabot")
@@ -13,7 +16,7 @@ class Dependabot:
         self.repository = repository or GitHub.repository
         self.graphql = GraphQLRequest(repository)
 
-    def getAlerts(self) -> list[dict]:
+    def getAlerts(self) -> list[DependencyAlert]:
         """Get Dependabot alerts from GraphQL API"""
         results = []
 
@@ -29,7 +32,20 @@ class Dependabot:
             )
 
             for alert in alerts.get("edges", []):
-                results.append(alert.get("node", {}))
+                data = alert.get("node", {})
+                package = data.get("securityVulnerability", {}).get("package", {})
+                purl = f"pkg:{package.get('ecosystem')}/{package.get('name')}".lower()
+
+                advisory = Advisory(
+                    ghsa_id=data.get("securityAdvisory", {}).get("ghsaId"),
+                    severity=data.get("securityAdvisory", {}).get("severity"),
+                    # TODO: CWE info
+                )
+                dep_alert = DependencyAlert(
+                    severity=advisory.severity, purl=purl, advisory=advisory
+                )
+                dep_alert.__data__ = data
+                results.append(dep_alert)
 
             if not alerts.get("pageInfo", {}).get("hasNextPage"):
                 logger.debug(f"GraphQL cursor hit end page")

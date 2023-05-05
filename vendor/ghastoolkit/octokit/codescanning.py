@@ -1,10 +1,54 @@
+from dataclasses import dataclass
 import json
 import logging
 from typing import Any, Optional
 from ghastoolkit.octokit.github import GitHub, Repository
-from ghastoolkit.octokit.octokit import RestRequest
+from ghastoolkit.octokit.octokit import OctoItem, RestRequest
 
 logger = logging.getLogger("ghastoolkit.octokit.codescanning")
+
+
+@dataclass
+class CodeAlert(OctoItem):
+    number: int
+    state: str
+
+    created_at: str
+
+    rule: dict
+    tool: dict
+
+    _instances: Optional[list[dict]] = None
+
+    @property
+    def rule_id(self):
+        return self.rule.get("id")
+
+    @property
+    def description(self):
+        return self.rule.get("description")
+
+    @property
+    def tool_name(self):
+        return self.tool.get("name")
+
+    @property
+    def tool_fullname(self):
+        version = self.tool.get("version")
+        return f"{self.tool_name}@{version}"
+
+    @property
+    def severity(self):
+        return self.rule.get("severity")
+
+    @property
+    def instances(self) -> list[dict]:
+        if not self._instances:
+            self._instances = CodeScanning().getAlertInstances(self.number)
+        return self._instances
+
+    def __str__(self) -> str:
+        return f"CodeAlert({self.number}, '{self.state}', '{self.tool_name}', '{self.rule_id}')"
 
 
 class CodeScanning:
@@ -38,28 +82,32 @@ class CodeScanning:
         state: str = "open",
         tool_name: Optional[str] = None,
         ref: Optional[str] = None,
-    ) -> list[dict]:
-        """Get a code scanning alert
+    ) -> list[CodeAlert]:
+        """Get all code scanning alerts
         https://docs.github.com/en/rest/code-scanning#list-code-scanning-alerts-for-a-repository
         """
         return []
 
     def getAlertsInPR(self, base: str) -> list[dict]:
-        """Get Alerts in Pull Request (diff)
+        """Get the open alerts in a Pull Request (delta / diff).
+
+        Note this operation is slow due to it needing to lookup each alert instance
+        information.
 
         base: str - Base reference
         https://docs.github.com/en/rest/code-scanning#list-instances-of-a-code-scanning-alert
         """
         if not self.repository.reference or not self.repository.isInPullRequest():
             return []
+
         results = []
         alerts = self.getAlerts("open", ref=self.repository.reference)
-        print(f" $ {self.repository.reference} == {len(alerts)}")
+
         for alert in alerts:
-            alert_info = self.getAlertInstances(alert.get("number", 0), ref=base)
-            print(f" >> {alert.get('number')} -> {len(alert_info)}")
+            number = alert.get("number")
+            alert_info = self.getAlertInstances(number, ref=base)
             if len(alert_info) == 0:
-                results.append(alert_info)
+                results.append(alert)
         return results
 
     @RestRequest.restGet(
@@ -71,7 +119,9 @@ class CodeScanning:
         """
         return {}
 
-    def getAlertInstances(self, alert_number: int, ref: Optional[str] = None) -> dict:
+    def getAlertInstances(
+        self, alert_number: int, ref: Optional[str] = None
+    ) -> list[dict]:
         result = self.rest.get(
             "/repos/{owner}/{repo}/code-scanning/alerts/{alert_number}/instances",
             {"alert_number": alert_number, "ref": ref},
