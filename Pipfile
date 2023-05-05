@@ -5,7 +5,7 @@ verify_ssl = true
 
 [packages]
 pyyaml = "*"
-ghastoolkit = "==0.1.16"
+ghastoolkit = "==0.2.1"
 
 [dev-packages]
 sphinx = "*"
@@ -14,7 +14,11 @@ black = "*"
 
 [scripts]
 main = "python -m ghascompliance"
+# generate license files
+license-gen = "python vendor/ghastoolkit/supplychain/licensing.py -o ./ghascompliance/data/clearlydefined.json"
+# vendor the deps
+vendor = "./vendor/update.sh"
+# tests / linting
 test = "python -m unittest discover -s ./tests -p 'test_*.py'"
 fmt = "black ghascompliance tests"
 lint = "black --check ghascompliance tests"
-vendor = "./vendor/update.sh"
