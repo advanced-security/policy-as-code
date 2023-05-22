@@ -11,6 +11,7 @@ ghastoolkit = "*"
 sphinx = "*"
 myst-parser = "*"
 black = "*"
+typing_extensions = "*"
 
 [scripts]
 main = "python -m ghascompliance"
