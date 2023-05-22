@@ -1,3 +1,4 @@
+from datetime import date, datetime
 import os
 import shutil
 import zipfile
@@ -14,9 +15,16 @@ from ghastoolkit.octokit.octokit import GitHub
 from requests import request
 
 
-__CODEQL_DATABASE_PATHS__ = [os.path.expanduser("~/.codeql/databases")]
-
 logger = logging.getLogger("ghastoolkit.codeql")
+
+__CODEQL_DATABASE_PATHS__ = [
+    # local
+    os.path.expanduser("~/.codeql/databases"),
+    # GitHub Actions
+    os.path.join(
+        os.environ.get("RUNNER_TEMP", "/home/runner/work/_temp"), "codeql_databases"
+    ),
+]
 
 
 @dataclass
@@ -28,6 +36,10 @@ class CodeQLDatabase:
     # path to when the DB should be
     path: Optional[str] = None
     path_download: Optional[str] = None
+
+    loc_baseline: int = 0
+
+    created: Optional[datetime] = None
 
     def __post_init__(self):
         if self.path:
@@ -45,6 +57,9 @@ class CodeQLDatabase:
 
     def __str__(self) -> str:
         name = str(self.repository) if self.repository else self.name
+        if self.created:
+            created = self.created.strftime("%Y-%m-%dT%H:%M")
+            return f"CodeQLDatabase('{name}', '{self.language}', {created})"
         return f"CodeQLDatabase('{name}', '{self.language}')"
 
     def __repr__(self) -> str:
@@ -59,6 +74,13 @@ class CodeQLDatabase:
 
     def exists(self) -> bool:
         return False if not self.path else os.path.exists(self.path)
+
+    @property
+    def default_pack(self) -> str:
+        return f"codeql/{self.language}-queries"
+
+    def getSuite(self, name: str) -> str:
+        return f"{self.default_pack}:codeql-suites/{self.language}-{name}.qls"
 
     def display_name(self, owner: Optional[str] = None) -> str:
         """Display Name"""
@@ -103,19 +125,42 @@ class CodeQLDatabase:
         return result
 
     @staticmethod
-    def loadDatabaseYml(path: str) -> "CodeQLDatabase":
+    def loadFromYml(path: str) -> "CodeQLDatabase":
+        """Load from YAML / YML file"""
+        if not os.path.exists(path):
+            raise Exception("CodeQL Database YML does not exist")
+        if not path.endswith(".yml"):
+            raise Exception("File is not a YML file")
+        dirname = os.path.dirname(path)
+        name = os.path.basename(dirname)
+        db = CodeQLDatabase(name, "python", path=dirname)
+        db.loadDatabaseYml(path)
+        if db.language == "":
+            logger.error(f"CodeQLDatabase Language not set from YML")
+            raise Exception(f"Unable to load DB correctly")
+        return db
+
+    def loadDatabaseYml(self, path: str):
+        """Load content from YML"""
         if not os.path.exists(path):
             raise Exception("CodeQL Database YML does not exist")
         if not path.endswith(".yml"):
             raise Exception("File is not a YML file")
 
-        name = os.path.basename(os.path.dirname(path))
-
         with open(path, "r") as handle:
             data = safe_load(handle)
 
-        db = CodeQLDatabase(name, data.get("primaryLanguage"), path=path)
-        return db
+        self.name = os.path.basename(data.get("sourceLocationPrefix", ""))
+        self.language = data.get("primaryLanguage")
+        self.loc_baseline = data.get("baselineLinesOfCode", 0)
+
+        # can't load datetime with milliseconds...
+        creation_time = data.get("creationMetadata", {}).get("creationTime")
+        if isinstance(creation_time, datetime):
+            self.created = creation_time
+        else:
+            creation_time, _ = creation_time.split(".", 1)
+            self.created = datetime.fromisoformat(creation_time)
 
     def downloadDatabase(self, output: Optional[str], use_cache: bool = True) -> str:
         """Download CodeQL database"""
@@ -224,6 +269,7 @@ class CodeQLDatabases(list[CodeQLDatabase]):
         return dbs
 
     def findDatabases(self, path: str):
+        """Find databases based on a path (recursive)"""
         if not os.path.exists(path):
             raise Exception(f"Path does not exist: {path}")
 
@@ -231,8 +277,24 @@ class CodeQLDatabases(list[CodeQLDatabase]):
             for file in files:
                 if file == "codeql-database.yml":
                     path = os.path.join(root, file)
-                    self.append(CodeQLDatabase.loadDatabaseYml(path))
+                    self.append(CodeQLDatabase.loadFromYml(path))
+
+    def get(self, name: str) -> Optional[CodeQLDatabase]:
+        """Get a database by name"""
+        for db in self:
+            if db.name == name:
+                return db
+        return
+
+    def getLanguages(self, language: str) -> "CodeQLDatabases":
+        """Get a list of databases by language"""
+        dbs = CodeQLDatabases()
+        for db in dbs:
+            if db.language == language:
+                dbs.append(db)
+        return dbs
 
     def downloadDatabases(self):
+        """Download all databases from GitHub"""
         for db in self:
             db.downloadDatabase(None)

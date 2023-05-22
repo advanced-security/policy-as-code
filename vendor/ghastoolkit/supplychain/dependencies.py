@@ -5,7 +5,7 @@ import re
 from typing import Optional
 
 from ghastoolkit.supplychain.dependencyalert import DependencyAlert
-from ghastoolkit.supplychain.licensing import Licenses
+from ghastoolkit.supplychain.licensing import NO_LICENSES, Licenses
 
 logger = logging.getLogger("ghastoolkit.supplychain.dependencies")
 
@@ -135,13 +135,14 @@ class Dependencies(list[Dependency]):
     def findUnknownLicenses(
         self, licenses: Optional[list[str]] = None
     ) -> "Dependencies":
-        licenses = licenses or ["NA", "NOASSERTION"]
+        """Find all the dependencies with no license"""
+        licenses = licenses or NO_LICENSES
         return self.findLicenses(licenses)
 
     def applyLicenses(self, licenses: Licenses):
-        """Apply Linceses"""
+        """Given a list of licenses (Licenses) apply a license"""
         for i, dep in enumerate(self):
-            if dep.licence:
+            if dep.licence and dep.licence not in NO_LICENSES:
                 continue
             purl = dep.getPurl(version=False)
             dblicense = licenses.find(purl)

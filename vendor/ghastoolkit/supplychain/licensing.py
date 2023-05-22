@@ -1,20 +1,28 @@
+from datetime import datetime
 import os
 import json
 import logging
-from typing import Optional
+from typing import Optional, Union
+
+from ghastoolkit.octokit.github import Repository
 
 
 logger = logging.getLogger("ghastoolkit.supplychain.licenses")
 
+NO_LICENSES = ["None", "NA", "NOASSERTION"]
+
 
 class Licenses:
-    data: dict[str, list[str]] = {}
-
     def __init__(self, path: Optional[str] = None) -> None:
+        """Licenses"""
+        self.data: dict[str, list[str]] = {}
+        self.sources: list[str] = []
+
         if path:
             self.load(path)
 
     def load(self, path: str):
+        """Load a licenses file"""
         if not os.path.exists(path):
             raise Exception(f"License path does not exist: {path}")
         if not os.path.isfile(path):
@@ -23,24 +31,38 @@ class Licenses:
         logger.debug(f"Loading licenseing file :: {path}")
         with open(path, "r") as handle:
             data = json.load(handle)
+            # TODO validate the data before loading?
 
-        Licenses.data = data
-        logger.debug(f"Loaded licenses :: {len(data)}")
+        self.data.update(data)
 
-    def add(self, purl: str, licenses: str | list):
+        self.sources.append(path)
+        logger.debug(f"Loaded licenses :: {len(self.data)}")
+
+    def add(self, purl: str, licenses: Union[str, list]):
         """Add license"""
-        if Licenses.data.get(purl):
+        if self.data.get(purl):
             return
         licenses = licenses if isinstance(licenses, list) else [licenses]
-        Licenses.data[purl] = licenses
+        self.data[purl] = licenses
 
     def find(self, purl: str) -> Optional[list[str]]:
         """Find by PURL"""
-        return Licenses.data.get(purl)
+        return self.data.get(purl)
 
     def export(self, path: str):
+        """Export licenses file"""
         with open(path, "w") as handle:
-            json.dump(Licenses.data, handle)
+            json.dump(self.data, handle)
+
+    def generateLockfile(self, path: str, repository: Optional[Repository] = None):
+        """Generate Lockfile for the current licenses"""
+        lock_data = {"total": len(self.data), "created": datetime.now().isoformat()}
+        if repository:
+            lock_data["repository"] = str(repository.display())
+            lock_data["version"] = repository.gitsha() or repository.sha
+
+        with open(path, "w") as handle:
+            json.dump(lock_data, handle, indent=2, sort_keys=True)
 
     def __len__(self) -> int:
         return len(self.data)
@@ -49,7 +71,7 @@ class Licenses:
 if __name__ == "__main__":
     import yaml
     import argparse
-    from ghastoolkit.octokit.github import Repository
+    from ghastoolkit import Repository, Dependency
 
     logging.basicConfig(
         level=logging.DEBUG,
@@ -88,7 +110,11 @@ if __name__ == "__main__":
                 curation_data = yaml.safe_load(handle)
 
             coordinates = curation_data.get("coordinates", {})
-            purl = f"pkg:{coordinates.get('type')}/{coordinates.get('namespace')}/{coordinates.get('name')}"
+            purl = Dependency(
+                coordinates.get("name"),
+                coordinates.get("namespace"),
+                manager=coordinates.get("type"),
+            ).getPurl()
 
             revision_licenses = set()
             for _, revision in curation_data.get("revisions", {}).items():
@@ -100,10 +126,11 @@ if __name__ == "__main__":
 
     logging.info(f"Licenses Loaded :: {len(licenses)}")
 
-    # lock file
+    # lock
     lock_path = arguments.output.replace(".json", ".lock.json")
     logging.info(f"Saving lock file :: {lock_path}")
-    with open(lock_path, "w") as handle:
-        json.dump(lock_content, handle, sort_keys=True, indent=2)
+    licenses.generateLockfile(lock_path, repository=repository)
 
+    # export
+    logging.info(f"Exporting Output :: {arguments.output}")
     licenses.export(arguments.output)

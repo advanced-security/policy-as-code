@@ -2,6 +2,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 import re
+from typing import Any
 import urllib.parse
 
 from ghastoolkit.octokit.github import GitHub, Repository
@@ -71,7 +72,13 @@ class DependencyGraph:
             if depdata.get("change_type") == "removed":
                 continue
 
-            dep = Dependency.fromPurl(depdata.get("package_url"))
+            purl = depdata.get("package_url")
+            if not purl or purl == "":
+                logger.warn("Package URL is not present, skipping...")
+                logger.warn(f"Package :: {depdata}")
+                continue
+
+            dep = Dependency.fromPurl(purl)
             dep.licence = depdata.get("license")
 
             for alert in depdata.get("vulnerabilities", []):
@@ -111,5 +118,13 @@ class DependencyGraph:
         self.rest.postJson(
             "/repos/{owner}/{repo}/dependency-graph/snapshots",
             dependencies.exportBOM(tool, path, sha, ref, version, url),
+            expected=201,
+        )
+
+    def submitSbom(self, sbom: dict[Any, Any]):
+        """Submit SBOM"""
+        self.rest.postJson(
+            "/repos/{owner}/{repo}/dependency-graph/snapshots",
+            sbom,
             expected=201,
         )

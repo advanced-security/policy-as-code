@@ -239,6 +239,7 @@ class RestRequest:
 
         if response.status_code != expected:
             logger.error(f"Error code from server :: {response.status_code}")
+            logger.error(f"{response.content}")
             known_error = __OCTOKIT_ERRORS__.get(response.status_code)
             if known_error:
                 raise Exception(known_error)

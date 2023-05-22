@@ -5,12 +5,13 @@ verify_ssl = true
 
 [packages]
 pyyaml = "*"
-ghastoolkit = "==0.2.1"
+ghastoolkit = "*"
 
 [dev-packages]
 sphinx = "*"
 myst-parser = "*"
 black = "*"
+typing_extensions = "*"
 
 [scripts]
 main = "python -m ghascompliance"
