@@ -17,7 +17,10 @@ from vendor.ghastoolkit.supplychain.licensing import Licenses
 
 
 __HERE__ = os.path.dirname(os.path.realpath(__file__))
-LICENSES = [os.path.join(__HERE__, "data", "clearlydefined.json")]
+LICENSES = [
+    os.path.join(__HERE__, "data", "clearlydefined.json"),
+    os.path.join(__HERE__, "data", "pyindex5000.json"),
+]
 GRAPHQL_QUERIES = [os.path.join(__HERE__, "octokit", "graphql")]
 
 
@@ -239,10 +242,10 @@ class Checks:
         # license data
         licenses = Licenses()
         for license_path in LICENSES:
+            Octokit.debug(f"Loading license file :: {license_path}")
             licenses.load(license_path)
 
-        Octokit.info(f"Loaded extra licensing information :: {len(licenses.data)}")
-
+        Octokit.debug(f"Loaded extra licensing information :: {len(licenses.data)}")
         dependencies.applyLicenses(licenses)
 
         Octokit.info("Total Dependencies in Graph :: " + str(len(dependencies)))
