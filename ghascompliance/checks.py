@@ -181,8 +181,11 @@ class Checks:
                 continue
 
             severity = alert.severity.lower()
-
-            alert_creation_time = alert.createdAt()
+            
+            if alert.createdAt():
+                alert_creation_time = alert.createdAt()
+            else:
+                alert_creation_time = datetime.now()
 
             ids = []
             #  GitHub Advisory
