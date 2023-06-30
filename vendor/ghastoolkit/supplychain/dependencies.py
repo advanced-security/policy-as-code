@@ -20,7 +20,7 @@ class Dependency:
     qualifiers: dict[str, str] = field(default_factory=dict)
 
     # Licensing information
-    licence: Optional[str] = None
+    license: Optional[str] = None
     # Security Alerts
     alerts: list[DependencyAlert] = field(default_factory=list)
 
@@ -128,7 +128,7 @@ class Dependencies(list[Dependency]):
             [
                 dep
                 for dep in self
-                if any(regex.search(dep.licence or "NA") for regex in regex_list)
+                if any(regex.search(dep.license or "NA") for regex in regex_list)
             ]
         )
 
@@ -142,15 +142,32 @@ class Dependencies(list[Dependency]):
     def applyLicenses(self, licenses: Licenses):
         """Given a list of licenses (Licenses) apply a license"""
         for i, dep in enumerate(self):
-            if dep.licence and dep.licence not in NO_LICENSES:
+            if dep.license and dep.license not in NO_LICENSES:
                 continue
             purl = dep.getPurl(version=False)
             dblicense = licenses.find(purl)
             if dblicense:
-                dep.licence = " OR ".join(dblicense)
+                dep.license = " OR ".join(dblicense)
+                self[i] = dep
+
+    def applyClearlyDefined(self):
+        """Reachout to Clearly Definded API, get the licenses for a component,
+        and update all the Dependencies
+        """
+        from ghastoolkit.octokit.clearlydefined import ClearlyDefined
+
+        clearly = ClearlyDefined()
+
+        for i, dep in enumerate(self):
+            if dep.license and dep.license not in NO_LICENSES:
+                continue
+            licenses = clearly.getLicenses(dep)
+            if licenses:
+                dep.license = " OR ".join(licenses)
                 self[i] = dep
 
     def contains(self, dependency: Dependency) -> bool:
+        """Contains the dependency"""
         purl = dependency.getPurl(version=False)
         for dep in self:
             if dep.name == dependency.name or dep.getPurl(version=False) == purl:
@@ -178,3 +195,16 @@ class Dependencies(list[Dependency]):
         return Dependencies(
             [dep for dep in self if any(regex.search(dep.name) for regex in regex_list)]
         )
+
+    def updateDependency(self, dependency: Dependency):
+        """Update a dependency in our list with the incoming information"""
+        for dep in self:
+            if dependency.name == dep.name or dependency.fullname == dep.fullname:
+                dep.__dict__.update(dependency.__dict__)
+                # self[i] = new_dep
+                break
+
+    def updateDependencies(self, dependencies: "Dependencies"):
+        """Update a list of dependencies"""
+        for dep in dependencies:
+            self.updateDependency(dep)
