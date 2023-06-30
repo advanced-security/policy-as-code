@@ -181,7 +181,7 @@ class Checks:
                 continue
 
             severity = alert.severity.lower()
-            
+
             if alert.createdAt():
                 alert_creation_time = alert.createdAt()
             else:
