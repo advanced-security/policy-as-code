@@ -34,6 +34,7 @@ class Dependabot:
                 data = alert.get("node", {})
                 package = data.get("securityVulnerability", {}).get("package", {})
                 purl = f"pkg:{package.get('ecosystem')}/{package.get('name')}".lower()
+                created_at = data.get("createdAt")
 
                 advisory = Advisory(
                     ghsa_id=data.get("securityAdvisory", {}).get("ghsaId"),
@@ -41,7 +42,10 @@ class Dependabot:
                     # TODO: CWE info
                 )
                 dep_alert = DependencyAlert(
-                    severity=advisory.severity, purl=purl, advisory=advisory
+                    severity=advisory.severity,
+                    purl=purl,
+                    advisory=advisory,
+                    created_at=created_at,
                 )
                 dep_alert.__data__ = data
                 results.append(dep_alert)

@@ -1,7 +1,6 @@
+import json
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime
-import re
+from threading import main_thread
 from typing import Any
 import urllib.parse
 
@@ -15,12 +14,35 @@ logger = logging.getLogger("ghastoolkit.octokit.dependencygraph")
 
 
 class DependencyGraph:
-    def __init__(self, repository: Optional[Repository] = None) -> None:
+    def __init__(
+        self,
+        repository: Optional[Repository] = None,
+        enable_graphql: bool = True,
+        enable_clearlydefined: bool = False,
+    ) -> None:
         self.repository = repository or GitHub.repository
         self.rest = RestRequest(repository)
         self.graphql = GraphQLRequest(repository)
 
+        self.enable_graphql = enable_graphql
+        self.enable_clearlydefined = enable_clearlydefined
+
     def getDependencies(self) -> Dependencies:
+        """Get Dependencies"""
+        deps = self.getDependenciesSbom()
+
+        if self.enable_graphql:
+            logger.debug("Enabled GraphQL Dependencies")
+            graph_deps = self.getDependenciesGraphQL()
+
+            deps.updateDependencies(graph_deps)
+
+        if self.enable_clearlydefined:
+            logger.debug("Applying ClearlyDefined on dependencies")
+            deps.applyClearlyDefined()
+        return deps
+
+    def getDependenciesSbom(self) -> Dependencies:
         """Get Dependencies from SBOM"""
         result = Dependencies()
         spdx_bom = self.exportBOM()
@@ -35,7 +57,7 @@ class DependencyGraph:
 
             # if get find a PURL or not
             if extref:
-                dep.licence = package.get("licenseConcluded")
+                dep.license = package.get("licenseConcluded")
             else:
                 name = package.get("name", "")
                 # manager ':'
@@ -47,11 +69,51 @@ class DependencyGraph:
 
                 dep.name = name
                 dep.version = package.get("versionInfo")
-                dep.licence = package.get("licenseConcluded")
+                dep.license = package.get("licenseConcluded")
 
             result.append(dep)
 
         return result
+
+    def getDependenciesGraphQL(self) -> Dependencies:
+        """Get Dependencies from GraphQL"""
+        deps = Dependencies()
+        data = self.graphql.query(
+            "GetDependencyInfo",
+            {"owner": self.repository.owner, "repo": self.repository.repo},
+        )
+        graph_manifests = (
+            data.get("data", {})
+            .get("repository", {})
+            .get("dependencyGraphManifests", {})
+        )
+        logger.debug(
+            f"Graph Manifests Total Count :: {graph_manifests.get('totalCount')}"
+        )
+
+        for manifest in graph_manifests.get("edges", []):
+            node = manifest.get("node", {})
+            logger.debug(f"Processing :: '{node.get('filename')}'")
+
+            for dep in node.get("dependencies", {}).get("edges", []):
+                dep = dep.get("node", {})
+                license = None
+                if dep.get("repository") and dep.get("repository", {}).get(
+                    "licenseInfo"
+                ):
+                    license = (
+                        dep.get("repository", {}).get("licenseInfo", {}).get("name")
+                    )
+
+                deps.append(
+                    Dependency(
+                        name=dep.get("packageName"),
+                        manager=dep.get("packageManager"),
+                        license=license,
+                    )
+                )
+
+        return deps
 
     def getDependenciesInPR(self, base: str, head: str) -> Dependencies:
         """Get all the dependencies from a Pull Request"""
