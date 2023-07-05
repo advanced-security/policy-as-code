@@ -21,6 +21,13 @@ def loadDict(clss, data) -> Any:
 
 
 @dataclass
+class RemediationPolicy:
+    errors: Union[int, Dict[str, int]] = -1 
+    warnings: Union[int, Dict[str, int]] = -1 
+    all: Union[int, Dict[str, int]] = -1 
+
+
+@dataclass
 class CodeScanningPolicy:
     """Make sure the feature is enabled"""
 
@@ -50,6 +57,8 @@ class CodeScanningPolicy:
     """Required Tools"""
     tools_required: List[str] = field(default_factory=list)
 
+    """Remediation Policy"""
+    remediate: RemediationPolicy = RemediationPolicy()
 
 @dataclass
 class SupplyChainPolicy:
@@ -79,6 +88,8 @@ class SupplyChainPolicy:
     """Licenses to ignore"""
     licenses_ignores: List[str] = field(default_factory=list)
 
+    """Remediation Policy"""
+    remediate: RemediationPolicy = RemediationPolicy()
 
 @dataclass
 class SecretScanningPolicy:
@@ -97,6 +108,8 @@ class SecretScanningPolicy:
     """Push Protection"""
     push_protection: bool = False
 
+    """Remediation Policy"""
+    remediate: RemediationPolicy = RemediationPolicy()
 
 @dataclass
 class Policy:
@@ -123,7 +136,7 @@ class Policy:
 
     def __post_init__(self):
         # default policies
-        if self.codescanning:
+        if isinstance(self.codescanning, (dict, list)):
             if isinstance(self.codescanning, list):
                 new_codescanning = []
                 for csp in self.codescanning:
@@ -251,8 +264,10 @@ class PolicyV3:
 
     def getPolicy(self, repository: str) -> Policy:
         """Find the Policy based on threatmodels or default policy"""
-        for _, tm in self.threatmodels.items():
+        for name, tm in self.threatmodels.items():
             if tm.matches(repository) and tm.policy:
+                return tm.policy
+            elif name == repository and tm.policy:
                 return tm.policy
 
         default = Policy(
