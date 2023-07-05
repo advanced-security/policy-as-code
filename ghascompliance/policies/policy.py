@@ -9,53 +9,31 @@ from typing import List, Optional
 
 from ghastoolkit.octokit.octokit import GitHub, Repository
 
-from ghascompliance.consts import SEVERITIES, TECHNOLOGIES, LICENSES
+from ghascompliance.consts import SEVERITIES, LICENSES
 from ghascompliance.octokit import Octokit
+from ghascompliance.policies.base import Policy, PolicyConfig, PolicyV3
 
 __ROOT__ = os.path.dirname(os.path.basename(__file__))
 __SCHEMA_VALIDATION__ = "Schema Validation Failed :: {msg} - {value}"
 
 
 class PolicyEngine:
-    __BLOCK_ITEMS__ = ["ids", "names", "imports", "remediate"]
-    __SECTION_ITEMS__ = ["level", "remediate", "conditions", "warnings", "ignores"]
-    __IMPORT_ALLOWED_TYPES__ = ["txt"]
-
     def __init__(
         self,
-        severity: str = "error",
-        repository: Optional[str] = None,
-        token: Optional[str] = None,
-        isGithubAppToken: bool = False,
+        repository: Optional[Repository] = None,
         path: Optional[str] = None,
-        branch: Optional[str] = None,
-        instance: str = "https://github.com",
     ):
-        self.risk_level = severity
-
-        self.severities = self._buildSeverityList(severity)
-
-        self.policy = {}
-        self.remediate = None
-
-        self.instance = instance
-        self.token = token
-        self.isGithubAppToken = isGithubAppToken
-
-        if repository:
-            self.repository = Repository.parseRepository(repository)
-            self.repository.branch = branch
-        else:
-            self.repository = None
-
+        self.repository = repository
         self.repository_path = path
 
-        self.temp_repo = None
+        if self.repository:
+            self.policy = self.loadFromRepo()
+        elif path:
+            self.policy = self.loadLocalConfig(path)
+        else:
+            raise Exception("Failed to load policy (no path or repository)")
 
-        if repository and repository != "":
-            self.loadFromRepo()
-        elif path and path != "":
-            self.loadLocalConfig(path)
+        self.temp_repo = None
 
     def loadFromRepo(self):
         """Load policy from repository"""
@@ -79,143 +57,23 @@ class PolicyEngine:
         # get the policy file
         full_path = self.repository.getFile(self.repository_path or "policy.yml")
 
-        self.loadLocalConfig(full_path)
+        return self.loadLocalConfig(full_path)
 
     def loadLocalConfig(self, path: str):
         Octokit.info(f"Loading policy file - {path}")
 
         if not os.path.exists(path):
             raise Exception(f"Policy File does not exist - {path}")
+            
+        PolicyConfig.base = os.path.realpath(os.path.dirname(path))
+        return PolicyV3.loadRootPolicy(path)
 
-        with open(path, "r") as handle:
-            policy = yaml.safe_load(handle)
-
-        self.loadPolicy(policy)
-
-    def loadPolicy(self, policy: dict):
-        if not policy.get("general"):
-            policy["general"] = {}
-
-        general = policy.get("general")
-
-        # set 'general' to the current minimum
-        if not general.get("level"):
-            policy["general"]["level"] = self.risk_level.lower()
-
-        if general.get("remediate"):
-            self.remediate = general.get("remediate")
-            policy["general"]["remediate"] = self.remediate
-
-        for tech in TECHNOLOGIES:
-            # Importing files
-            policy[tech] = self.loadPolicySection(
-                tech, policy.get(tech, policy["general"])
-            )
-
-        Octokit.info("Policy loaded successfully")
-
-        self.policy = policy
-
-    def loadPolicySection(self, name: str, data: dict):
-        time_to_remediate_policy = False
-
-        for section, section_data in data.items():
-            # check if only certain sections are present
-            if section not in Policy.__SECTION_ITEMS__:
-                raise Exception(
-                    __SCHEMA_VALIDATION__.format(
-                        msg="Disallowed Section present", value=section
-                    )
-                )
-
-            # Skip level
-            if section == "level" and isinstance(section_data, str):
-                continue
-
-            # Time to Remediate
-            if section == "remediate":
-                Octokit.debug("Enabling Time to Remediate (section) :: " + name)
-                time_to_remediate_policy = True
-                continue
-
-            # Validate blocks
-            for block in list(section_data):
-                if block not in Policy.__BLOCK_ITEMS__:
-                    raise Exception(
-                        __SCHEMA_VALIDATION__.format(
-                            msg="Disallowed Block present", value=block
-                        )
-                    )
-
-            # Importing
-            if section_data.get("imports"):
-                if section_data.get("imports", {}).get("imports"):
-                    raise Exception(
-                        __SCHEMA_VALIDATION__.format(
-                            msg="Circular import", value="imports"
-                        )
-                    )
-
-                for block in Policy.__BLOCK_ITEMS__:
-                    Octokit.debug(f"Importing > {section} - {block}")
-
-                    import_path = section_data.get("imports", {}).get(block)
-                    if import_path and isinstance(import_path, str):
-                        if section_data.get(block):
-                            section_data[block].extend(
-                                self.loadPolicyImport(import_path)
-                            )
-                        else:
-                            section_data[block] = self.loadPolicyImport(import_path)
-
-        if not time_to_remediate_policy and self.remediate:
-            Octokit.info("Enabling Time to Remediate (global) :: " + name)
-            data["remediate"] = self.remediate
-
-        return data
-
-    def loadPolicyImport(self, path: str):
-        results = []
-        traversal = False
-        paths = [
-            # Current Working Dir
-            (os.getcwd(), path),
-            # Temp Repo / Cloned Repo
-            (str(self.temp_repo), path),
-            # Action / CLI directory
-            (__ROOT__, path),
-        ]
-        for root, path in paths:
-            full_path = os.path.abspath(os.path.join(root, path))
-
-            if os.path.exists(full_path) and os.path.isfile(full_path):
-                if full_path.startswith(tempfile.gettempdir()):
-                    Octokit.debug("Temp location used for import path")
-                elif not full_path.startswith(root):
-                    Octokit.error("Attempting to import file :: " + full_path)
-                    raise Exception("Path Traversal Detected, halting import!")
-
-                # TODO: MIME type checking?
-                _, fileext = os.path.splitext(full_path)
-                fileext = fileext.replace(".", "")
-
-                if fileext not in Policy.__IMPORT_ALLOWED_TYPES__:
-                    Octokit.warning(
-                        "Trying to load a disallowed file type :: " + fileext
-                    )
-                    continue
-
-                Octokit.info("Importing Path :: " + full_path)
-
-                with open(full_path, "r") as handle:
-                    for line in handle:
-                        line = line.replace("\n", "").replace("\b", "")
-                        if line == "" or line.startswith("#"):
-                            continue
-                        results.append(line)
-
-                break
-        return results
+    @property
+    def codescanning_enabled(self) -> bool:
+        if isinstance(self.policy.codescanning, (list)):
+            return True  # assume that as list is enabled
+        else:
+            return self.policy.codescanning.enabled
 
     def savePolicy(self, path: str):
         #  Always clear the file
@@ -225,26 +83,6 @@ class PolicyEngine:
         with open(path, "w") as handle:
             json.dump(self.policy, handle, indent=2)
         Octokit.info("Policy saved")
-
-    def _buildSeverityList(self, severity: str):
-        if not severity:
-            raise Exception("`security` is set to None/Null")
-
-        severity = severity.lower()
-        severities = []
-
-        if severity == "none":
-            Octokit.debug("No Unacceptable Severities")
-            return []
-        elif severity == "all":
-            Octokit.debug("Unacceptable Severities :: " + ",".join(SEVERITIES))
-            return SEVERITIES
-        elif severity in SEVERITIES:
-            severities = SEVERITIES[: SEVERITIES.index(severity) + 1]
-            Octokit.debug("Unacceptable Severities :: " + ",".join(severities))
-        else:
-            Octokit.warning(f"Unknown severity provided :: {severity}")
-        return severities
 
     def matchContent(self, name: str, validators: List[str]):
         # Wildcard matching

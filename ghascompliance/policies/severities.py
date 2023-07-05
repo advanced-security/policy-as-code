@@ -1,9 +1,7 @@
 from enum import Enum
-from dataclasses import dataclass
 from typing import List
 
 
-@dataclass
 class SeverityLevelEnum(Enum):
     #  Critical to High issues
     CRITICAL = "critical"

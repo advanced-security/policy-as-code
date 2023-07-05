@@ -1,37 +1,30 @@
-name: Default Policy
+version: "3"
+name: "Default Policy"
 
+  
 codescanning:
-  level: error
+  enabled: true
+  severity: "error"
 
 # Dependency Security Alters
-dependabot:
-  level: high
+supplychain:
+  enabled: true
+  severity: "high"
 
-# Dependency Licensing Alerts
-licensing:
-  conditions:
-    ids:
-      - GPL-*
-      - LGPL-*
-      - AGPL-*
+  licenses:
+    - GPL-*
+    - LGPL-*
+    - AGPL-*
 
-  warnings:
+  licenses-warnings:
     # Warning is the dependency isn't known
-    ids:
-      - Other
-      - NA
-      - None
-      - NOASSERTION
-
-# General Dependency Alerts
-# dependencies:
-  # conditions:
-  #   names:
-  #     - org.projectlombok:lombok
-  # warnings:
-  #   ids:
-  #     - Maintenance
-  #     - Organization
+    - Other
+    - NA
+    - None
+    - NOASSERTION
 
 secretscanning:
-  level: all
+  enabled: true
+  severity: "all"
+  push-protection: false
+

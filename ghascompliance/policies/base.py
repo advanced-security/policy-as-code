@@ -23,6 +23,7 @@ def loadDict(clss, data) -> Any:
 @dataclass
 class CodeScanningPolicy:
     """Make sure the feature is enabled"""
+
     enabled: bool = True
     """Name"""
     name: str = "CodeScanningPolicy"
@@ -57,7 +58,7 @@ class SupplyChainPolicy:
     enabled: bool = True
 
     """Base severity"""
-    severity: SeverityLevelEnum = SeverityLevelEnum.ERROR
+    severity: SeverityLevelEnum = SeverityLevelEnum.HIGH
 
     """List of package names / PURL to match against"""
     names: List[str] = field(default_factory=list)
@@ -86,17 +87,15 @@ class SecretScanningPolicy:
     enabled: bool = True
 
     """Base severity"""
-    severity: SeverityLevelEnum = SeverityLevelEnum.ERROR
+    severity: SeverityLevelEnum = SeverityLevelEnum.ALL
 
     """List of identifier to match against"""
     ids: List[str] = field(default_factory=list)
     ids_warnings: List[str] = field(default_factory=list)
     ids_ignores: List[str] = field(default_factory=list)
 
-
     """Push Protection"""
     push_protection: bool = False
-
 
 
 @dataclass
@@ -112,7 +111,9 @@ class Policy:
     display: bool = False
 
     """Default Code Scanning Policy"""
-    codescanning: Union[CodeScanningPolicy, List[CodeScanningPolicy]] = CodeScanningPolicy()
+    codescanning: Union[
+        CodeScanningPolicy, List[CodeScanningPolicy]
+    ] = CodeScanningPolicy()
 
     """Default Supply Chain Policy"""
     supplychain: SupplyChainPolicy = SupplyChainPolicy()
@@ -200,7 +201,9 @@ class PolicyV3:
     threatmodels: Dict[str, ThreatModel] = field(default_factory=dict)
 
     """Default Code Scanning Policy"""
-    codescanning: Union[CodeScanningPolicy, List[CodeScanningPolicy]] = CodeScanningPolicy()
+    codescanning: Union[
+        CodeScanningPolicy, List[CodeScanningPolicy]
+    ] = CodeScanningPolicy()
 
     """Default Supply Chain Policy"""
     supplychain: SupplyChainPolicy = SupplyChainPolicy()
@@ -220,7 +223,7 @@ class PolicyV3:
             logger.debug(f"Plugins are currently not supported")
 
         # default policies
-        if self.codescanning:
+        if isinstance(self.codescanning, (dict, list)):
             if isinstance(self.codescanning, list):
                 new_codescanning = []
                 for csp in self.codescanning:
@@ -234,7 +237,6 @@ class PolicyV3:
 
         if isinstance(self.secretscanning, dict):
             self.secretscanning = loadDict(SecretScanningPolicy, self.secretscanning)
-
 
     @staticmethod
     def loadRootPolicy(path: str) -> "PolicyV3":
