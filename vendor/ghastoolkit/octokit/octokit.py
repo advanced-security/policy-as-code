@@ -9,6 +9,7 @@ from requests import Session
 from ratelimit import limits, sleep_and_retry
 
 from ghastoolkit.octokit.github import GitHub, Repository
+from ghastoolkit.octokit.graphql import QUERIES
 
 
 # Assume REST requests are being done by a GitHub Token, not
@@ -261,9 +262,8 @@ class GraphQLRequest:
             "Accept": "application/vnd.github.hawkgirl-preview+json",
             "Authorization": f"token {GitHub.token}",
         }
-        self.queries = {}
-
-        self.loadQueries(DEFAULT_GRAPHQL_PATHS)
+        # load in default hardcoded queries
+        self.queries = QUERIES
 
     def query(self, name: str, options: dict[str, Any] = {}) -> dict:
         logger.debug(f"Loading Query by Name :: {name}")

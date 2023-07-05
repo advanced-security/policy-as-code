@@ -105,11 +105,11 @@
         },
         "ghastoolkit": {
             "hashes": [
-                "sha256:4dec84a8641577c1f831397465d01709e03c297659ed5d6abc752e146036265a",
-                "sha256:667d55925b4bcd2ffb9ecf17caa33c0baa53f90a07f3aeb57a6b0be8f1ca812a"
+                "sha256:26d116fa461df61800476c420926a5a3a13d5ccfacdc544dbeb0c91ab1e75a12",
+                "sha256:3ed9c85234acfa599dacb29f5666f352e678391ea969679990c6d2243800dd58"
             ],
             "index": "pypi",
-            "version": "==0.4.3"
+            "version": "==0.4.4"
         },
         "idna": {
             "hashes": [
@@ -620,11 +620,11 @@
         },
         "typing-extensions": {
             "hashes": [
-                "sha256:5d8c9dac95c27d20df12fb1d97b9793ab8b2af8a3a525e68c80e21060c161771",
-                "sha256:935ccf31549830cda708b42289d44b6f74084d616a00be651601a4f968e77c82"
+                "sha256:440d5dd3af93b060174bf433bccd69b0babc3b15b1a8dca43789fd7f61514b36",
+                "sha256:b75ddc264f0ba5615db7ba217daeb99701ad295353c45f9e95963337ceeeffb2"
             ],
             "index": "pypi",
-            "version": "==4.7.0"
+            "version": "==4.7.1"
         },
         "urllib3": {
             "hashes": [
