@@ -1,14 +1,16 @@
 import os
 import argparse
 import logging
+from pprint import pprint
 
 from ghastoolkit.octokit.github import GitHub
 
 from ghascompliance.__version__ import __name__ as tool_name, __banner__, __url__
 from ghascompliance.consts import SEVERITIES
 from ghascompliance.octokit import Octokit
-from ghascompliance.policy import Policy
+from ghascompliance.policies import PolicyEngine
 from ghascompliance.checks import *
+from ghascompliance.policies.base import PolicyConfig
 
 # https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
@@ -27,20 +29,15 @@ parser.add_argument(
     "--debug", action="store_true", default=bool(os.environ.get("DEBUG"))
 )
 parser.add_argument("--disable-caching", action="store_false")
-parser.add_argument("--disable-code-scanning", action="store_true")
-parser.add_argument("--disable-dependabot", action="store_true")
-parser.add_argument("--disable-dependency-licensing", action="store_true")
-parser.add_argument("--disable-dependencies", action="store_true")
-parser.add_argument("--disable-secret-scanning", action="store_true")
 parser.add_argument("--is-github-app-token", action="store_true", default=False)
 
 github_arguments = parser.add_argument_group("GitHub")
 github_arguments.add_argument("--github-token", default=GITHUB_TOKEN)
 github_arguments.add_argument("--github-instance", default=GITHUB_INSTANCE)
 github_arguments.add_argument("--github-repository", default=GITHUB_REPOSITORY)
-# github_arguments.add_argument("--github-event", default=GITHUB_EVENT_PATH)
 github_arguments.add_argument("--github-ref", default=GITHUB_REF)
-# github_arguments.add_argument("--workflow-event", default=GITHUB_EVENT_NAME)
+
+policy_arguments = parser.add_argument_group("Policy")
 github_arguments.add_argument("--github-policy")
 github_arguments.add_argument("--github-policy-branch", default="main")
 github_arguments.add_argument(
@@ -49,14 +46,7 @@ github_arguments.add_argument(
 )
 
 thresholds = parser.add_argument_group("Thresholds")
-thresholds.add_argument(
-    "--display",
-    action="store_true",
-    help="Display alerts that violate the threshold",
-)
 thresholds.add_argument("--action", default="break")
-thresholds.add_argument("--severity", default="Error")
-thresholds.add_argument("--list-severities", action="store_true")
 thresholds.add_argument("--count", type=int, default=-1)
 
 
@@ -72,9 +62,6 @@ if __name__ == "__main__":
 
     if arguments.debug:
         Octokit.debug("Debugging enabled")
-
-    if GITHUB_EVENT_NAME is not None:
-        Octokit.__EVENT__ = True
 
     if not arguments.github_token:
         raise Exception("Github Access Token required")
@@ -94,12 +81,6 @@ if __name__ == "__main__":
     Octokit.info(f"GitHub Instance :: {GitHub.instance}")
     Octokit.info(f"GitHub Reference (branch/pr) :: {GitHub.repository.reference}")
 
-    if arguments.list_severities:
-        for severity in SEVERITIES:
-            Octokit.info(" -> {}".format(severity))
-
-        exit(0)
-
     policy_location = None
 
     Octokit.createGroup("Policy as Code")
@@ -117,6 +98,7 @@ if __name__ == "__main__":
                 arguments.github_instance, policy_location, arguments.github_policy_path
             )
         )
+
     elif arguments.github_policy_path:
         if not os.path.exists(arguments.github_policy_path):
             Octokit.info("Policy config file not present on system, skipping...")
@@ -130,31 +112,16 @@ if __name__ == "__main__":
     results = ".compliance"
 
     # Load policy engine
-    policy = Policy(
-        severity=arguments.severity,
+    policy = PolicyEngine(
         repository=policy_location,
         path=arguments.github_policy_path,
-        branch=arguments.github_policy_branch,
-        token=arguments.github_token,
-        isGithubAppToken=arguments.is_github_app_token,
-        instance=arguments.github_instance,
     )
-
-    os.makedirs(results, exist_ok=True)
-    policy.savePolicy(os.path.join(results, "policy.json"))
 
     Octokit.info("Finished loading policy")
 
-    if arguments.display and policy.policy:
+    if policy.policy and policy.policy.display:
         Octokit.info("```")
-        for plcy, data in policy.policy.items():
-            if plcy == "name":
-                Octokit.info(f"name: {data}")
-            else:
-                Octokit.info(
-                    "{policy}: '{level}'".format(policy=plcy, level=data.get("level"))
-                )
-
+        Octokit.info(pprint(policy.policy))
         Octokit.info("```")
 
     Octokit.endGroup()
@@ -162,7 +129,7 @@ if __name__ == "__main__":
     checks = Checks(
         policy,
         debugging=arguments.debug,
-        display=arguments.display,
+        display=policy.policy.display,
         results_path=results,
         caching=arguments.disable_caching,
     )
@@ -170,21 +137,15 @@ if __name__ == "__main__":
     errors = 0
 
     try:
-        if not arguments.disable_code_scanning:
+        if policy.codescanning_enabled:
             errors += checks.checkCodeScanning()
 
-        if not arguments.disable_dependabot:
+        if policy.policy.supplychain.enabled:
             errors += checks.checkDependabot()
-
-        # Dependency Graph
-        if not arguments.disable_dependencies:
             errors += checks.checkDependencies()
-
-        # Dependency Graph Licensing
-        if not arguments.disable_dependency_licensing:
             errors += checks.checkDependencyLicensing()
 
-        if not arguments.disable_secret_scanning:
+        if policy.policy.secretscanning.enabled:
             errors += checks.checkSecretScanning()
 
     except Exception as err:

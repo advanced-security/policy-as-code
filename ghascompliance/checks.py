@@ -10,10 +10,8 @@ from ghastoolkit.octokit.dependencygraph import DependencyGraph
 from ghastoolkit.octokit.dependabot import Dependabot
 from ghastoolkit.octokit.secretscanning import SecretScanning
 
-from ghascompliance.policy import Policy
+from ghascompliance.policies import PolicyEngine
 from ghascompliance.octokit import Octokit
-from vendor.ghastoolkit.octokit.dependencygraph import Dependency
-from vendor.ghastoolkit.supplychain.licensing import Licenses
 
 
 __HERE__ = os.path.dirname(os.path.realpath(__file__))
@@ -24,7 +22,7 @@ GRAPHQL_QUERIES = [os.path.join(__HERE__, "octokit", "graphql")]
 class Checks:
     def __init__(
         self,
-        policy: Policy,
+        policy: PolicyEngine,
         display: bool = False,
         debugging: bool = False,
         results_path: str = ".compliance",
