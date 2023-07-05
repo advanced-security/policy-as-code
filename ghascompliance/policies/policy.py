@@ -1,14 +1,14 @@
 import os
 import json
-from ghastoolkit.octokit.octokit import GitHub, Repository
 import yaml
 import shutil
 import fnmatch
 import datetime
 import tempfile
-import subprocess
 from typing import List, Optional
-from urllib.parse import urlparse
+
+from ghastoolkit.octokit.octokit import GitHub, Repository
+
 from ghascompliance.consts import SEVERITIES, TECHNOLOGIES, LICENSES
 from ghascompliance.octokit import Octokit
 
@@ -16,7 +16,7 @@ __ROOT__ = os.path.dirname(os.path.basename(__file__))
 __SCHEMA_VALIDATION__ = "Schema Validation Failed :: {msg} - {value}"
 
 
-class Policy:
+class PolicyEngine:
     __BLOCK_ITEMS__ = ["ids", "names", "imports", "remediate"]
     __SECTION_ITEMS__ = ["level", "remediate", "conditions", "warnings", "ignores"]
     __IMPORT_ALLOWED_TYPES__ = ["txt"]

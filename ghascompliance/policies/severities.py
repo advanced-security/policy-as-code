@@ -1,4 +1,3 @@
-
 from enum import Enum
 from dataclasses import dataclass
 from typing import List
@@ -52,4 +51,3 @@ class SeverityLevelEnum(Enum):
             return severities[severities.index(severity) :]
 
         return []
-
