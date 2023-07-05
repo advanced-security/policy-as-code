@@ -78,7 +78,10 @@ class Checks:
             alerts = codescanning.getAlertsInPR(pr_base)
 
         else:
-            alerts = codescanning.getAlerts("open")
+            Octokit.debug(
+                f"Code Scanning Alerts from reference :: {GitHub.repository.reference}"
+            )
+            alerts = codescanning.getAlerts("open", ref=GitHub.repository.reference)
 
         Octokit.info("Total Code Scanning Alerts :: " + str(len(alerts)))
 
