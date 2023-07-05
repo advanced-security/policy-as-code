@@ -2,6 +2,7 @@ import os
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
+from ghastoolkit import CodeAlert, Dependency, DependencyAlert, SecretAlert
 
 import yaml
 
@@ -60,6 +61,11 @@ class CodeScanningPolicy:
     """Remediation Policy"""
     remediate: RemediationPolicy = RemediationPolicy()
 
+    def check(self, alert: CodeAlert):
+        """Code Scanning alert check function"""
+        return 
+
+
 @dataclass
 class SupplyChainPolicy:
     """Make sure the feature is enabled"""
@@ -91,6 +97,15 @@ class SupplyChainPolicy:
     """Remediation Policy"""
     remediate: RemediationPolicy = RemediationPolicy()
 
+
+    def checkAlert(self, alert: DependencyAlert):
+        """Dependabot alert check function"""
+        return 
+
+    def checkDependency(self, dependency: Dependency):
+        """Dependency Graph check function"""
+        return
+
 @dataclass
 class SecretScanningPolicy:
     """Make sure the feature is enabled"""
@@ -110,6 +125,10 @@ class SecretScanningPolicy:
 
     """Remediation Policy"""
     remediate: RemediationPolicy = RemediationPolicy()
+
+    def check(self, alert: SecretAlert):
+        """Secret Scanning check function"""
+        return
 
 @dataclass
 class Policy:
