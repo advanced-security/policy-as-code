@@ -1,5 +1,7 @@
 import unittest
 
+from ghastoolkit import Repository
+
 from ghascompliance.policies.base import (
     CodeScanningPolicy,
     PolicyV3,
@@ -31,6 +33,7 @@ class TestPolicies(unittest.TestCase):
             secretscanning=SecretScanningPolicy(severity=SeverityLevelEnum.LOW),
         )
 
-        p = policy.getPolicy("rand/repo")
+        r = Repository.parseRepository("rand/repo")
+        p = policy.getPolicy(r)
         self.assertEqual(p.codescanning.name, "MyCS")
         self.assertEqual(p.secretscanning.severity, SeverityLevelEnum.LOW)

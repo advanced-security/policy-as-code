@@ -1,13 +1,9 @@
-import os
 import sys
-import yaml
-import uuid
 import unittest
-import tempfile
 
 sys.path.append(".")
 
-from ghascompliance.octokit.octokit import GitHub
+from ghastoolkit import GitHub
 
 
 class TestPolicyLoading(unittest.TestCase):
