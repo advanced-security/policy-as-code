@@ -1,13 +1,8 @@
 import os
-import json
 import yaml
 import logging
-import requests
-
-from ghastoolkit.octokit.octokit import GitHub
 
 from ghascompliance.__version__ import __name__
-from ghascompliance.consts import API_ERRORS
 
 
 class Octokit:

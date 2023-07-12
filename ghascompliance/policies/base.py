@@ -1,10 +1,11 @@
 import os
 import logging
+import yaml
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
-from ghastoolkit import CodeAlert, Dependency, DependencyAlert, SecretAlert
 
-import yaml
+from ghastoolkit import Repository
+from ghascompliance.octokit.octokit import Octokit
 
 from ghascompliance.policies.severities import SeverityLevelEnum
 
@@ -23,9 +24,9 @@ def loadDict(clss, data) -> Any:
 
 @dataclass
 class RemediationPolicy:
-    errors: Union[int, Dict[str, int]] = -1 
-    warnings: Union[int, Dict[str, int]] = -1 
-    all: Union[int, Dict[str, int]] = -1 
+    errors: Union[int, Dict[str, int]] = -1
+    warnings: Union[int, Dict[str, int]] = -1
+    all: Union[int, Dict[str, int]] = -1
 
 
 @dataclass
@@ -61,10 +62,6 @@ class CodeScanningPolicy:
     """Remediation Policy"""
     remediate: RemediationPolicy = RemediationPolicy()
 
-    def check(self, alert: CodeAlert):
-        """Code Scanning alert check function"""
-        return 
-
 
 @dataclass
 class SupplyChainPolicy:
@@ -98,14 +95,6 @@ class SupplyChainPolicy:
     remediate: RemediationPolicy = RemediationPolicy()
 
 
-    def checkAlert(self, alert: DependencyAlert):
-        """Dependabot alert check function"""
-        return 
-
-    def checkDependency(self, dependency: Dependency):
-        """Dependency Graph check function"""
-        return
-
 @dataclass
 class SecretScanningPolicy:
     """Make sure the feature is enabled"""
@@ -126,9 +115,6 @@ class SecretScanningPolicy:
     """Remediation Policy"""
     remediate: RemediationPolicy = RemediationPolicy()
 
-    def check(self, alert: SecretAlert):
-        """Secret Scanning check function"""
-        return
 
 @dataclass
 class Policy:
@@ -179,7 +165,7 @@ class Policy:
         with open(path, "r") as handle:
             data = yaml.safe_load(handle)
 
-        print(f" >>> {path}")
+        Octokit.debug(f"Loading policy from path :: {path}")
         return Policy(**data)
 
 
@@ -195,6 +181,9 @@ class ThreatModel:
 
     """Owner"""
     owner: Optional[str] = None
+
+    """Languages"""
+    languages: Optional[List[str]] = None
 
     """Policy"""
     policy: Optional[Policy] = None
@@ -281,12 +270,16 @@ class PolicyV3:
 
         return PolicyV3(**data)
 
-    def getPolicy(self, repository: str) -> Policy:
+    def getPolicy(self, repository: Repository) -> Policy:
         """Find the Policy based on threatmodels or default policy"""
+        repo = f"{repository.owner}/{repository.repo}"
+
         for name, tm in self.threatmodels.items():
-            if tm.matches(repository) and tm.policy:
+            if tm.matches(repo) and tm.policy:
+                Octokit.debug(f"Found policy by repository name :: {repo}")
                 return tm.policy
-            elif name == repository and tm.policy:
+            elif name == repo and tm.policy:
+                Octokit.debug(f"Found policy by ThreatModel name :: {name}")
                 return tm.policy
 
         default = Policy(
@@ -296,5 +289,6 @@ class PolicyV3:
             supplychain=self.supplychain,
             secretscanning=self.secretscanning,
         )
+        Octokit.debug("Using default Policy")
 
         return default

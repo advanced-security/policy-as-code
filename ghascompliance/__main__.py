@@ -1,16 +1,12 @@
 import os
 import argparse
 import logging
-from pprint import pprint
 
 from ghastoolkit.octokit.github import GitHub
 
-from ghascompliance.__version__ import __name__ as tool_name, __banner__, __url__
-from ghascompliance.consts import SEVERITIES
-from ghascompliance.octokit import Octokit
+from ghascompliance import Octokit, __name__ as tool_name, __banner__, __url__
 from ghascompliance.policies import PolicyEngine
-from ghascompliance.checks import *
-from ghascompliance.policies.base import PolicyConfig
+
 
 # https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
@@ -112,41 +108,19 @@ if __name__ == "__main__":
     results = ".compliance"
 
     # Load policy engine
-    policy = PolicyEngine(
+    engine = PolicyEngine(
         repository=policy_location,
         path=arguments.github_policy_path,
     )
 
     Octokit.info("Finished loading policy")
 
-    if policy.policy and policy.policy.display:
-        Octokit.info("```")
-        Octokit.info(pprint(policy.policy))
-        Octokit.info("```")
-
     Octokit.endGroup()
-
-    checks = Checks(
-        policy,
-        debugging=arguments.debug,
-        display=policy.policy.display,
-        results_path=results,
-        caching=arguments.disable_caching,
-    )
 
     errors = 0
 
     try:
-        if policy.codescanning_enabled:
-            errors += checks.checkCodeScanning()
-
-        if policy.policy.supplychain.enabled:
-            errors += checks.checkDependabot()
-            errors += checks.checkDependencies()
-            errors += checks.checkDependencyLicensing()
-
-        if policy.policy.secretscanning.enabled:
-            errors += checks.checkSecretScanning()
+        errors = engine.check()
 
     except Exception as err:
         Octokit.error("Unknown Exception was hit, please repo this to " + __url__)

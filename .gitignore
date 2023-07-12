@@ -5,6 +5,8 @@
 /samples
 /scripts
 testing.py
+tests/old
+ghascompliance/old
 
 
 ### Linux ###
