@@ -37,7 +37,9 @@ class CodeScanningChecker(Checker):
 
         for policy in policies:
             severities = SeverityLevelEnum.getSeveritiesFromName(policy.severity.value)
-            # TODO required tools
+
+            if policy.tools_required:
+                self.checkTools(policy.tools_required)
 
             for alert in alerts:
                 self.checkCodeScanningAlert(policy, alert, severities)
@@ -65,6 +67,7 @@ class CodeScanningChecker(Checker):
     def checkCodeScanningAlert(
         self, policy: CodeScanningPolicy, alert: CodeAlert, severities: List = []
     ):
+        """Check Code Scanning Alert to see if it violates the provided policy"""
         # tools
         if len(policy.tools) != 0:
             if alert.tool_name not in policy.tools:
@@ -99,3 +102,14 @@ class CodeScanningChecker(Checker):
         # TODO owasp
 
         return
+    
+    def checkTools(self, tools: List[str]):
+        cstools = CodeScanning().getTools()
+        for tool in tools:
+            if tool in cstools:
+                continue
+            
+            self.state.error(f"Required tool missing :: {tool}")
+
+        return
+
