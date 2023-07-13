@@ -273,7 +273,7 @@ class Checks:
         for warning in warnings:
             Octokit.warning(
                 "Dependency License Warning :: {} = {}".format(
-                    warning.fullname, warning.licence
+                    warning.fullname, warning.license
                 )
             )
 
@@ -300,14 +300,14 @@ class Checks:
         violations.extend(dependencies.findNames(violations_names))
 
         for violation in violations:
-            if violation.name in ignores_names or violation.licence in ignores_ids:
+            if violation.name in ignores_names or violation.license in ignores_ids:
                 Octokit.debug(f"Skipping {violation} because in ignore list...")
                 continue
 
             if self.display:
                 Octokit.error(
                     "Dependency Graph Alert :: {} = {}".format(
-                        violation, violation.licence
+                        violation, violation.license
                     )
                 )
 
