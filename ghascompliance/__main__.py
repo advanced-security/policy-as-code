@@ -87,6 +87,7 @@ if __name__ == "__main__":
         reference=arguments.github_ref,
         token=arguments.github_token,
     )
+    GitHub.github_app = arguments.is_github_app_token
 
     Octokit.info(
         f"GitHub Repository :: {GitHub.repository.owner}/{GitHub.repository.repo}"
