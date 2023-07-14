@@ -13,16 +13,25 @@ logger = logging.getLogger("ghastoolkit.octokit.github")
 
 @dataclass
 class Repository:
+    """GitHub Repository"""
+
     owner: str
+    """Owner"""
     repo: str
+    """Repository name"""
 
     reference: Optional[str] = None
+    """Reference (`refs/heads/main`)"""
     branch: Optional[str] = None
+    """Branch / Tab name"""
+
     __prinfo__: Optional[dict] = None
 
     sha: Optional[str] = None
+    """Git SHA"""
 
     clone_path: Optional[str] = None
+    """Clone Path"""
 
     def __post_init__(self) -> None:
         if self.reference and not self.branch:
@@ -90,6 +99,7 @@ class Repository:
 
     @property
     def clone_url(self) -> str:
+        """Repository clone URL"""
         if GitHub.github_app:
             url = urlparse(GitHub.instance)
             return f"{url.scheme}://x-access-token:{GitHub.token}@{url.netloc}/{self.owner}/{self.repo}.git"
@@ -136,6 +146,7 @@ class Repository:
             subprocess.check_call(cmd, stdout=null, stderr=null)
 
     def gitsha(self) -> str:
+        """Get the Git SHA"""
         cmd = ["git", "rev-parse", "HEAD"]
         result = (
             subprocess.check_output(cmd, cwd=self.clone_path).decode("ascii").strip()
@@ -148,13 +159,15 @@ class Repository:
             raise Exception(f"Unknown clone path")
         return os.path.join(self.clone_path, path)
 
-    def display(self):
+    def display(self) -> str:
+        """Display the repository as a string"""
         if self.reference:
             return f"{self.owner}/{self.repo}@{self.reference}"
         return f"{self.owner}/{self.repo}"
 
     @staticmethod
     def parseRepository(name: str) -> "Repository":
+        """Parse the repository name"""
         ref = None
         branch = None
         if "@" in name:
@@ -166,17 +179,27 @@ class Repository:
 
 
 class GitHub:
+    """The GitHub class is used to configure the state for all Octokit
+    apis. Its a standard interface across all projects.
+    """
+
     repository: Repository = Repository("GeekMasher", "ghastoolkit")
+    """Repository"""
     token: Optional[str] = None
+    """GitHub Access Token"""
 
     # URLs
     instance: str = "https://github.com"
+    """Instance"""
     api_rest: str = "https://api.github.com"
+    """REST API URL"""
     api_graphql: str = "https://api.github.com/graphql"
+    """GraphQL API URL"""
 
     enterprise: Optional[str] = None
 
     github_app: bool = False
+    """GitHub App setting"""
 
     @staticmethod
     def init(
@@ -185,10 +208,11 @@ class GitHub:
         repo: Optional[str] = None,
         reference: Optional[str] = None,
         branch: Optional[str] = None,
-        token: Optional[str] = os.environ.get("GITHUB_TOKEN"),
+        token: Optional[str] = None,
         instance: Optional[str] = None,
         enterprise: Optional[str] = None,
     ) -> None:
+        """Initialise a GitHub class using a number of properties"""
         if repository:
             GitHub.repository = Repository.parseRepository(repository)
         elif owner and repo:
@@ -200,7 +224,10 @@ class GitHub:
             if branch:
                 GitHub.repository.branch = branch
 
+        if not token:
+            token = os.environ.get("GITHUB_TOKEN")
         GitHub.token = token
+
         # instance
         if instance:
             GitHub.instance = instance
@@ -226,4 +253,5 @@ class GitHub:
 
     @staticmethod
     def display() -> str:
+        """Display the GitHub Settings"""
         return f"GitHub('{GitHub.repository.display()}', '{GitHub.instance}')"
