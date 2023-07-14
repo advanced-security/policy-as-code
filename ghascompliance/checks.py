@@ -86,6 +86,7 @@ class Checks:
         Octokit.info("Total Code Scanning Alerts :: " + str(len(alerts)))
 
         for alert in alerts:
+            Octokit.debug(f"Processing Alert :: {alert} ({alert.severity})")
             severity = alert.severity
             rule_name = alert.description
 
