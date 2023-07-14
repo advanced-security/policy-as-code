@@ -12,6 +12,7 @@ class Checker:
         self.policy = policy
 
         self.state = PolicyState(name)
+        self.severities = []
 
     def enabled(self) -> bool:
         raise Exception(f"Child checker does not support enabled function")

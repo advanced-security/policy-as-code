@@ -13,6 +13,10 @@ class Octokit:
     logger = logging.getLogger(__name__)
 
     @staticmethod
+    def debugging_enabled() -> bool: 
+        return Octokit.logger.level == logging.DEBUG
+
+    @staticmethod
     def info(msg):
         """Logging Info"""
         logging.info(msg)
@@ -23,6 +27,7 @@ class Octokit:
         """Logging Debugging"""
         logging.debug(msg)
         if Octokit.logger.level == logging.DEBUG and Octokit.__EVENT__:
+            # actions
             print("::debug :: {msg}".format(msg=msg))
         elif Octokit.logger.level == logging.DEBUG:
             print("[*] " + msg)
@@ -65,7 +70,7 @@ class Octokit:
         if Octokit.__EVENT__:
             print("::group::{name}".format(name=name))
         else:
-            print("{:-^64}".format(" " + name + " "))
+            print("\n{:-^64}".format(" " + name + " "))
 
     @staticmethod
     def endGroup():

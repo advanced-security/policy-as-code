@@ -57,6 +57,7 @@ if __name__ == "__main__":
     )
 
     if arguments.debug:
+        Octokit.logger.level = logging.DEBUG
         Octokit.debug("Debugging enabled")
 
     if not arguments.github_token:
@@ -70,12 +71,14 @@ if __name__ == "__main__":
         reference=arguments.github_ref,
         token=arguments.github_token,
     )
+    GitHub.github_app = arguments.is_github_app_token
 
     Octokit.info(
         f"GitHub Repository :: {GitHub.repository.owner}/{GitHub.repository.repo}"
     )
-    Octokit.info(f"GitHub Instance :: {GitHub.instance}")
-    Octokit.info(f"GitHub Reference (branch/pr) :: {GitHub.repository.reference}")
+    Octokit.info(f"GitHub Instance   :: {GitHub.instance}")
+    Octokit.info(f"GitHub Reference  :: {GitHub.repository.reference} (PR: {GitHub.repository.isInPullRequest()})")
+    Octokit.debug(f"GitHub App :: {GitHub.github_app}")
 
     policy_location = None
 

@@ -81,11 +81,14 @@ class PolicyEngine:
             checker.check()
 
             for warning in checker.state.warnings:
-                Octokit.warning(warning)
+                if self.root_policy.display:
+                    Octokit.warning(warning)
 
             for err in checker.state.errors:
-                Octokit.error(err)
-
+                if self.root_policy.display:
+                    Octokit.error(err)
+            
+            Octokit.info(f"{checker.name} warnings   :: {len(checker.state.warnings)}")
             Octokit.info(f"{checker.name} violations :: {len(checker.state.errors)}")
             total += len(checker.state.errors)
 

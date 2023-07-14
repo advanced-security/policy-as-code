@@ -38,7 +38,7 @@ class CodeScanningPolicy:
     name: str = "CodeScanningPolicy"
 
     """Base severity"""
-    severity: SeverityLevelEnum = SeverityLevelEnum.ERROR
+    severity: Optional[SeverityLevelEnum] = SeverityLevelEnum.ERROR
 
     """List of identifier to match against"""
     ids: List[str] = field(default_factory=list)
