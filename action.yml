@@ -40,7 +40,7 @@ runs:
   using: "composite"
   steps:
     # Make sure 3.10 is installed
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: '3.10'
 
