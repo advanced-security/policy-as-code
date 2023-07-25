@@ -31,6 +31,7 @@ class Policy:
         branch: Optional[str] = None,
         instance: str = "https://github.com",
     ):
+        self.name = ""
         self.risk_level = severity
 
         self.severities = self._buildSeverityList(severity)
@@ -93,6 +94,8 @@ class Policy:
         self.loadPolicy(policy)
 
     def loadPolicy(self, policy: dict):
+        self.name = policy.get("name", "")
+        
         if not policy.get("general"):
             policy["general"] = {}
 

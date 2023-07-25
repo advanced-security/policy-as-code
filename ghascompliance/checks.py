@@ -12,6 +12,7 @@ from ghastoolkit.octokit.secretscanning import SecretScanning
 
 from ghascompliance.policy import Policy
 from ghascompliance.octokit import Octokit
+from ghascompliance.octokit.summary import Summary
 from vendor.ghastoolkit.octokit.dependencygraph import Dependency
 from vendor.ghastoolkit.supplychain.licensing import Licenses
 
@@ -66,7 +67,11 @@ class Checks:
     def checkCodeScanning(self):
         # Code Scanning results
         Octokit.createGroup("Code Scanning Results")
-        code_scanning_errors = 0
+        Summary.addHeader("Code Scanning Results", 2)
+        code_scanning_violations_headers = [
+            "Tool Name", "Rule Name", "Severity", "Alert Creation Time"
+        ]
+        code_scanning_violations = []
 
         codescanning = CodeScanning()
 
@@ -110,6 +115,13 @@ class Checks:
                 ids=ids,
                 creation_time=alert_creation_time,
             ):
+                tool_name = alert.get("tool", {}).get("name")
+                code_scanning_violations.append([
+                    tool_name,
+                    rule_name,
+                    severity,
+                    alert_creation_time
+                ])
                 if self.display:
                     error_format = "{tool_name} - {creation_time} - {rule_name}"
 
@@ -117,7 +129,7 @@ class Checks:
 
                     Octokit.error(
                         error_format.format(
-                            tool_name=alert.get("tool", {}).get("name"),
+                            tool_name=tool_name,
                             rule_name=rule_name,
                             creation_time=alert_creation_time,
                         ),
@@ -126,18 +138,31 @@ class Checks:
                         col=location.get("start_column"),
                     )
 
-                code_scanning_errors += 1
-
-        alerts_message = "Code Scanning violations :: {count}"
-        Octokit.info(alerts_message.format(count=code_scanning_errors))
+        violation_count = len(code_scanning_violations)
+        Octokit.info(f"Code Scanning violations :: {violation_count}")
 
         Octokit.endGroup()
 
-        return code_scanning_errors
+        if violation_count == 0:
+            Summary.addLine(f"{Summary.__ICONS__['check']} 0 Code Scanning violations")
+        else:
+            Summary.addLine(f"{Summary.__ICONS__['cross']} {violation_count} Code Scanning violation{'s' if violation_count > 1 else ''}")
+
+        if self.display and violation_count > 0:
+            Summary.addCollapsed(
+                Summary.formatTable(code_scanning_violations_headers, code_scanning_violations),
+                summary=Summary.formatItalics("Code Scanning violations")
+            )
+
+        return violation_count
 
     def checkDependabot(self):
         Octokit.createGroup("Dependabot Results")
-        dependabot_errors = 0
+        Summary.addHeader("Dependabot Results", 2)
+        dependabot_violation_headers = [
+            "GHSA ID", "CWEs", "Severity", "Alert Creation Time"
+        ]
+        dependabot_violations = []
 
         dependabot = Dependabot()
         # Load the GraphQL Queries from the repo
@@ -211,26 +236,46 @@ class Checks:
                 ids=ids,
                 creation_time=alert_creation_time,
             ):
+                dependabot_violations.append([
+                    alert.advisory.ghsa_id,
+                    '\n'.join(alert.advisory.cwes),
+                    alert.severity,
+                    alert_creation_time.strftime("%Y-%m-%dT%XZ")
+                ])
                 if self.display:
                     Octokit.error(
                         f"Dependabot Alert :: {alert.advisory.ghsa_id} ({alert.severity}) - {alert.purl}"
                     )
 
-                dependabot_errors += 1
-
-        Octokit.info("Dependabot violations :: " + str(dependabot_errors))
+        violation_count = len(dependabot_violations)
+        Octokit.info(f"Dependabot violations :: {violation_count}")
 
         Octokit.endGroup()
 
-        return dependabot_errors
+        if violation_count == 0:
+            Summary.addLine(f"{Summary.__ICONS__['check']} 0 Dependabot violations")
+        else:
+            Summary.addLine(f"{Summary.__ICONS__['cross']} {violation_count} Dependabot violation{'s' if violation_count > 1 else ''}")
+
+        if self.display and violation_count > 0:
+            Summary.addCollapsed(
+                Summary.formatTable(dependabot_violation_headers, dependabot_violations),
+                summary=Summary.formatItalics("Dependabot violations")
+            )
+
+        return violation_count
 
     def checkDependencyLicensing(self):
         Octokit.createGroup(
             "Dependency Graph Results - Licensing",
             warning_prepfix="Dependency Graph Alert",
         )
-
-        licensing_errors = 0
+        Summary.addHeader("Dependency Graph Results - Licensing", 2)
+        licensing_headers = [
+            "Dependency Name", "License"
+        ]
+        licensing_warnings = []
+        licensing_violations = []
 
         # Dependencies
         depgraph = DependencyGraph()
@@ -256,7 +301,7 @@ class Checks:
 
         if not self.policy.policy and not self.policy.policy.get("licensing"):
             Octokit.debug("Skipping as licensing policy not set")
-            return licensing_errors
+            return len(licensing_violations)
 
         # Warnings (NA, etc)
         warnings = Dependencies()
@@ -272,6 +317,10 @@ class Checks:
         warnings.extend(dependencies.findNames(warnings_names))
 
         for warning in warnings:
+            licensing_warnings.append([
+                warning.fullname,
+                warning.license if warning.license else "None"
+            ])
             Octokit.warning(
                 "Dependency License Warning :: {} = {}".format(
                     warning.fullname, warning.license
@@ -305,6 +354,10 @@ class Checks:
                 Octokit.debug(f"Skipping {violation} because in ignore list...")
                 continue
 
+            licensing_violations.append([
+                violation.fullname,
+                violation.license if warning.license else "None"
+            ])
             if self.display:
                 Octokit.error(
                     "Dependency Graph Alert :: {} = {}".format(
@@ -312,21 +365,46 @@ class Checks:
                     )
                 )
 
-            licensing_errors += 1
-
-        Octokit.info("Dependency Graph violations :: " + str(licensing_errors))
+        violation_count = len(licensing_violations)
+        warning_count = len(licensing_warnings)
+        Octokit.info(f"Dependency Graph violations :: {violation_count}")
 
         Octokit.endGroup()
 
-        return licensing_errors
+        if violation_count == 0:
+            Summary.addLine(f"{Summary.__ICONS__['check']} 0 Dependency License violations")
+        else:
+            Summary.addLine(f"{Summary.__ICONS__['cross']} {violation_count} Dependency License violation{'s' if violation_count > 1 else ''}")
+
+        if self.display and violation_count > 0:
+            Summary.addCollapsed(
+                Summary.formatTable(licensing_headers, licensing_violations),
+                summary=Summary.formatItalics("Dependency License violations")
+            )
+
+        if warning_count == 0:
+            Summary.addLine(f"{Summary.__ICONS__['check']} 0 Dependency License warnings")
+        else:
+            Summary.addLine(f"{Summary.__ICONS__['warning']} {warning_count} Dependency License warning{'s' if warning_count > 1 else ''}")
+
+        if self.display and warning_count > 0:
+            Summary.addCollapsed(
+                Summary.formatTable(licensing_headers, licensing_warnings),
+                summary=Summary.formatItalics("Dependency License warnings")
+            )
+
+        return violation_count
 
     def checkDependencies(self):
         Octokit.createGroup(
             "Dependency Graph",
             warning_prepfix="Dependency Graph Alert",
         )
-
-        dependency_errors = 0
+        Summary.addHeader("Dependency Graph Results", 2)
+        dependency_violation_headers = [
+            "Dependency Name"
+        ]
+        dependency_violations = []
 
         # Dependencies
         depgraph = DependencyGraph()
@@ -354,23 +432,40 @@ class Checks:
 
             #  none is set to just check if the name or pattern is discovered
             if self.policy.checkViolation("none", "dependencies", names=names, ids=ids):
+                dependency_violations.append([
+                    dependency.fullname
+                ])
                 if self.display:
                     Octokit.error(
                         "Dependency Graph Alert :: {}".format(dependency.fullname)
                     )
-                dependency_errors += 1
 
-        Octokit.info("Dependency Graph violations :: " + str(dependency_errors))
+        violation_count = len(dependency_violations)
+        Octokit.info(f"Dependency Graph violations :: {violation_count}")
 
         Octokit.endGroup()
 
-        return dependency_errors
+        if violation_count == 0:
+            Summary.addLine(f"{Summary.__ICONS__['check']} 0 Dependency violations")
+        else:
+            Summary.addLine(f"{Summary.__ICONS__['cross']} {violation_count} Dependency violation{'s' if violation_count > 1 else ''}")
+
+        if self.display and violation_count > 0:
+            Summary.addCollapsed(
+                Summary.formatTable(dependency_violation_headers, dependency_violations),
+                summary=Summary.formatItalics("Dependency violations")
+            )
+
+        return violation_count
 
     def checkSecretScanning(self):
         # Secret Scanning Results
         Octokit.createGroup("Secret Scanning Results")
-
-        secrets_errors = 0
+        Summary.addHeader("Secret Scanning Results", 2)
+        secret_violation_headers = [
+            "Secret Type", "Alert Creation Time"
+        ]
+        secret_violations = []
 
         secretscanning = SecretScanning()
         if GitHub.repository.isInPullRequest():
@@ -392,16 +487,30 @@ class Checks:
             if self.policy.checkViolation(
                 "critical", "secretscanning", ids=ids, creation_time=alert_creation_time
             ):
+                secret_violations.append([
+                    alert.secret_type_display_name,
+                    alert_creation_time
+                ])
                 if self.display:
                     Octokit.error(f"Unresolved Secret - {alert}")
 
-                secrets_errors += 1
-
-        Octokit.info("Secret Scanning violations :: " + str(secrets_errors))
+        violation_count = len(secret_violations)
+        Octokit.info(f"Secret Scanning violations :: {violation_count}")
 
         Octokit.endGroup()
 
-        return secrets_errors
+        if violation_count == 0:
+            Summary.addLine(f"{Summary.__ICONS__['check']} 0 Secret Scanning violations")
+        else:
+            Summary.addLine(f"{Summary.__ICONS__['cross']} {violation_count} Secret Scanning violation{'s' if violation_count > 1 else ''}")
+
+        if self.display and violation_count > 0:
+            Summary.addCollapsed(
+                Summary.formatTable(secret_violation_headers, secret_violations),
+                summary=Summary.formatItalics("Secret Scanning violations")
+            )
+
+        return violation_count
 
     def isRemediationPolicy(self, technology: str = "general") -> bool:
         return self.policy.policy.get(technology, {}).get("remediate") is not None
