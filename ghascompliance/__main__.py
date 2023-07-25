@@ -204,6 +204,10 @@ if __name__ == "__main__":
 
     Octokit.info("Total unacceptable alerts :: " + str(errors))
 
+    # Summary and PR comment
+    Summary.outputJobSummary()
+    PullRequest.addPrComment(policy.name)
+
     if arguments.action == "break" and errors > 0:
         Octokit.error("Unacceptable Threshold of Risk has been hit!")
         exit(1)
@@ -213,7 +217,3 @@ if __name__ == "__main__":
         Octokit.info("Acceptable risk and no threshold reached.")
     else:
         Octokit.error("Unknown action type :: " + str(arguments.action))
-    
-    # Summary and PR comment
-    Summary.outputJobSummary()
-    PullRequest.addPrComment(policy.name)
