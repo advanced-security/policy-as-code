@@ -120,7 +120,7 @@ class Checks:
                     tool_name,
                     rule_name,
                     severity,
-                    alert_creation_time
+                    alert_creation_time.strftime("%Y-%m-%dT%XZ")
                 ])
                 if self.display:
                     error_format = "{tool_name} - {creation_time} - {rule_name}"
@@ -489,7 +489,7 @@ class Checks:
             ):
                 secret_violations.append([
                     alert.secret_type_display_name,
-                    alert_creation_time
+                    alert_creation_time.strftime("%Y-%m-%dT%XZ")
                 ])
                 if self.display:
                     Octokit.error(f"Unresolved Secret - {alert}")
