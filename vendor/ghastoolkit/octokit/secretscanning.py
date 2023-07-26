@@ -11,6 +11,8 @@ logger = logging.getLogger("ghastoolkit.octokit.secretscanning")
 
 @dataclass
 class SecretAlert(OctoItem):
+    """Secret Scanning Alert."""
+
     number: int
     state: str
 
@@ -25,14 +27,16 @@ class SecretAlert(OctoItem):
 
     @property
     def locations(self) -> list[dict]:
-        """Get Alert locations (use cache or request from API)"""
+        """Get Alert locations.
+
+        Use cache or request from API."""
         if not self._locations:
             self._locations = SecretScanning().getAlertLocations(self.number)
         return self._locations
 
     @property
     def commit_sha(self) -> Optional[str]:
-        """Get commit sha if present"""
+        """Get commit sha if present."""
         if self._sha is None:
             for loc in self.locations:
                 if loc.get("type") == "commit":
@@ -45,15 +49,44 @@ class SecretAlert(OctoItem):
 
 
 class SecretScanning:
+    """Secret Scanning API."""
+
     def __init__(self, repository: Optional[Repository] = None) -> None:
+        """Initialise Secret Scanning API."""
         self.repository = repository or GitHub.repository
         if not self.repository:
             raise Exception("SecretScanning requires Repository to be set")
 
         self.rest = RestRequest(self.repository)
 
+        self.state = None
+
+    def isEnabled(self) -> bool:
+        """Check to see if Secret Scanning is enabled or not."""
+        if not self.state:
+            self.state = self.getStatus()
+        # if advanced_security is disabled, secret scanning will be
+        adsec = self.state.get("advanced_security", {}).get("status", "disabled")
+        return self.state.get("secret_scanning", {}).get("status", adsec) == "enabled"
+
+    def isPushProtectionEnabled(self) -> bool:
+        """Check if Push Protection is enabled."""
+        if not self.state:
+            self.state = self.getStatus()
+        status = self.state.get("secret_scanning_push_protection", {}).get(
+            "status", "disabled"
+        )
+        return status == "enabled"
+
+    def getStatus(self) -> dict:
+        """Get Status of GitHub Advanced Security."""
+        result = self.rest.get("get/repos/{owner}/{repo}")
+        if isinstance(result, dict):
+            return result.get("source", {}).get("security_and_analysis", {})
+        raise Exception("Failed to get the current state of secret scanning")
+
     def getOrganizationAlerts(self, state: Optional[str] = None) -> list[dict]:
-        """Get Organization Alerts
+        """Get Organization Alerts.
 
         https://docs.github.com/en/rest/secret-scanning#list-secret-scanning-alerts-for-an-organization
         """
@@ -64,7 +97,7 @@ class SecretScanning:
 
     @RestRequest.restGet("/repos/{owner}/{repo}/secret-scanning/alerts")
     def getAlerts(self, state: str = "open") -> list[SecretAlert]:
-        """Get Repository alerts
+        """Get Repository alerts.
 
         https://docs.github.com/en/rest/secret-scanning#list-secret-scanning-alerts-for-a-repository
         """
@@ -73,7 +106,7 @@ class SecretScanning:
     def getAlert(
         self, alert_number: int, state: Optional[str] = None
     ) -> Optional[SecretAlert]:
-        """Get Alert by `alert_number`
+        """Get Alert by `alert_number`.
 
         https://docs.github.com/en/rest/secret-scanning#get-a-secret-scanning-alert
         """
@@ -85,7 +118,7 @@ class SecretScanning:
             return loadOctoItem(SecretAlert, results)
 
     def getAlertsInPR(self) -> list[SecretAlert]:
-        """Get Alerts in a Pull Request"""
+        """Get Alerts in a Pull Request."""
         results = []
         pr_commits = self.repository.getPullRequestCommits()
         logger.debug(f"Number of Commits in PR :: {len(pr_commits)}")
@@ -97,7 +130,7 @@ class SecretScanning:
         return results
 
     def getAlertLocations(self, alert_number: int) -> list[dict]:
-        """Get Alert Locations by `alert_number`
+        """Get Alert Locations by `alert_number`.
 
         https://docs.github.com/en/rest/secret-scanning#list-locations-for-a-secret-scanning-alert
         """

@@ -1,10 +1,13 @@
+import logging
 import os
 import argparse
 from ghastoolkit.codeql.dataextensions.ext import DataExtensions
 
+logging.basicConfig(format="%(message)s")
 parser = argparse.ArgumentParser("ghastoolkit-codeql-dataextensions")
 parser.add_argument("-l", "--language", required=True)
 parser.add_argument("-i", "--input", required=True)
+
 args = parser.parse_args()
 
 de = DataExtensions(args.language)
@@ -19,10 +22,9 @@ elif os.path.isdir(args.input):
             if ext in [".yml", ".yaml"]:
                 de.load(path)
 
-print(f" Language   :: {args.language} (loaded: {len(de.paths)})")
-print()
-print(f" Sources    :: {len(de.sources)}")
-print(f" Sinks      :: {len(de.sinks)}")
-print(f" Summaries  :: {len(de.summaries)}")
-print(f" Types      :: {len(de.types)}")
-print(f" Neutrals   :: {len(de.neutrals)}")
+logging.info(f" Language   :: {args.language} (loaded: {len(de.paths)})")
+logging.info(f" Sources    :: {len(de.sources)}")
+logging.info(f" Sinks      :: {len(de.sinks)}")
+logging.info(f" Summaries  :: {len(de.summaries)}")
+logging.info(f" Types      :: {len(de.types)}")
+logging.info(f" Neutrals   :: {len(de.neutrals)}")

@@ -6,7 +6,6 @@ This Action was designed to allow users to configure their Risk threshold for se
 
 https://user-images.githubusercontent.com/2083085/131956624-e3f5140a-40e6-4067-9377-1093775aaa01.mp4
 
-
 ## Setup
 
 ### Action
@@ -16,7 +15,7 @@ Here is how you can quickly setup policy-as-code.
 ```yaml
 # Policy as Code
 - name: Advance Security Policy as Code
-  uses: advanced-security/policy-as-code@v2.3.6
+  uses: advanced-security/policy-as-code@v2.3.7
 ```
 
 #### Action Examples
@@ -52,7 +51,6 @@ pipenv run python -m ghascompliance
 - [Dependencies](examples/scripts/dependencies.sh)
 - [Policies](examples/scripts/policies.sh)
 
-
 ## Features
 
 | Feature         | github.com (Br/PR)                      | enterprise server (Br/PR)               | Description                                                                                                |
@@ -63,12 +61,11 @@ pipenv run python -m ghascompliance
 | Dependencies    | :white_check_mark: / :white_check_mark: | :x: [2] / :white_check_mark: [3]        | Dependencies is a tool that scans your code for dependencies.                                              |
 | Licensing       | :white_check_mark: / :white_check_mark: | :x: [2] / :white_check_mark: [3]        | Licensing is a tool that scans your code for licensing issues.                                             |
 
-*Notes:*
+_Notes:_
 
 1. Br/PR = Branches / Pull Requests
 2. :warning: GraphQL API not supported by GitHub Enterprise Server as of `3.7`
 3. :white_check_mark: Supported as of [GHES `3.6`](https://docs.github.com/en/enterprise-server@3.6/rest/dependency-graph/dependency-review#get-a-diff-of-the-dependencies-between-commits)
-
 
 ## Policy as Code / PaC
 
@@ -77,16 +74,15 @@ Here is an example of using a simple yet cross-organization using Policy as Code
 ```yaml
 # Compliance
 - name: Advance Security Policy as Code
-  uses: advanced-security/policy-as-code@v2.3.6
+  uses: advanced-security/policy-as-code@v2.3.7
   with:
-    # The owner/repo of where the policy is stored  
+    # The owner/repo of where the policy is stored
     policy: GeekMasher/security-queries
     # The local (within the workspace) or repository
     policy-path: policies/default.yml
     # The branch you want to target
     policy-branch: main
 ```
-
 
 ### PaC Configuration file
 
@@ -95,16 +91,16 @@ The Policy as Code configuration file is very simple yet powerful allowing a use
 ```yaml
 # This is the technology you want to write a rule for
 licensing:
-  # The four main rules types to do everything you need to do for all things 
+  # The four main rules types to do everything you need to do for all things
   #  compliance
 
-  # Warnings will always occur if the rule applies and continues executing to 
+  # Warnings will always occur if the rule applies and continues executing to
   #  other rules.
   warnings:
     ids:
       - Other
       - NA
-  # Ignores are run next so if an ignored rule is hit that matches the level, 
+  # Ignores are run next so if an ignored rule is hit that matches the level,
   #  it will be skipped
   ignores:
     ids:
@@ -120,7 +116,6 @@ licensing:
   #  reports an issue if the level matches or higher (see PaC Levels for more info)
   level: error
 ```
-
 
 #### PaC Levels
 
@@ -138,7 +133,6 @@ When a level is selected like for example `error`, all higher level severities (
 - notes
 ```
 
-
 #### PaC Rule Blocks
 
 For each rule you can choose either or both of the two different criteria's matches; `ids` and `names`
@@ -148,29 +142,27 @@ You can also use `imports` to side load data from other files to supplement the 
 ```yaml
 codescanning:
   conditions:
-    # When the `ids` of the technologies/tool alert matches any one of the ID's in 
+    # When the `ids` of the technologies/tool alert matches any one of the ID's in
     #  the list specified, the rule will the triggered and report the alert.
     ids:
-      # In this example case, the CodeQL rule ID below will always be reported if 
+      # In this example case, the CodeQL rule ID below will always be reported if
       #  present event if the severity is low or even note.
       - js/sql-injection
 
       # Side note: Check to see what different tools consider id's verses names,
-      #  for example `licensing` considers the "Licence" name itself as the id 
+      #  for example `licensing` considers the "Licence" name itself as the id
       #  while the name of the package/library as the "name"
-    
+
     # `names` allows you to specify the names of alerts or packages.
     names:
       - "Missing rate limiting"
 
     # The `imports` allows you to supplement your existing data with a list
-    #  from a file on the system. 
+    #  from a file on the system.
     imports:
-     ids: "path/to/ids/supplement/file.txt"
-     names: "path/to/names/supplement/file.txt"
-
+      ids: "path/to/ids/supplement/file.txt"
+      names: "path/to/names/supplement/file.txt"
 ```
-
 
 #### Wildcards
 
@@ -181,9 +173,8 @@ The matching is done using a Unix shell-style wildcards module called [fnmatch](
 codescanning:
   conditions:
     ids:
-      - '*/sql-injection'
+      - "*/sql-injection"
 ```
-
 
 #### Time to Remediate
 
@@ -192,15 +183,14 @@ The feature allows a user to define a time frame to which a security alert/vulne
 By default, if this section is not defined in any part of the policy then no checks are done.
 Existing policy files should act the same without the new section.
 
-
 ```yaml
 general:
-  # All other blocks will be inheriting the remediate section if they don't have 
+  # All other blocks will be inheriting the remediate section if they don't have
   #  their own defined.
   remediate:
-    # Only `error`'s and above have got 7 days to remediate according to the 
-    #  policy. Any time before that, nothing will occur and post the remediation 
-    #  time frame the alert will be raised. 
+    # Only `error`'s and above have got 7 days to remediate according to the
+    #  policy. Any time before that, nothing will occur and post the remediation
+    #  time frame the alert will be raised.
     error: 7
 
 codescanning:
@@ -218,7 +208,7 @@ dependabot:
 
 secretscanning:
   remediate:
-    # All secrets by default are set to 'critical' severity so only `critical` 
+    # All secrets by default are set to 'critical' severity so only `critical`
     #  or `all` will work
     critical: 7
 ```
@@ -226,7 +216,6 @@ secretscanning:
 ##### Time to Remediate Examples
 
 - [Time to Remediate Example](examples/policies/time-to-remediate.yml)
-
 
 #### Data Importing
 
@@ -237,4 +226,4 @@ Some things to consider when using imports:
   - `Working Directory`
   - `GitHub Action / CLI directory`
   - `Cloned Repository Directory`
-- Imports are only allowed from a number of predefined paths to prevent loading data on the system (AKA, path traversal). 
+- Imports are only allowed from a number of predefined paths to prevent loading data on the system (AKA, path traversal).

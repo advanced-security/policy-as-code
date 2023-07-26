@@ -1,3 +1,4 @@
+"""Dependabot API."""
 import logging
 from typing import Optional
 
@@ -11,12 +12,15 @@ logger = logging.getLogger("ghastoolkit.octokit.dependabot")
 
 
 class Dependabot:
+    """Dependabot API instance."""
+
     def __init__(self, repository: Optional[Repository] = None) -> None:
+        """Initialise Dependabot API class."""
         self.repository = repository or GitHub.repository
         self.graphql = GraphQLRequest(repository)
 
     def getAlerts(self) -> list[DependencyAlert]:
-        """Get Dependabot alerts from GraphQL API"""
+        """Get All Dependabot alerts from GraphQL API using the `GetDependencyAlerts` query."""
         results = []
 
         while True:

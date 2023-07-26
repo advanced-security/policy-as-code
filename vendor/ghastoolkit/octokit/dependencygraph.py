@@ -1,6 +1,5 @@
-import json
+"""Dependency Graph Octokit."""
 import logging
-from threading import main_thread
 from typing import Any
 import urllib.parse
 
@@ -14,12 +13,15 @@ logger = logging.getLogger("ghastoolkit.octokit.dependencygraph")
 
 
 class DependencyGraph:
+    """Dependency Graph API."""
+
     def __init__(
         self,
         repository: Optional[Repository] = None,
         enable_graphql: bool = True,
         enable_clearlydefined: bool = False,
     ) -> None:
+        """Initialise Dependency Graph."""
         self.repository = repository or GitHub.repository
         self.rest = RestRequest(repository)
         self.graphql = GraphQLRequest(repository)
@@ -28,7 +30,7 @@ class DependencyGraph:
         self.enable_clearlydefined = enable_clearlydefined
 
     def getDependencies(self) -> Dependencies:
-        """Get Dependencies"""
+        """Get Dependencies."""
         deps = self.getDependenciesSbom()
 
         if self.enable_graphql:
@@ -43,7 +45,7 @@ class DependencyGraph:
         return deps
 
     def getDependenciesSbom(self) -> Dependencies:
-        """Get Dependencies from SBOM"""
+        """Get Dependencies from SBOM."""
         result = Dependencies()
         spdx_bom = self.exportBOM()
 
@@ -76,7 +78,7 @@ class DependencyGraph:
         return result
 
     def getDependenciesGraphQL(self) -> Dependencies:
-        """Get Dependencies from GraphQL"""
+        """Get Dependencies from GraphQL."""
         deps = Dependencies()
         data = self.graphql.query(
             "GetDependencyInfo",
@@ -116,7 +118,7 @@ class DependencyGraph:
         return deps
 
     def getDependenciesInPR(self, base: str, head: str) -> Dependencies:
-        """Get all the dependencies from a Pull Request"""
+        """Get all the dependencies from a Pull Request."""
         dependencies = Dependencies()
         base = urllib.parse.quote(base, safe="")
         head = urllib.parse.quote(head, safe="")
@@ -161,7 +163,7 @@ class DependencyGraph:
         return dependencies
 
     def exportBOM(self) -> Dependencies:
-        """Download / Export DependencyGraph SBOM"""
+        """Download / Export DependencyGraph SBOM."""
         return self.rest.get("/repos/{owner}/{repo}/dependency-graph/sbom")
 
     def submitDependencies(
@@ -174,7 +176,8 @@ class DependencyGraph:
         version: str = "0.0.0",
         url: str = "",
     ):
-        """
+        """Submit dependencies to GitHub Dependency Graph snapshots API.
+
         https://docs.github.com/en/rest/dependency-graph/dependency-submission?apiVersion=2022-11-28#create-a-snapshot-of-dependencies-for-a-repository
         """
         self.rest.postJson(
@@ -184,7 +187,7 @@ class DependencyGraph:
         )
 
     def submitSbom(self, sbom: dict[Any, Any]):
-        """Submit SBOM"""
+        """Submit SBOM."""
         self.rest.postJson(
             "/repos/{owner}/{repo}/dependency-graph/snapshots",
             sbom,
