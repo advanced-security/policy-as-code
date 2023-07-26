@@ -1,3 +1,4 @@
+"""GitHub and Repository APIs."""
 import logging
 import os
 import shutil
@@ -13,7 +14,7 @@ logger = logging.getLogger("ghastoolkit.octokit.github")
 
 @dataclass
 class Repository:
-    """GitHub Repository"""
+    """GitHub Repository."""
 
     owner: str
     """Owner"""
@@ -45,6 +46,7 @@ class Repository:
             self.clone_path = os.path.join(tempfile.gettempdir(), self.repo)
 
     def __str__(self) -> str:
+        """To String."""
         name = f"{self.owner}/{self.repo}"
         if self.reference:
             return f"{name}:{self.reference}"
@@ -56,19 +58,19 @@ class Repository:
         return self.__str__()
 
     def isInPullRequest(self) -> bool:
-        """Is in Pull Request?"""
+        """Check if the current reference is in a Pull Request."""
         if self.reference:
             return self.reference.startswith("refs/pull")
         return False
 
     def getPullRequestNumber(self) -> int:
-        """Get Pull Request Number"""
+        """Get Pull Request Number / ID."""
         if self.isInPullRequest() and self.reference:
             return int(self.reference.split("/")[2])
         return 0
 
     def getPullRequestInfo(self) -> dict:
-        """Get information for the current pull request
+        """Get information for the current Pull Request.
 
         https://docs.github.com/en/enterprise-cloud@latest/rest/pulls/pulls#get-a-pull-request
         """
@@ -83,7 +85,7 @@ class Repository:
         return self.__prinfo__
 
     def getPullRequestCommits(self) -> list[str]:
-        """Get Pull Request Commits"""
+        """Get list of Pull Request commits."""
         result = []
         if self.isInPullRequest():
             from ghastoolkit.octokit.octokit import RestRequest
@@ -99,7 +101,7 @@ class Repository:
 
     @property
     def clone_url(self) -> str:
-        """Repository clone URL"""
+        """Repository clone URL."""
         if GitHub.github_app:
             url = urlparse(GitHub.instance)
             return f"{url.scheme}://x-access-token:{GitHub.token}@{url.netloc}/{self.owner}/{self.repo}.git"
@@ -123,8 +125,9 @@ class Repository:
         clobber: bool = False,
         depth: Optional[int] = None,
     ):
-        """Clone Repository
-        The clone path if left None will create a tmp folder for you
+        """Clone Repository based on url.
+
+        path: str - if left `None`, it will create a tmp folder for you.
         """
         if path:
             self.clone_path = path
@@ -146,7 +149,7 @@ class Repository:
             subprocess.check_call(cmd, stdout=null, stderr=null)
 
     def gitsha(self) -> str:
-        """Get the Git SHA"""
+        """Get the current Git SHA."""
         cmd = ["git", "rev-parse", "HEAD"]
         result = (
             subprocess.check_output(cmd, cwd=self.clone_path).decode("ascii").strip()
@@ -154,20 +157,20 @@ class Repository:
         return result
 
     def getFile(self, path: str) -> str:
-        """Get a path relative from the base of the cloned repository"""
+        """Get a path relative from the base of the cloned repository."""
         if not self.clone_path:
             raise Exception(f"Unknown clone path")
         return os.path.join(self.clone_path, path)
 
     def display(self) -> str:
-        """Display the repository as a string"""
+        """Display the repository as a string."""
         if self.reference:
             return f"{self.owner}/{self.repo}@{self.reference}"
         return f"{self.owner}/{self.repo}"
 
     @staticmethod
     def parseRepository(name: str) -> "Repository":
-        """Parse the repository name"""
+        """Parse the repository name."""
         ref = None
         branch = None
         if "@" in name:
@@ -179,8 +182,10 @@ class Repository:
 
 
 class GitHub:
-    """The GitHub class is used to configure the state for all Octokit
-    apis. Its a standard interface across all projects.
+    """The GitHub Class.
+
+    This API is used to configure the state for all Octokit apis.
+    Its a standard interface across all projects.
     """
 
     repository: Repository = Repository("GeekMasher", "ghastoolkit")
@@ -212,7 +217,7 @@ class GitHub:
         instance: Optional[str] = None,
         enterprise: Optional[str] = None,
     ) -> None:
-        """Initialise a GitHub class using a number of properties"""
+        """Initialise a GitHub class using a number of properties."""
         if repository:
             GitHub.repository = Repository.parseRepository(repository)
         elif owner and repo:
@@ -239,7 +244,7 @@ class GitHub:
 
     @staticmethod
     def parseInstance(instance: str) -> Tuple[str, str]:
-        """Parse GitHub Instance"""
+        """Parse GitHub Instance."""
         url = urlparse(instance)
 
         # GitHub Cloud (.com)
@@ -253,5 +258,5 @@ class GitHub:
 
     @staticmethod
     def display() -> str:
-        """Display the GitHub Settings"""
+        """Display the GitHub Settings."""
         return f"GitHub('{GitHub.repository.display()}', '{GitHub.instance}')"

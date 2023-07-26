@@ -1,4 +1,4 @@
-import json
+"""ghastoolkit main workflow."""
 import os
 import logging
 import argparse
