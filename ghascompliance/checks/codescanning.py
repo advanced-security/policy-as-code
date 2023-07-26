@@ -27,7 +27,7 @@ class CodeScanningChecker(Checker):
         self.state.warning(f"{alert.tool_name} - {alert.created_at} - {alert.rule_id}")
 
     def check(self):
-        """Check Code Scanning alerts"""
+        """Check Code Scanning alerts."""
         alerts = self.getAlerts()
         Octokit.info("Total Code Scanning Alerts :: " + str(len(alerts)))
 
@@ -41,11 +41,10 @@ class CodeScanningChecker(Checker):
 
         for policy in policies:
             # severities
-            if policy.severity:
-                self.severities = SeverityLevelEnum.getSeveritiesFromName(policy.severity.value)
-            else:
-                Octokit.debug(f"Severity checking is ignored")
-            
+            self.severities = SeverityLevelEnum.getSeveritiesFromName(
+                policy.severity.value
+            )
+
             # tool required check
             if policy.tools_required:
                 self.checkTools(policy.tools_required)
@@ -73,9 +72,7 @@ class CodeScanningChecker(Checker):
             )
         return alerts
 
-    def checkCodeScanningAlert(
-        self, policy: CodeScanningPolicy, alert: CodeAlert
-    ):
+    def checkCodeScanningAlert(self, policy: CodeScanningPolicy, alert: CodeAlert):
         """Check Code Scanning Alert to see if it violates the provided policy"""
         # tools
         if len(policy.tools) != 0:
@@ -111,14 +108,13 @@ class CodeScanningChecker(Checker):
         # TODO owasp
 
         return
-    
+
     def checkTools(self, tools: List[str]):
         cstools = CodeScanning().getTools()
         for tool in tools:
             if tool in cstools:
                 continue
-            
+
             self.state.error(f"Required tool missing :: {tool}")
 
         return
-
