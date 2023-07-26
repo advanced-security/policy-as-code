@@ -1,6 +1,5 @@
 version: "3"
 name: "Default Policy"
-
   
 codescanning:
   enabled: true
@@ -25,6 +24,7 @@ supplychain:
 
 secretscanning:
   enabled: true
-  severity: "all"
   push-protection: false
+
+  severity: "all"
 

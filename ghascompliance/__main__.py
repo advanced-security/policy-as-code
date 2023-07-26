@@ -1,14 +1,13 @@
-from io import open_code
 import os
 import argparse
 import logging
+from typing import Optional
 
 from ghastoolkit.octokit.github import GitHub
 
 from ghascompliance import Octokit, __name__ as tool_name, __banner__, __url__
-from ghascompliance.plugins.plugin import Plugins
-from ghascompliance.plugins.projectboard import ProjectBoardPlugin
 from ghascompliance.policies import PolicyEngine
+from vendor.ghastoolkit.octokit.github import Repository
 
 
 # https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
@@ -37,11 +36,15 @@ github_arguments.add_argument("--github-repository", default=GITHUB_REPOSITORY)
 github_arguments.add_argument("--github-ref", default=GITHUB_REF)
 
 policy_arguments = parser.add_argument_group("Policy")
-github_arguments.add_argument("--github-policy")
+github_arguments.add_argument(
+    "--github-policy", default=os.environ.get("GITHUB_POLICY")
+)
 github_arguments.add_argument("--github-policy-branch", default="main")
 github_arguments.add_argument(
     "--github-policy-path",
-    default=os.path.join(HERE, "defaults", "policy.yml"),
+    default=os.environ.get(
+        "GITHUB_POLICY_PATH", os.path.join(HERE, "defaults", "policy.yml")
+    ),
 )
 
 thresholds = parser.add_argument_group("Thresholds")
@@ -85,17 +88,18 @@ if __name__ == "__main__":
     )
     Octokit.debug(f"GitHub App :: {GitHub.github_app}")
 
-    policy_location = None
+    #
+    policy_location: Optional[Repository] = None
 
     Octokit.createGroup("Policy as Code")
     if arguments.github_policy and arguments.github_policy != "":
         # Process [org]/repo
         if "/" in arguments.github_policy:
-            policy_location = arguments.github_policy
+            policy_location = Repository.parseRepository(arguments.github_policy)
         else:
             if GITHUB_OWNER is None:
                 raise Exception("GitHub Owner/Repo not provided")
-            policy_location = GITHUB_OWNER + "/" + arguments.github_policy
+            policy_location = Repository(GITHUB_OWNER, arguments.github_policy)
 
         Octokit.info(
             "Loading Policy as Code from Repository - {}/{}/{}".format(

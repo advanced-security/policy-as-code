@@ -152,7 +152,7 @@ class Display:
 
 @dataclass
 class Policy:
-    """Version of the PolicyEngine"""
+    """Policy model."""
 
     version: str = "3"
 

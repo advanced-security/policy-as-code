@@ -1,3 +1,4 @@
+"""Policy Engine."""
 import os
 import json
 import shutil
@@ -10,7 +11,6 @@ from ghascompliance.checks.codescanning import CodeScanningChecker
 from ghascompliance import Octokit
 from ghascompliance.plugins import __PLUGINS__
 from ghascompliance.plugins.plugin import Plugins
-from ghascompliance.plugins.projectboard import ProjectBoardPlugin
 from ghascompliance.policies.base import PolicyConfig, PolicyV3
 
 
@@ -55,7 +55,7 @@ class PolicyEngine:
         self.temp_repo = None
 
     def loadFromRepo(self):
-        """Load policy from repository"""
+        """Load policy from repository."""
         if not self.repository:
             raise Exception(f"Loading from repository but no repository is set")
 
