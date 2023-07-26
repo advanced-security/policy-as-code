@@ -5,5 +5,6 @@
 
 from .base import compare, match, validate, SimpleSpec, NpmSpec, Spec, SpecItem, Version
 
+
 __author__ = "Raphaël Barrois <raphael.barrois+semver@polytechnique.org>"
 __version__ = "2.10.0"

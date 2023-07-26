@@ -5,7 +5,7 @@ verify_ssl = true
 
 [packages]
 pyyaml = "*"
-ghastoolkit = "==0.6.1"
+ghastoolkit = "==0.6.2"
 semantic-version = "*"
 
 [dev-packages]
