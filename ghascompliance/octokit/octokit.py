@@ -13,7 +13,7 @@ class Octokit:
     logger = logging.getLogger(__name__)
 
     @staticmethod
-    def debugging_enabled() -> bool: 
+    def debugging_enabled() -> bool:
         return Octokit.logger.level == logging.DEBUG
 
     @staticmethod
