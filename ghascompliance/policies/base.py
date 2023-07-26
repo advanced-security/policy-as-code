@@ -31,49 +31,56 @@ class RemediationPolicy:
 
 @dataclass
 class CodeScanningPolicy:
-    """Make sure the feature is enabled"""
+    """Make sure the feature is enabled."""
 
     enabled: bool = True
-    """Name"""
+    """Required to be enabled"""
+
     name: str = "CodeScanningPolicy"
+    """Name"""
 
+    severity: SeverityLevelEnum = SeverityLevelEnum.ERROR
     """Base severity"""
-    severity: Optional[SeverityLevelEnum] = SeverityLevelEnum.ERROR
 
-    """List of identifier to match against"""
     ids: List[str] = field(default_factory=list)
+    """List of identifier to match against"""
     ids_warnings: List[str] = field(default_factory=list)
     ids_ignores: List[str] = field(default_factory=list)
 
-    """The name of an alert"""
     names: List[str] = field(default_factory=list)
+    """The name of an alert"""
 
-    """CWE IDs"""
     cwes: List[str] = field(default_factory=list)
+    """CWE IDs"""
 
-    """OWASP Top 10"""
     owasp: List[str] = field(default_factory=list)
+    """OWASP Top 10"""
 
-    """Tools Names"""
     tools: List[str] = field(default_factory=list)
-    """Required Tools"""
+    """Tools Names"""
     tools_required: List[str] = field(default_factory=list)
+    """Required Tools"""
 
-    """Remediation Policy"""
     remediate: RemediationPolicy = RemediationPolicy()
+    """Remediation Policy"""
+
+    def __post_init__(self):
+        if isinstance(self.severity, str):
+            self.severity = SeverityLevelEnum.load(self.severity)
 
 
 @dataclass
 class SupplyChainPolicy:
-    """Make sure the feature is enabled"""
+    """Make sure the feature is enabled."""
 
     enabled: bool = True
+    """Required to be enabled"""
 
-    """Base severity"""
     severity: SeverityLevelEnum = SeverityLevelEnum.HIGH
+    """Base severity"""
 
-    """List of package names / PURL to match against"""
     names: List[str] = field(default_factory=list)
+    """List of package names / PURL to match against"""
     names_warnings: List[str] = field(default_factory=list)
     names_ignores: List[str] = field(default_factory=list)
 
@@ -93,6 +100,10 @@ class SupplyChainPolicy:
 
     """Remediation Policy"""
     remediate: RemediationPolicy = RemediationPolicy()
+
+    def __post_init__(self):
+        if isinstance(self.severity, str):
+            self.severity = SeverityLevelEnum.load(self.severity)
 
 
 @dataclass
@@ -114,6 +125,10 @@ class SecretScanningPolicy:
 
     """Remediation Policy"""
     remediate: RemediationPolicy = RemediationPolicy()
+
+    def __post_init__(self):
+        if isinstance(self.severity, str):
+            self.severity = SeverityLevelEnum.load(self.severity)
 
 
 @dataclass
@@ -268,7 +283,7 @@ class PolicyV3:
         # plugins
         if self.plugins:
             self.plugins = {}
-            logger.debug(f"Plugins are currently not supported")
+            logger.warning(f"Plugins are currently not supported")
 
         # default policies
         if isinstance(self.codescanning, (dict, list)):

@@ -3,6 +3,8 @@ from typing import List
 
 
 class SeverityLevelEnum(Enum):
+    """Security Level Enum."""
+
     #  Critical to High issues
     CRITICAL = "critical"
     HIGH = "high"
@@ -20,6 +22,10 @@ class SeverityLevelEnum(Enum):
     # Misc
     ALL = "all"
     NONE = "none"
+
+    @staticmethod
+    def load(data: str) -> "SeverityLevelEnum":
+        return SeverityLevelEnum[data.upper()]
 
     @staticmethod
     def getAllSeverities(include_misc: bool = False):
