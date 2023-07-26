@@ -15,15 +15,17 @@ from ghascompliance.policies.base import PolicyConfig, PolicyV3
 
 
 __ROOT__ = os.path.dirname(os.path.basename(__file__))
-__SCHEMA_VALIDATION__ = "Schema Validation Failed :: {msg} - {value}"
 
 
 class PolicyEngine:
+    """Policy Engine."""
+
     def __init__(
         self,
         repository: Optional[Repository] = None,
         path: Optional[str] = None,
     ):
+        """Initialise Policy as Engine."""
         self.repository = repository
         self.repository_path = path
 
@@ -90,7 +92,7 @@ class PolicyEngine:
         return PolicyV3.loadRootPolicy(path)
 
     def check(self) -> int:
-        """Run all the checks"""
+        """Run all the checks."""
         total = 0
 
         for checker in self.checkers:
