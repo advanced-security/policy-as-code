@@ -49,7 +49,6 @@ runs:
         echo "Running Policy as Code..."
         export PYTHONPATH=${{ github.action_path }}:${{ github.action_path }}/vendor
         python3 -m ghascompliance \
-          --severity "${{ inputs.severity }}" \
           --action "${{ inputs.action }}" \
           --github-token "${{ inputs.token }}" \
           --github-repository "${{ inputs.repository }}" \
