@@ -6,7 +6,7 @@ from ghastoolkit.octokit.github import GitHub
 
 from ghascompliance.__version__ import __name__ as tool_name, __banner__, __url__
 from ghascompliance.consts import SEVERITIES
-from ghascompliance.octokit import Octokit
+from ghascompliance.octokit import Octokit, PullRequest, Summary
 from ghascompliance.policy import Policy
 from ghascompliance.checks import *
 
@@ -33,6 +33,7 @@ parser.add_argument("--disable-dependency-licensing", action="store_true")
 parser.add_argument("--disable-dependencies", action="store_true")
 parser.add_argument("--disable-secret-scanning", action="store_true")
 parser.add_argument("--is-github-app-token", action="store_true", default=False)
+parser.add_argument("--pr-comment", action="store_true", default=False)
 
 github_arguments = parser.add_argument_group("GitHub")
 github_arguments.add_argument("--github-token", default=GITHUB_TOKEN)
@@ -81,6 +82,9 @@ if __name__ == "__main__":
         raise Exception("Github Access Token required")
     if not arguments.github_repository:
         raise Exception("Github Repository required")
+
+    Summary.addHeader("Policy as Code", 1)
+    PullRequest.add_pr_comment = arguments.pr_comment
 
     GitHub.init(
         arguments.github_repository,
@@ -142,6 +146,9 @@ if __name__ == "__main__":
         instance=arguments.github_instance,
     )
 
+    if not policy.name == "":
+        Summary.addHeader(f"Policy :: {policy.name}", 4)
+
     os.makedirs(results, exist_ok=True)
     policy.savePolicy(os.path.join(results, "policy.json"))
 
@@ -197,6 +204,10 @@ if __name__ == "__main__":
             raise err
 
     Octokit.info("Total unacceptable alerts :: " + str(errors))
+
+    # Summary and PR comment
+    Summary.outputJobSummary()
+    PullRequest.addPrComment(policy.name)
 
     if arguments.action == "break" and errors > 0:
         Octokit.error("Unacceptable Threshold of Risk has been hit!")
