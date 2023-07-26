@@ -82,7 +82,9 @@ if __name__ == "__main__":
     Octokit.info(
         f"GitHub Repository :: {GitHub.repository.owner}/{GitHub.repository.repo}"
     )
-    Octokit.info(f"GitHub Instance   :: {GitHub.instance}")
+    Octokit.info(
+        f"GitHub Instance   :: {GitHub.instance} (token: {GitHub.token is not None})"
+    )
     Octokit.info(
         f"GitHub Reference  :: {GitHub.repository.reference} (PR: {GitHub.repository.isInPullRequest()})"
     )
@@ -92,6 +94,7 @@ if __name__ == "__main__":
     policy_location: Optional[Repository] = None
 
     Octokit.createGroup("Policy as Code")
+
     if arguments.github_policy and arguments.github_policy != "":
         # Process [org]/repo
         if "/" in arguments.github_policy:
@@ -101,11 +104,11 @@ if __name__ == "__main__":
                 raise Exception("GitHub Owner/Repo not provided")
             policy_location = Repository(GITHUB_OWNER, arguments.github_policy)
 
-        Octokit.info(
-            "Loading Policy as Code from Repository - {}/{}/{}".format(
-                arguments.github_instance, policy_location, arguments.github_policy_path
-            )
-        )
+        # branch
+        if arguments.github_policy_branch:
+            policy_location.branch = arguments.github_policy_branch
+
+        Octokit.info(f"Loading Policy as Code from Repository - {policy_location}")
 
     elif arguments.github_policy_path:
         if not os.path.exists(arguments.github_policy_path):
@@ -113,9 +116,7 @@ if __name__ == "__main__":
             Octokit.info("File path skipped :: " + str(arguments.github_policy_path))
             arguments.github_policy_path = None
         else:
-            Octokit.info(
-                "Policy config file set: {}".format(arguments.github_policy_path)
-            )
+            Octokit.info(f"Policy config file set: {arguments.github_policy_path}")
 
     results = ".compliance"
 
