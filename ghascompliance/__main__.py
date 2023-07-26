@@ -21,6 +21,8 @@ GITHUB_INSTANCE = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 
+POLICY_DEFAULT = os.path.join(HERE, "defaults", "policy.yml")
+
 parser = argparse.ArgumentParser(tool_name)
 
 parser.add_argument(
@@ -42,9 +44,7 @@ github_arguments.add_argument(
 github_arguments.add_argument("--github-policy-branch", default="main")
 github_arguments.add_argument(
     "--github-policy-path",
-    default=os.environ.get(
-        "GITHUB_POLICY_PATH", os.path.join(HERE, "defaults", "policy.yml")
-    ),
+    default=os.environ.get("GITHUB_POLICY_PATH", POLICY_DEFAULT),
 )
 
 thresholds = parser.add_argument_group("Thresholds")
@@ -118,12 +118,10 @@ if __name__ == "__main__":
         else:
             Octokit.info(f"Policy config file set: {arguments.github_policy_path}")
 
-    results = ".compliance"
-
     # Load policy engine
     engine = PolicyEngine(
         repository=policy_location,
-        path=arguments.github_policy_path,
+        path=arguments.github_policy_path or POLICY_DEFAULT,
     )
 
     Octokit.info("Finished loading policy")
