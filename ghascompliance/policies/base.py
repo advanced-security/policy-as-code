@@ -117,6 +117,25 @@ class SecretScanningPolicy:
 
 
 @dataclass
+class Display:
+    """Displays Settings."""
+
+    detailed: bool = False
+    """Detailed display setting"""
+    pr_summary: bool = True
+    """Pull Request summary setting"""
+
+    @staticmethod
+    def load(data: Any) -> "Display":
+        """Load Display."""
+        if isinstance(data, bool):
+            return Display(detailed=True) if data else Display()
+        elif isinstance(data, dict):
+            return loadDict(Display, data)
+        return Display()
+
+
+@dataclass
 class Policy:
     """Version of the PolicyEngine"""
 
@@ -126,7 +145,7 @@ class Policy:
     name: str = "Policy"
 
     """ Displays all information in the output log"""
-    display: bool = False
+    display: Display = Display()
 
     """Default Code Scanning Policy"""
     codescanning: Union[
@@ -140,6 +159,8 @@ class Policy:
     secretscanning: SecretScanningPolicy = SecretScanningPolicy()
 
     def __post_init__(self):
+        # display
+        self.display = Display.load(self.display)
         # default policies
         if isinstance(self.codescanning, (dict, list)):
             if isinstance(self.codescanning, list):
@@ -209,36 +230,42 @@ class ThreatModel:
 class PolicyV3:
     """Policy as Code v3"""
 
-    """Version of the PolicyEngine"""
     version: str = "3"
+    """Version of the PolicyEngine"""
 
-    """Name of the Policy"""
     name: str = "Policy"
+    """Name of the Policy"""
 
+    display: Display = Display()
     """ Displays all information in the output log"""
-    display: bool = False
 
-    """ Threat Models """
     threatmodels: Dict[str, ThreatModel] = field(default_factory=dict)
+    """ Threat Models """
 
-    """Default Code Scanning Policy"""
     codescanning: Union[
         CodeScanningPolicy, List[CodeScanningPolicy]
     ] = CodeScanningPolicy()
+    """Default Code Scanning Policy"""
 
-    """Default Supply Chain Policy"""
     supplychain: SupplyChainPolicy = SupplyChainPolicy()
+    """Default Supply Chain Policy"""
 
-    """Default Secret Scanning Policy"""
     secretscanning: SecretScanningPolicy = SecretScanningPolicy()
+    """Default Secret Scanning Policy"""
 
-    """Plugins"""
     plugins: Dict[str, Any] = field(default_factory=dict)
+    """Plugins"""
 
     def __post_init__(self):
+        # display
+        self.display = Display.load(self.display)
+
+        # threatmodels
         if self.threatmodels:
             for k, v in self.threatmodels.items():
                 self.threatmodels[k] = loadDict(ThreatModel, v)
+
+        # plugins
         if self.plugins:
             self.plugins = {}
             logger.debug(f"Plugins are currently not supported")
