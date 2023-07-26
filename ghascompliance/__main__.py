@@ -5,6 +5,8 @@ import logging
 from ghastoolkit.octokit.github import GitHub
 
 from ghascompliance import Octokit, __name__ as tool_name, __banner__, __url__
+from ghascompliance.plugins.plugin import Plugins
+from ghascompliance.plugins.projectboard import ProjectBoardPlugin
 from ghascompliance.policies import PolicyEngine
 
 
@@ -77,7 +79,9 @@ if __name__ == "__main__":
         f"GitHub Repository :: {GitHub.repository.owner}/{GitHub.repository.repo}"
     )
     Octokit.info(f"GitHub Instance   :: {GitHub.instance}")
-    Octokit.info(f"GitHub Reference  :: {GitHub.repository.reference} (PR: {GitHub.repository.isInPullRequest()})")
+    Octokit.info(
+        f"GitHub Reference  :: {GitHub.repository.reference} (PR: {GitHub.repository.isInPullRequest()})"
+    )
     Octokit.debug(f"GitHub App :: {GitHub.github_app}")
 
     policy_location = None
@@ -120,6 +124,10 @@ if __name__ == "__main__":
 
     Octokit.endGroup()
 
+    Octokit.debug("Loading plugins")
+    plugins = Plugins(projectboard=ProjectBoardPlugin("projectboard"))
+    plugins.runPre()
+
     errors = 0
 
     try:
@@ -133,6 +141,8 @@ if __name__ == "__main__":
             raise err
 
     Octokit.info("Total unacceptable alerts :: " + str(errors))
+
+    plugins.runPost()
 
     if arguments.action == "break" and errors > 0:
         Octokit.error("Unacceptable Threshold of Risk has been hit!")
