@@ -18,6 +18,11 @@ class Octokit:
     logger = logging.getLogger(__name__)
 
     @staticmethod
+    def setLevel(level: int = logging.INFO):
+        """Set the logging level"""
+        Octokit.logger.setLevel(level)
+
+    @staticmethod
     def info(msg):
         """Logging Info"""
         logging.info(msg)
