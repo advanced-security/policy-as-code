@@ -61,7 +61,7 @@ class CodeScanningPolicy:
     tools_required: List[str] = field(default_factory=list)
     """Required Tools"""
 
-    remediate: RemediationPolicy = RemediationPolicy()
+    remediate: RemediationPolicy = field(default_factory=RemediationPolicy)
     """Remediation Policy"""
 
     def __post_init__(self):
@@ -99,7 +99,7 @@ class SupplyChainPolicy:
     licenses_ignores: List[str] = field(default_factory=list)
 
     """Remediation Policy"""
-    remediate: RemediationPolicy = RemediationPolicy()
+    remediate: RemediationPolicy = field(default_factory=RemediationPolicy)
 
     def __post_init__(self):
         if isinstance(self.severity, str):
@@ -124,7 +124,7 @@ class SecretScanningPolicy:
     push_protection: bool = False
 
     """Remediation Policy"""
-    remediate: RemediationPolicy = RemediationPolicy()
+    remediate: RemediationPolicy = field(default_factory=RemediationPolicy)
 
     def __post_init__(self):
         if isinstance(self.severity, str):
@@ -163,15 +163,15 @@ class Policy:
     display: Display = Display()
 
     """Default Code Scanning Policy"""
-    codescanning: Union[
-        CodeScanningPolicy, List[CodeScanningPolicy]
-    ] = CodeScanningPolicy()
+    codescanning: Union[CodeScanningPolicy, List[CodeScanningPolicy]] = field(
+        default_factory=CodeScanningPolicy
+    )
 
     """Default Supply Chain Policy"""
-    supplychain: SupplyChainPolicy = SupplyChainPolicy()
+    supplychain: SupplyChainPolicy = field(default_factory=SupplyChainPolicy)
 
     """Default Secret Scanning Policy"""
-    secretscanning: SecretScanningPolicy = SecretScanningPolicy()
+    secretscanning: SecretScanningPolicy = field(default_factory=SecretScanningPolicy)
 
     def __post_init__(self):
         # display
@@ -251,21 +251,21 @@ class PolicyV3:
     name: str = "Policy"
     """Name of the Policy"""
 
-    display: Display = Display()
+    display: Display = field(default_factory=Display)
     """ Displays all information in the output log"""
 
     threatmodels: Dict[str, ThreatModel] = field(default_factory=dict)
     """ Threat Models """
 
-    codescanning: Union[
-        CodeScanningPolicy, List[CodeScanningPolicy]
-    ] = CodeScanningPolicy()
+    codescanning: Union[CodeScanningPolicy, List[CodeScanningPolicy]] = field(
+        default_factory=CodeScanningPolicy
+    )
     """Default Code Scanning Policy"""
 
-    supplychain: SupplyChainPolicy = SupplyChainPolicy()
+    supplychain: SupplyChainPolicy = field(default_factory=SupplyChainPolicy)
     """Default Supply Chain Policy"""
 
-    secretscanning: SecretScanningPolicy = SecretScanningPolicy()
+    secretscanning: SecretScanningPolicy = field(default_factory=SecretScanningPolicy)
     """Default Secret Scanning Policy"""
 
     plugins: Dict[str, Any] = field(default_factory=dict)
