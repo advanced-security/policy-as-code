@@ -81,6 +81,19 @@ class CodeScanning:
             raise Exception("CodeScanning requires Repository to be set")
         self.rest = RestRequest(self.repository)
 
+    def isEnabled(self) -> bool:
+        """Check to see if Code Scanning is enabled or not on a repository level."""
+        try:
+            self.rest.get(
+                "/repos/{org}/{repo}/code-scanning/analyses",
+                {"ref": self.repository.reference},
+                display_error=False,
+            )
+            return True
+        except:
+            logger.debug(f"Failed to get analyses...")
+        return False
+
     def getOrganizationAlerts(self, state: str = "open") -> list[CodeAlert]:
         """Get list of Organization Alerts.
 
