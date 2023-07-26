@@ -46,7 +46,7 @@ jobs:
       uses: ./
       with:
         action: continue
-        policy: advanced-security/policy-as-code-testing
+        policy: GeekMasherOrg/security-v3
         policy-path: policy.yml
         token: "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
         argvs: --github-repository advanced-security/policy-as-code-testing --github-ref refs/heads/main

@@ -68,6 +68,8 @@ class PolicyEngine:
             shutil.rmtree(self.repository.clone_path)
 
         Octokit.info(f"Cloning policy repo - {self.repository}")
+        Octokit.debug(f"Is GitHub Token present - {GitHub.token is not None}")
+
         self.repository.clone(clobber=True, depth=1)
 
         if not os.path.exists(self.repository.clone_path):
