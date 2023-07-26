@@ -96,7 +96,7 @@ class Policy:
 
     def loadPolicy(self, policy: dict):
         self.name = policy.get("name", "")
-        
+
         if not policy.get("general"):
             policy["general"] = {}
 

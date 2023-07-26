@@ -5,16 +5,11 @@ from ghascompliance.octokit import Octokit
 
 class Summary:
     __SUMMARY_ENV_VAR__ = "GITHUB_STEP_SUMMARY"
-    __ICONS__ = {
-        "check": "✅",
-        "cross": "❌",
-        "warning": "⚠️"
-    }
+    __ICONS__ = {"check": "✅", "cross": "❌", "warning": "⚠️"}
     __HEADER_MAX__ = 4
     __HEADER_MIN__ = 1
 
     summary = ""
-
 
     @staticmethod
     def formatHeader(header: str, level: int) -> str:
@@ -43,7 +38,7 @@ class Summary:
         for row in rows:
             if not isinstance(row, list):
                 continue
-            row = row[:col_count] + ['']*(col_count - len(row))
+            row = row[:col_count] + [""] * (col_count - len(row))
             table.append(f"<tr><td>{'</td><td>'.join(row)}</td></tr>")
 
         table.append("</table>")
@@ -79,10 +74,12 @@ class Summary:
         """Outputs the current summary as the job summary."""
         file_path = os.environ[Summary.__SUMMARY_ENV_VAR__]
         if not file_path or not os.path.isfile(file_path):
-            Octokit.warning(f"Unable to find the {Summary.__SUMMARY_ENV_VAR__} environment variable, can't create job summary.")
+            Octokit.warning(
+                f"Unable to find the {Summary.__SUMMARY_ENV_VAR__} environment variable, can't create job summary."
+            )
             return
         try:
-            with open(file_path, 'w') as job_file:
+            with open(file_path, "w") as job_file:
                 job_file.write(Summary.summary)
                 job_file.close()
         except Exception as ex:

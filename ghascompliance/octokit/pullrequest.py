@@ -22,7 +22,7 @@ class PullRequest:
         if not GitHub.repository.isInPullRequest():
             Octokit.debug("Not running in a PR, skipping PR comment.")
             return
-        
+
         Octokit.createGroup("Pull Request comment")
 
         policy_name = policy_name if policy_name else "Unknown"
@@ -35,7 +35,9 @@ class PullRequest:
 
             # If existing comment, update the comment
             if comment_id:
-                Octokit.info("Found an existing comment from PaC, updating that comment...")
+                Octokit.info(
+                    "Found an existing comment from PaC, updating that comment..."
+                )
                 Octokit.debug(f"Comment ID :: {comment_id}")
                 Summary.addRaw(f"Updating the comment at {datetime.datetime.today()}")
                 GitHub.repository.updatePullRequestComment(comment_id, Summary.summary)
@@ -44,7 +46,9 @@ class PullRequest:
                 Octokit.info("No exisiting comment from PaC, adding a new comment...")
                 GitHub.repository.createPullRequestComment(Summary.summary)
         except Exception as ex:
-            Octokit.error("Exception occured when attempting to add a PR comment, ensure that the auth token has write access to Pull Requests.")
+            Octokit.error(
+                "Exception occured when attempting to add a PR comment, ensure that the auth token has write access to Pull Requests."
+            )
         finally:
             Octokit.endGroup()
 
