@@ -1,7 +1,8 @@
+"""GitHub Advanced Security Toolkit."""
 __name__ = "ghastoolkit"
 __title__ = "GHAS Toolkit"
 
-__version__ = "0.4.7"
+__version__ = "0.6.1"
 
 __description__ = "GitHub Advanced Security Python Toolkit"
 __summary__ = """\
@@ -31,9 +32,11 @@ from ghastoolkit.octokit.octokit import Octokit, RestRequest, GraphQLRequest
 from ghastoolkit.octokit.codescanning import CodeScanning, CodeAlert
 from ghastoolkit.octokit.secretscanning import SecretScanning, SecretAlert
 from ghastoolkit.octokit.dependencygraph import DependencyGraph
+from ghastoolkit.octokit.dependabot import Dependabot
+from ghastoolkit.octokit.advisories import SecurityAdvisories
 
 # Supply Chain
-from ghastoolkit.supplychain.advisories import Advisory
+from ghastoolkit.supplychain.advisories import Advisory, Advisories
 from ghastoolkit.supplychain.dependencyalert import DependencyAlert
 from ghastoolkit.supplychain.dependencies import Dependency, Dependencies
 from ghastoolkit.supplychain.licensing import Licenses
@@ -41,6 +44,8 @@ from ghastoolkit.supplychain.licensing import Licenses
 # CodeQL
 from ghastoolkit.codeql.databases import CodeQLDatabases, CodeQLDatabase
 from ghastoolkit.codeql.cli import CodeQL
+from ghastoolkit.codeql.packs.pack import CodeQLPack
+from ghastoolkit.codeql.packs.packs import CodeQLPacks
 from ghastoolkit.codeql.results import CodeQLResults, CodeLocation, CodeResult
 
 # CodeQL Data Extensions / Models as Data

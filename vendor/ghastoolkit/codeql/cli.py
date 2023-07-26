@@ -1,36 +1,51 @@
+"""This is the CodeQL CLI Module."""
+import os
 import json
 import logging
-import os
-import subprocess
-from sys import stdout
 import tempfile
-from typing import Optional, Union
+import subprocess
+from typing import List, Optional, Union
 
 from ghastoolkit.codeql.databases import CodeQLDatabase
 from ghastoolkit.codeql.results import CodeQLResults
-from ghastoolkit.codeql.utils import findCodeBinary
 
 
 logger = logging.getLogger("ghastoolkit.codeql.cli")
 
 
+def findCodeQLBinary() -> Optional[List[str]]:
+    """Find CodeQL Binary on current system."""
+    locations = [["codeql"], ["gh", "codeql"], ["/usr/bin/codeql/codeql"]]
+
+    for location in locations:
+        try:
+            cmd = location + ["version"]
+            with open(os.devnull, "w") as null:
+                subprocess.check_call(cmd, stdout=null, stderr=null)
+
+            return location
+        except Exception as err:
+            logger.debug(f"Failed to find codeql :: {err}")
+    return []
+
+
 class CodeQL:
-    """CodeQL CLI"""
+    """CodeQL CLI."""
 
     def __init__(self, binary: Optional[str] = None) -> None:
+        """Initialise CodeQL CLI Class."""
         if binary:
             self.path_binary = [binary]
         else:
-            self.path_binary: Optional[list[str]] = findCodeBinary()
+            self.path_binary: Optional[list[str]] = findCodeQLBinary()
 
     def exists(self) -> bool:
-        """
-        Check codeql is present on the system
-        """
+        """Check codeql is present on the system."""
         return self.path_binary != None
 
     def runCommand(self, *argvs, display: bool = False) -> Optional[str]:
-        """Run CodeQL command without the binary / path"""
+        """Run CodeQL command without the binary / path."""
+        logger.debug(f"Running CodeQL Command :: {argvs[0]}...")
         if not self.path_binary:
             raise Exception("CodeQL binary / path was not found")
         cmd = []
@@ -40,22 +55,24 @@ class CodeQL:
         if argvs[0] == "database":
             cmd.extend(["--threads", "0", "--ram", "0"])
 
-        if not display:
-            with open(os.devnull, "w") as null:
-                result = subprocess.run(cmd, stdout=null, stderr=null)
+        if display:
+            subprocess.check_output(cmd)
         else:
-            result = subprocess.check_output(cmd)
-            return result.decode().strip()
+            result = subprocess.run(cmd, capture_output=True)
+            return result.stdout.decode().strip()
 
     @property
     def version(self) -> str:
-        """Get CodeQL Version"""
-        return self.runCommand("version", "--format", "terse", display=True)
+        """Get CodeQL Version from the CLI binary."""
+        version = self.runCommand("version", "--format", "terse", display=True)
+        if not version:
+            raise Exception("CodeQL version not found")
+        return version
 
     def runQuery(
         self, database: CodeQLDatabase, path: Optional[str] = None
     ) -> CodeQLResults:
-        """Runs Query on a CodeQL Database"""
+        """Run a CodeQL Query on a CodeQL Database."""
         if not database.path:
             raise Exception("CodeQL Database path is not set")
 
@@ -67,7 +84,7 @@ class CodeQL:
     def runRawQuery(
         self, path: str, database: CodeQLDatabase, outputtype: str = "bqrs"
     ) -> Union[dict, list]:
-        """Run raw query"""
+        """Run raw query on a CodeQL Database."""
         if not database.path:
             raise Exception("CodeQL Database path is not set")
         if not path.endswith(".ql"):
@@ -79,13 +96,12 @@ class CodeQL:
                 database.path, "results", path.replace(":", "/").replace(".ql", ".bqrs")
             )
             return self.readBqrs(bqrs)
-        else:
-            return
+        return {}
 
     def getResults(
         self, database: CodeQLDatabase, path: Optional[str] = None
     ) -> CodeQLResults:
-        """Get interpret results from CodeQL"""
+        """Get the interpreted results from CodeQL."""
         sarif = os.path.join(tempfile.gettempdir(), "codeql-result.sarif")
         cmd = [
             "database",
@@ -108,7 +124,7 @@ class CodeQL:
         return CodeQLResults.loadSarifResults(results)
 
     def readBqrs(self, bqrsfile: str) -> dict:
-        """Read BQRS"""
+        """Read a BQRS file to get the raw results."""
         output = os.path.join(tempfile.gettempdir(), "codeql-result.bqrs")
 
         self.runCommand(
@@ -119,6 +135,7 @@ class CodeQL:
             return json.load(handle)
 
     def __str__(self) -> str:
+        """To String."""
         if self.path_binary:
             return f"CodeQL('{self.version}')"
         return "CodeQL()"

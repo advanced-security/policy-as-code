@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import datetime
 import os
 import shutil
 import zipfile
@@ -29,17 +29,24 @@ __CODEQL_DATABASE_PATHS__ = [
 
 @dataclass
 class CodeQLDatabase:
-    name: str
-    language: str
-    repository: Optional[Repository] = None
+    """CodeQL Database Abstraction to make our lives easier"""
 
-    # path to when the DB should be
+    name: str
+    """Name"""
+    language: str
+    """CodeQL Langauge"""
+    repository: Optional[Repository] = None
+    """GitHub Repository (optional)"""
     path: Optional[str] = None
+    """Path to the CodeQL Database"""
     path_download: Optional[str] = None
+    """Path to download CodeQL DB if not path is set"""
 
     loc_baseline: int = 0
+    """Lines of Code baseline in DB"""
 
     created: Optional[datetime] = None
+    """Created datetime infomation"""
 
     def __post_init__(self):
         if self.path:
@@ -73,17 +80,20 @@ class CodeQLDatabase:
         return False
 
     def exists(self) -> bool:
+        """Checks if the CodeQL Database exists"""
         return False if not self.path else os.path.exists(self.path)
 
     @property
     def default_pack(self) -> str:
+        """Gets the default query pack for language"""
         return f"codeql/{self.language}-queries"
 
     def getSuite(self, name: str) -> str:
+        """Gets suite based on default pack"""
         return f"{self.default_pack}:codeql-suites/{self.language}-{name}.qls"
 
     def display_name(self, owner: Optional[str] = None) -> str:
-        """Display Name"""
+        """Get the display name"""
         if self.repository:
             own = self.repository.owner
             repo = self.repository.repo
@@ -96,6 +106,7 @@ class CodeQLDatabase:
         return new_name.title().replace(" ", "")
 
     def createPath(self) -> Optional[str]:
+        """Create a path for CodeQL Database"""
         for root in __CODEQL_DATABASE_PATHS__:
             if not os.path.exists(root):
                 continue
@@ -115,6 +126,7 @@ class CodeQLDatabase:
 
     @property
     def database_folder(self) -> str:
+        """Get CodeQL Database folder"""
         if self.repository:
             result = f"{self.language}-{self.repository.owner}-{self.repository.repo}"
             if self.repository.sha:
@@ -126,7 +138,12 @@ class CodeQLDatabase:
 
     @staticmethod
     def loadFromYml(path: str) -> "CodeQLDatabase":
-        """Load from YAML / YML file"""
+        """Load from YAML / YML file
+
+        **Example:**
+        >>> db = CodeQLDatabase.loadFromYml("codeql-db")
+
+        """
         if not os.path.exists(path):
             raise Exception("CodeQL Database YML does not exist")
         if not path.endswith(".yml"):
@@ -141,7 +158,7 @@ class CodeQLDatabase:
         return db
 
     def loadDatabaseYml(self, path: str):
-        """Load content from YML"""
+        """Load content from YML file"""
         if not os.path.exists(path):
             raise Exception("CodeQL Database YML does not exist")
         if not path.endswith(".yml"):
@@ -163,7 +180,7 @@ class CodeQLDatabase:
             self.created = datetime.fromisoformat(creation_time)
 
     def downloadDatabase(self, output: Optional[str], use_cache: bool = True) -> str:
-        """Download CodeQL database"""
+        """Download CodeQL Database"""
         output = output or self.path or self.path_download
         if not output:
             raise Exception(f"CodeQL Database path not set")
