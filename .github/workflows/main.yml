@@ -8,6 +8,10 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+  security-events: read
+
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -48,7 +52,6 @@ jobs:
         action: continue
         policy: advanced-security/policy-as-code-testing
         policy-path: policy.yml
-        token: "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
         argvs: --display --github-repository advanced-security/policy-as-code-testing --github-ref refs/heads/main
 
   action-test:
