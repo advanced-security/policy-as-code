@@ -28,6 +28,9 @@ class CodeScanningChecker(Checker):
 
     def check(self):
         """Check Code Scanning alerts."""
+        codescanning = CodeScanning()
+        # check: is enabled
+
         alerts = self.getAlerts()
         Octokit.info("Total Code Scanning Alerts :: " + str(len(alerts)))
 
@@ -40,6 +43,10 @@ class CodeScanningChecker(Checker):
             policies.extend(self.policy.codescanning)
 
         for policy in policies:
+            if policy.enabled and not codescanning.isEnabled():
+                self.state.error(f"Code Scanning is not enabled")
+                return
+
             # severities
             self.severities = SeverityLevelEnum.getSeveritiesFromName(
                 policy.severity.value
