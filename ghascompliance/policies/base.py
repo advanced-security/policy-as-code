@@ -160,7 +160,7 @@ class Policy:
     name: str = "Policy"
 
     """ Displays all information in the output log"""
-    display: Display = Display()
+    display: Display = field(default_factory=Display)
 
     """Default Code Scanning Policy"""
     codescanning: Union[CodeScanningPolicy, List[CodeScanningPolicy]] = field(
