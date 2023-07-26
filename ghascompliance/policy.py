@@ -65,6 +65,7 @@ class Policy:
 
         # setup
         self.repository.clone_path = os.path.join(tempfile.gettempdir(), "repo")
+        self.temp_repo = self.repository.clone_path
         Octokit.debug(f"Clone Policy URL :: {self.repository.clone_url}")
 
         if os.path.exists(self.repository.clone_path):
@@ -217,7 +218,8 @@ class Policy:
                             continue
                         results.append(line)
 
-                break
+                return results
+        Octokit.warning(f"Unable to import file :: {path}")
         return results
 
     def savePolicy(self, path: str):

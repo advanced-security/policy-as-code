@@ -70,6 +70,7 @@ if __name__ == "__main__":
         level=logging.DEBUG if arguments.debug else logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
+    Octokit.setLevel(logging.DEBUG if arguments.debug else logging.INFO)
 
     if arguments.debug:
         Octokit.debug("Debugging enabled")
