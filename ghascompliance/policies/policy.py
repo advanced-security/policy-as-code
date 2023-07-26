@@ -8,6 +8,9 @@ from ghastoolkit import GitHub, Repository
 from ghascompliance.checks.codescanning import CodeScanningChecker
 
 from ghascompliance import Octokit
+from ghascompliance.plugins import __PLUGINS__
+from ghascompliance.plugins.plugin import Plugins
+from ghascompliance.plugins.projectboard import ProjectBoardPlugin
 from ghascompliance.policies.base import PolicyConfig, PolicyV3
 
 
@@ -36,6 +39,18 @@ class PolicyEngine:
 
         self.checkers = [CodeScanningChecker("Code Scanning", self.policy)]
         Octokit.debug(f"Loaded Checkers :: {len(self.checkers)}")
+
+        Octokit.debug("Loading plugins...")
+        self.plugins = Plugins()
+
+        for plugin_name, plugin in __PLUGINS__.items():
+            if self.root_policy.plugins.get(plugin_name):
+                Octokit.debug(f"Loading plugin :: `{plugin_name}`")
+                settings = self.root_policy.plugins.get(plugin_name, {})
+
+                self.plugins.plugins[plugin_name] = plugin(plugin_name, **settings)
+
+        Octokit.debug(f"Loaded Plugins :: {len(self.plugins)}")
 
         self.temp_repo = None
 
@@ -87,7 +102,7 @@ class PolicyEngine:
             for err in checker.state.errors:
                 if self.root_policy.display:
                     Octokit.error(err)
-            
+
             Octokit.info(f"{checker.name} warnings   :: {len(checker.state.warnings)}")
             Octokit.info(f"{checker.name} violations :: {len(checker.state.errors)}")
             total += len(checker.state.errors)

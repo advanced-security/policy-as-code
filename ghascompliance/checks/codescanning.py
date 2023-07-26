@@ -53,7 +53,7 @@ class CodeScanningChecker(Checker):
                 self.checkCodeScanningAlert(policy, alert)
 
     def getAlerts(self) -> List[CodeAlert]:
-        """Get Alerts from Code Scanning"""
+        """Get Alerts from Code Scanning."""
         codescanning = CodeScanning()
 
         if GitHub.repository.isInPullRequest():
@@ -73,7 +73,7 @@ class CodeScanningChecker(Checker):
         return alerts
 
     def checkCodeScanningAlert(self, policy: CodeScanningPolicy, alert: CodeAlert):
-        """Check Code Scanning Alert to see if it violates the provided policy"""
+        """Check Code Scanning Alert to see if it violates the provided policy."""
         # tools
         if len(policy.tools) != 0:
             if alert.tool_name not in policy.tools:

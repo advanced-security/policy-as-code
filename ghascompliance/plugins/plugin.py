@@ -35,3 +35,6 @@ class Plugins:
         """Run Post-Plugin."""
         for name, plugin in self.plugins.items():
             plugin.post()
+
+    def __len__(self) -> int:
+        return len(self.plugins)

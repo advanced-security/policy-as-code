@@ -1,3 +1,4 @@
+from io import open_code
 import os
 import argparse
 import logging
@@ -124,9 +125,8 @@ if __name__ == "__main__":
 
     Octokit.endGroup()
 
-    Octokit.debug("Loading plugins")
-    plugins = Plugins(projectboard=ProjectBoardPlugin("projectboard"))
-    plugins.runPre()
+    # run plugin pre-hooks
+    engine.plugins.runPre()
 
     errors = 0
 
@@ -142,7 +142,8 @@ if __name__ == "__main__":
 
     Octokit.info("Total unacceptable alerts :: " + str(errors))
 
-    plugins.runPost()
+    # run plugin post-hook
+    engine.plugins.runPost()
 
     if arguments.action == "break" and errors > 0:
         Octokit.error("Unacceptable Threshold of Risk has been hit!")
