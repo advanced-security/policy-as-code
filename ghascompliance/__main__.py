@@ -200,7 +200,9 @@ if __name__ == "__main__":
         Octokit.error("Unknown Exception was hit, please repo this to " + __url__)
         Octokit.error(str(err))
         Summary.addHeader(f"{Summary.__ICONS__['cross']} :: Error Encountered")
-        Summary.addLine(f"An unexpected exception was encountered while performing policy checks. Please report this to {__url__}")
+        Summary.addLine(
+            f"An unexpected exception was encountered while performing policy checks. Please report this to {__url__}"
+        )
         Summary.addLine(Summary.formatItalics(str(err)))
 
         if arguments.debug:
