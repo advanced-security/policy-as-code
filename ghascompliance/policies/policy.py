@@ -53,7 +53,7 @@ class PolicyEngine:
 
         for plugin_name, plugin in __PLUGINS__.items():
             if self.root_policy.plugins.get(plugin_name):
-                Octokit.debug(f"Loading plugin :: `{plugin_name}`")
+                Octokit.debug(f"Using plugin :: `{plugin_name}`")
                 settings = self.root_policy.plugins.get(plugin_name, {})
 
                 self.plugins.plugins[plugin_name] = plugin(plugin_name, **settings)

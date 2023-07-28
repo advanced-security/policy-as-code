@@ -321,11 +321,6 @@ class PolicyV3:
             for k, v in self.threatmodels.items():
                 self.threatmodels[k] = loadDict(ThreatModel, v)
 
-        # plugins
-        if self.plugins:
-            self.plugins = {}
-            logger.warning(f"Plugins are currently not supported")
-
         # > default policies
         # load code scanning policies
         if isinstance(self.codescanning, dict):

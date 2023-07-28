@@ -129,7 +129,7 @@ if __name__ == "__main__":
     Octokit.endGroup()
 
     # run plugin pre-hooks
-    engine.plugins.runPre()
+    engine.plugins.runPre(checkers=engine.checkers)
 
     errors = 0
 
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     Octokit.info("Total unacceptable alerts :: " + str(errors))
 
     # run plugin post-hook
-    engine.plugins.runPost()
+    engine.plugins.runPost(checkers=engine.checkers)
 
     if arguments.action == "break" and errors > 0:
         Octokit.error("Unacceptable Threshold of Risk has been hit!")
