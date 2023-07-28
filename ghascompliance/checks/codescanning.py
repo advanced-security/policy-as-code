@@ -47,7 +47,7 @@ class CodeScanningChecker(Checker):
             policies.extend(self.policy.codescanning)
 
         for policy in policies:
-            if policy.enabled and not codescanning.isEnabled():
+            if policy.enabled and codescanning.isEnabled():
                 self.state.critical(f"Code Scanning is not enabled")
                 return
 
