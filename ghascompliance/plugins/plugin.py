@@ -9,11 +9,11 @@ class Plugin:
         self.name = name
         self.settings = settings
 
-    def pre(self):
+    def pre(self, **kwargs):
         """Pre-Plugin."""
         return
 
-    def post(self):
+    def post(self, **kwargs):
         """Post-Plugin."""
         return
 
@@ -26,15 +26,15 @@ class Plugins:
     def __init__(self, **plugins: dict[str, Plugin]) -> None:
         self.plugins: dict[str, Plugin] = plugins
 
-    def runPre(self):
+    def runPre(self, **kwargs):
         """Run Pre-Plugin."""
         for name, plugin in self.plugins.items():
-            plugin.pre()
+            plugin.pre(**kwargs)
 
-    def runPost(self):
+    def runPost(self, **kwargs):
         """Run Post-Plugin."""
         for name, plugin in self.plugins.items():
-            plugin.post()
+            plugin.post(**kwargs)
 
     def __len__(self) -> int:
         return len(self.plugins)
