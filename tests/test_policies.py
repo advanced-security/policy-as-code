@@ -31,6 +31,7 @@ class TestPolicies(unittest.TestCase):
         self.assertEqual(len(policy.supplychain), 1)
 
     def test_get_policy_default(self):
+        """Test loading custom policy."""
         policy = PolicyV3(
             codescanning=[CodeScanningPolicy(False, name="MyCS")],
             secretscanning=[SecretScanningPolicy(severity=SeverityLevelEnum.LOW)],
@@ -38,11 +39,14 @@ class TestPolicies(unittest.TestCase):
 
         r = Repository.parseRepository("rand/repo")
         p = policy.getPolicy(r)
+        self.assertIsNotNone(p)
 
         cs = p.codescanning[0]
+        self.assertTrue(isinstance(cs, CodeScanningPolicy))
         self.assertEqual(cs.name, "MyCS")
 
         ss = p.secretscanning[0]
+        self.assertTrue(isinstance(ss, SecretScanningPolicy))
         self.assertEqual(ss.severity, SeverityLevelEnum.LOW)
 
     def test_load_dict(self):
