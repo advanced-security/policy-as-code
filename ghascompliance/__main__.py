@@ -143,6 +143,7 @@ if __name__ == "__main__":
         if arguments.debug:
             raise err
 
+    Octokit.createGroup("Conclusions")
     Octokit.info("Total unacceptable alerts :: " + str(errors))
 
     # run plugin post-hook
