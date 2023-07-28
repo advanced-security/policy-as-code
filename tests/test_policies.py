@@ -1,4 +1,3 @@
-from sre_compile import dis
 import unittest
 
 from ghastoolkit import Repository
@@ -9,6 +8,7 @@ from ghascompliance.policies.base import (
     PolicyV3,
     Policy,
     SecretScanningPolicy,
+    loadDict,
 )
 from ghascompliance.policies.severities import SeverityLevelEnum
 
@@ -20,26 +20,37 @@ class TestPolicies(unittest.TestCase):
         self.assertEqual(policy.name, "Policy")
         self.assertFalse(policy.display.detailed)
 
-        if isinstance(policy.codescanning, CodeScanningPolicy):
-            self.assertTrue(policy.codescanning.enabled)
-            self.assertEqual(policy.codescanning.severity, SeverityLevelEnum.ERROR)
+        # by default, 1 default policy should be in the list
+        self.assertTrue(isinstance(policy.codescanning, list))
+        self.assertEqual(len(policy.codescanning), 1)
 
-        self.assertTrue(policy.supplychain.enabled)
-        self.assertEqual(policy.supplychain.severity, SeverityLevelEnum.HIGH)
+        self.assertTrue(isinstance(policy.secretscanning, list))
+        self.assertEqual(len(policy.secretscanning), 1)
 
-        self.assertTrue(policy.secretscanning.enabled)
-        self.assertEqual(policy.secretscanning.severity, SeverityLevelEnum.ALL)
+        self.assertTrue(isinstance(policy.supplychain, list))
+        self.assertEqual(len(policy.supplychain), 1)
 
     def test_get_policy_default(self):
         policy = PolicyV3(
-            codescanning=CodeScanningPolicy(False, name="MyCS"),
-            secretscanning=SecretScanningPolicy(severity=SeverityLevelEnum.LOW),
+            codescanning=[CodeScanningPolicy(False, name="MyCS")],
+            secretscanning=[SecretScanningPolicy(severity=SeverityLevelEnum.LOW)],
         )
 
         r = Repository.parseRepository("rand/repo")
         p = policy.getPolicy(r)
-        self.assertEqual(p.codescanning.name, "MyCS")
-        self.assertEqual(p.secretscanning.severity, SeverityLevelEnum.LOW)
+
+        cs = p.codescanning[0]
+        self.assertEqual(cs.name, "MyCS")
+
+        ss = p.secretscanning[0]
+        self.assertEqual(ss.severity, SeverityLevelEnum.LOW)
+
+    def test_load_dict(self):
+        data = {"enabled": True, "ids": ["test"]}
+        result = loadDict(CodeScanningPolicy, data)
+        self.assertTrue(result, CodeScanningPolicy)
+        self.assertEqual(result.enabled, True)
+        self.assertEqual(result.ids, ["test"])
 
     def test_display(self):
         display = Display.load(True)

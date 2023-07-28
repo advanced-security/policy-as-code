@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 
 from ghastoolkit import Repository
+from yaml import load
 from ghascompliance.octokit.octokit import Octokit
 
 from ghascompliance.policies.severities import SeverityLevelEnum
@@ -18,12 +19,25 @@ class PolicyConfig:
 
 
 def loadDict(clss, data) -> Any:
+    """Load data from a dict into a provided class."""
+    if isinstance(data, clss):
+        return data
     modified_dict = {key.replace("-", "_"): value for key, value in data.items()}
     return clss(**modified_dict)
 
 
+def loadDictList(clss, data: list) -> List[Any]:
+    """Load data from a list of dicts into a list of provided class."""
+    result = []
+    for i in data:
+        result.append(loadDict(clss, i))
+    return result
+
+
 @dataclass
 class RemediationPolicy:
+    """RemediationPolicy."""
+
     errors: Union[int, Dict[str, int]] = -1
     warnings: Union[int, Dict[str, int]] = -1
     all: Union[int, Dict[str, int]] = -1
@@ -108,23 +122,23 @@ class SupplyChainPolicy:
 
 @dataclass
 class SecretScanningPolicy:
-    """Make sure the feature is enabled"""
+    """Make sure the feature is enabled."""
 
     enabled: bool = True
 
-    """Base severity"""
     severity: SeverityLevelEnum = SeverityLevelEnum.ALL
+    """Base severity"""
 
-    """List of identifier to match against"""
     ids: List[str] = field(default_factory=list)
+    """List of identifier to match against"""
     ids_warnings: List[str] = field(default_factory=list)
     ids_ignores: List[str] = field(default_factory=list)
 
-    """Push Protection"""
     push_protection: bool = False
+    """Push Protection"""
 
-    """Remediation Policy"""
     remediate: RemediationPolicy = field(default_factory=RemediationPolicy)
+    """Remediation Policy"""
 
     def __post_init__(self):
         if isinstance(self.severity, str):
@@ -156,44 +170,58 @@ class Policy:
 
     version: str = "3"
 
-    """Name of the Policy"""
     name: str = "Policy"
+    """Name of the Policy"""
 
-    """ Displays all information in the output log"""
     display: Display = field(default_factory=Display)
+    """ Displays all information in the output log"""
 
+    codescanning: List[CodeScanningPolicy] = field(default_factory=list)
     """Default Code Scanning Policy"""
-    codescanning: Union[CodeScanningPolicy, List[CodeScanningPolicy]] = field(
-        default_factory=CodeScanningPolicy
-    )
 
+    supplychain: List[SupplyChainPolicy] = field(default_factory=list)
     """Default Supply Chain Policy"""
-    supplychain: SupplyChainPolicy = field(default_factory=SupplyChainPolicy)
 
+    secretscanning: List[SecretScanningPolicy] = field(default_factory=list)
     """Default Secret Scanning Policy"""
-    secretscanning: SecretScanningPolicy = field(default_factory=SecretScanningPolicy)
 
     def __post_init__(self):
         # display
         self.display = Display.load(self.display)
+
         # default policies
-        if isinstance(self.codescanning, (dict, list)):
-            if isinstance(self.codescanning, list):
-                new_codescanning = []
-                for csp in self.codescanning:
-                    new_codescanning.append(loadDict(CodeScanningPolicy, csp))
-                self.codescanning = new_codescanning
+        # load code scanning policies
+        if isinstance(self.codescanning, dict):
+            self.codescanning = [loadDict(CodeScanningPolicy, self.codescanning)]
+        elif isinstance(self.codescanning, list):
+            if len(self.codescanning) != 0:
+                self.codescanning = loadDictList(CodeScanningPolicy, self.codescanning)
             else:
-                self.codescanning = loadDict(CodeScanningPolicy, self.codescanning)
+                self.codescanning.append(CodeScanningPolicy())
 
+        # load supply chain policies
         if isinstance(self.supplychain, dict):
-            self.supplychain = loadDict(SupplyChainPolicy, self.supplychain)
+            self.supplychain = [loadDict(SupplyChainPolicy, self.supplychain)]
+        elif isinstance(self.supplychain, list):
+            if len(self.supplychain) != 0:
+                self.supplychain = loadDictList(SupplyChainPolicy, self.supplychain)
+            else:
+                self.supplychain.append(SupplyChainPolicy())
 
+        # load secret scanning policies
         if isinstance(self.secretscanning, dict):
-            self.secretscanning = loadDict(SecretScanningPolicy, self.secretscanning)
+            self.secretscanning = [loadDict(SecretScanningPolicy, self.secretscanning)]
+        elif isinstance(self.secretscanning, list):
+            if len(self.secretscanning) != 0:
+                self.secretscanning = loadDictList(
+                    SecretScanningPolicy, self.secretscanning
+                )
+            else:
+                self.secretscanning.append(SecretScanningPolicy())
 
     @staticmethod
     def loadPolicy(path: str) -> "Policy":
+        """Load a policy from file path."""
         if not os.path.exists(path) and not path.endswith(".yml"):
             logger.error(f"Failed to load path :: {path}")
             raise Exception(f"Failed to load policy path")
@@ -207,22 +235,22 @@ class Policy:
 
 @dataclass
 class ThreatModel:
-    """ThreadModel"""
+    """ThreadModel."""
 
-    """Policy file to use"""
     uses: Optional[str] = None
+    """Policy file to use"""
 
-    """List of repositories that this policy should be applied to"""
     repositories: Optional[List[str]] = None
+    """List of repositories that this policy should be applied to"""
 
-    """Owner"""
     owner: Optional[str] = None
+    """Owner"""
 
-    """Languages"""
     languages: Optional[List[str]] = None
+    """Languages"""
 
-    """Policy"""
     policy: Optional[Policy] = None
+    """Policy"""
 
     def __post_init__(self):
         if self.uses:
@@ -232,6 +260,7 @@ class ThreatModel:
             self.policy = Policy.loadPolicy(path)
 
     def matches(self, repository: str) -> bool:
+        """Check to see if the repository name ([owner/]repo) is in the ThreadModel."""
         if self.owner:
             owner, _ = repository.split("/", 1)
             if self.owner == owner:
@@ -243,7 +272,7 @@ class ThreatModel:
 
 @dataclass
 class PolicyV3:
-    """Policy as Code v3"""
+    """Policy as Code v3."""
 
     version: str = "3"
     """Version of the PolicyEngine"""
@@ -257,15 +286,13 @@ class PolicyV3:
     threatmodels: Dict[str, ThreatModel] = field(default_factory=dict)
     """ Threat Models """
 
-    codescanning: Union[CodeScanningPolicy, List[CodeScanningPolicy]] = field(
-        default_factory=CodeScanningPolicy
-    )
+    codescanning: List[CodeScanningPolicy] = field(default_factory=list)
     """Default Code Scanning Policy"""
 
-    supplychain: SupplyChainPolicy = field(default_factory=SupplyChainPolicy)
+    supplychain: List[SupplyChainPolicy] = field(default_factory=list)
     """Default Supply Chain Policy"""
 
-    secretscanning: SecretScanningPolicy = field(default_factory=SecretScanningPolicy)
+    secretscanning: List[SecretScanningPolicy] = field(default_factory=list)
     """Default Secret Scanning Policy"""
 
     plugins: Dict[str, Any] = field(default_factory=dict)
@@ -285,21 +312,35 @@ class PolicyV3:
             self.plugins = {}
             logger.warning(f"Plugins are currently not supported")
 
-        # default policies
-        if isinstance(self.codescanning, (dict, list)):
-            if isinstance(self.codescanning, list):
-                new_codescanning = []
-                for csp in self.codescanning:
-                    new_codescanning.append(loadDict(CodeScanningPolicy, csp))
-                self.codescanning = new_codescanning
+        # > default policies
+        # load code scanning policies
+        if isinstance(self.codescanning, dict):
+            self.codescanning = [loadDict(CodeScanningPolicy, self.codescanning)]
+        elif isinstance(self.codescanning, list):
+            if len(self.codescanning) != 0:
+                self.codescanning = loadDictList(CodeScanningPolicy, self.codescanning)
             else:
-                self.codescanning = loadDict(CodeScanningPolicy, self.codescanning)
+                self.codescanning.append(CodeScanningPolicy())
 
+        # load supply chain policies
         if isinstance(self.supplychain, dict):
-            self.supplychain = loadDict(SupplyChainPolicy, self.supplychain)
+            self.supplychain = [loadDict(SupplyChainPolicy, self.supplychain)]
+        elif isinstance(self.supplychain, list):
+            if len(self.supplychain) != 0:
+                self.supplychain = loadDictList(SupplyChainPolicy, self.supplychain)
+            else:
+                self.supplychain.append(SupplyChainPolicy())
 
+        # load secret scanning policies
         if isinstance(self.secretscanning, dict):
-            self.secretscanning = loadDict(SecretScanningPolicy, self.secretscanning)
+            self.secretscanning = [loadDict(SecretScanningPolicy, self.secretscanning)]
+        elif isinstance(self.secretscanning, list):
+            if len(self.secretscanning) != 0:
+                self.secretscanning = loadDictList(
+                    SecretScanningPolicy, self.secretscanning
+                )
+            else:
+                self.secretscanning.append(SecretScanningPolicy())
 
     @staticmethod
     def loadRootPolicy(path: str) -> "PolicyV3":
