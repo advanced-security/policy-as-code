@@ -17,6 +17,10 @@ class CodeScanningChecker(Checker):
         self.code_scanning = CodeScanning()
         super().__init__(name, policy)
 
+    def isEnabled(self) -> bool:
+        """Is Code Scanning policy enabled."""
+        return len(self.policy.codescanning) != 0
+
     def error(self, alert: CodeAlert, check_name: str = "na"):
         """Log a Code Scanning error."""
         err = f"{alert.tool_name} - {alert.created_at} - {alert.rule_id}"

@@ -206,6 +206,8 @@ class Policy:
                 self.codescanning = loadDictList(CodeScanningPolicy, self.codescanning)
             else:
                 self.codescanning.append(CodeScanningPolicy())
+        elif not self.codescanning:
+            self.codescanning = []
 
         # load supply chain policies
         if isinstance(self.supplychain, dict):
@@ -215,6 +217,8 @@ class Policy:
                 self.supplychain = loadDictList(SupplyChainPolicy, self.supplychain)
             else:
                 self.supplychain.append(SupplyChainPolicy())
+        elif not self.supplychain:
+            self.supplychain = []
 
         # load secret scanning policies
         if isinstance(self.secretscanning, dict):
@@ -226,6 +230,8 @@ class Policy:
                 )
             else:
                 self.secretscanning.append(SecretScanningPolicy())
+        elif not self.secretscanning:
+            self.secretscanning = []
 
     @staticmethod
     def loadPolicy(path: str) -> "Policy":
@@ -329,6 +335,8 @@ class PolicyV3:
                 self.codescanning = loadDictList(CodeScanningPolicy, self.codescanning)
             else:
                 self.codescanning.append(CodeScanningPolicy())
+        elif not self.codescanning:
+            self.codescanning = []
 
         # load supply chain policies
         if isinstance(self.supplychain, dict):
@@ -338,6 +346,8 @@ class PolicyV3:
                 self.supplychain = loadDictList(SupplyChainPolicy, self.supplychain)
             else:
                 self.supplychain.append(SupplyChainPolicy())
+        elif not self.supplychain:
+            self.supplychain = []
 
         # load secret scanning policies
         if isinstance(self.secretscanning, dict):
@@ -349,6 +359,8 @@ class PolicyV3:
                 )
             else:
                 self.secretscanning.append(SecretScanningPolicy())
+        elif not self.secretscanning:
+            self.secretscanning = []
 
     @staticmethod
     def loadRootPolicy(path: str) -> "PolicyV3":

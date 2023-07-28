@@ -6,13 +6,14 @@ import tempfile
 from typing import Optional
 
 from ghastoolkit import GitHub, Repository
-from ghascompliance.checks.codescanning import CodeScanningChecker
 
 from ghascompliance import Octokit
+from ghascompliance.policies.base import PolicyConfig, PolicyV3
+from ghascompliance.checks.codescanning import CodeScanningChecker
+from ghascompliance.checks.dependabot import DependabotChecker
 from ghascompliance.checks.secretscanning import SecretScanningChecker
 from ghascompliance.plugins import __PLUGINS__
 from ghascompliance.plugins.plugin import Plugins
-from ghascompliance.policies.base import PolicyConfig, PolicyV3
 
 
 __ROOT__ = os.path.dirname(os.path.basename(__file__))
@@ -42,6 +43,7 @@ class PolicyEngine:
 
         self.checkers = [
             CodeScanningChecker("Code Scanning", self.policy),
+            DependabotChecker("Supply Chain - Dependabot Alerts", self.policy),
             SecretScanningChecker("Secret Scanning", self.policy),
         ]
         Octokit.debug(f"Loaded Checkers :: {len(self.checkers)}")
@@ -100,6 +102,10 @@ class PolicyEngine:
         total = 0
 
         for checker in self.checkers:
+            if not checker.isEnabled():
+                Octokit.debug(f"Skipping check: {checker.name}")
+                continue
+
             Octokit.createGroup(f"{checker.name} Results")
             checker.check()
 

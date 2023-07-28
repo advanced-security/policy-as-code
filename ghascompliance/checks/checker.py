@@ -20,6 +20,10 @@ class Checker:
     def check(self) -> PolicyState:
         raise Exception(f"Child checker does not support check function")
 
+    def isEnabled(self) -> bool:
+        """Is Enabled check."""
+        return False
+
     def matchContent(self, name: str, validators: List[str]):
         """Wildcard matching helper"""
         for validator in validators:

@@ -18,6 +18,10 @@ class SecretScanningChecker(Checker):
         self.secret_scanning = SecretScanning()
         super().__init__(name, policy)
 
+    def isEnabled(self) -> bool:
+        """Is Secret Scanning Policy enabled."""
+        return len(self.policy.secretscanning) != 0
+
     def error(self, alert: SecretAlert, trigger_name: str = "na"):
         """Secret Scanning check error."""
         err = f"Unresolved Secret :: {alert.secret_type}"
