@@ -2,8 +2,8 @@ version: "3"
 name: "Default Policy"
   
 codescanning:
-  enabled: true
-  severity: "error"
+  # enabled: true 
+  # severity: "error"
 
 # Dependency Security Alters
 supplychain:
@@ -23,8 +23,14 @@ supplychain:
     - NOASSERTION
 
 secretscanning:
-  enabled: true
-  push-protection: false
+  # enabled: true 
+  # push-protection: false
+  #
+  # severity: "all"
 
-  severity: "all"
+
+plugins:
+  pr-commenting:
+    enabled: true
+
 
