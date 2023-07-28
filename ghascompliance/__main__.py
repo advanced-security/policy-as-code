@@ -199,15 +199,20 @@ if __name__ == "__main__":
     except Exception as err:
         Octokit.error("Unknown Exception was hit, please repo this to " + __url__)
         Octokit.error(str(err))
+        Summary.addHeader(f"{Summary.__ICONS__['cross']} :: Error Encountered", 2)
+        Summary.addLine(
+            f"An unexpected exception was encountered while performing policy checks. Please report this to {__url__}"
+        )
+        Summary.addLine(Summary.formatItalics(str(err)))
 
         if arguments.debug:
             raise err
+    finally:
+        # Summary and PR comment
+        Summary.outputJobSummary()
+        PullRequest.addPrComment(policy.name)
 
     Octokit.info("Total unacceptable alerts :: " + str(errors))
-
-    # Summary and PR comment
-    Summary.outputJobSummary()
-    PullRequest.addPrComment(policy.name)
 
     if arguments.action == "break" and errors > 0:
         Octokit.error("Unacceptable Threshold of Risk has been hit!")
