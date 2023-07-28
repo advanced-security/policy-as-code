@@ -27,13 +27,6 @@ class SecretScanningChecker(Checker):
         """Secret Scanning check warning."""
         self.state.warning(f"Unresolved Secret :: {alert.secret_type}", trigger_name)
 
-    def enabled(self) -> bool:
-        """Check to see if code scanning is enabled in the policy."""
-        if isinstance(self.policy.codescanning, (list)):
-            return True  # assume that as list is enabled
-        else:
-            return self.policy.codescanning.enabled
-
     def check(self) -> PolicyState:
         """Checks alerts for Secret Scanning against policy."""
         alerts = self.secret_scanning.getAlerts("open")
