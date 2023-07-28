@@ -1,29 +1,33 @@
+"""CodeScanningChecker."""
 from typing import List, Optional
 
 from ghastoolkit import CodeAlert, CodeScanning, GitHub
 
-from ghascompliance.policies.base import CodeScanningPolicy, PolicyConfig
+from ghascompliance.policies.base import CodeScanningPolicy
 from ghascompliance.checks.checker import Checker
 from ghascompliance.octokit.octokit import Octokit
 from ghascompliance.policies.severities import SeverityLevelEnum
 
 
 class CodeScanningChecker(Checker):
+    """Code Scanning checker."""
+
     def enabled(self) -> bool:
-        """Check to see if code scanning is enabled in the policy"""
+        """Check to see if code scanning is enabled in the policy."""
         if isinstance(self.policy.codescanning, (list)):
             return True  # assume that as list is enabled
         else:
             return self.policy.codescanning.enabled
 
     def error(self, alert: CodeAlert, check_name: Optional[str] = None):
-        """Log a Code Scanning error"""
+        """Log a Code Scanning error."""
         err = f"{alert.tool_name} - {alert.created_at} - {alert.rule_id}"
         if Octokit.debugging_enabled():
             err += f" ({check_name})"
         self.state.error(err)
 
     def warning(self, alert: CodeAlert):
+        """Warning."""
         self.state.warning(f"{alert.tool_name} - {alert.created_at} - {alert.rule_id}")
 
     def check(self):
@@ -44,7 +48,7 @@ class CodeScanningChecker(Checker):
 
         for policy in policies:
             if policy.enabled and not codescanning.isEnabled():
-                self.state.error(f"Code Scanning is not enabled")
+                self.state.critical(f"Code Scanning is not enabled")
                 return
 
             # severities

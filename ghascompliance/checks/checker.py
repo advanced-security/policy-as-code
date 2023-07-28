@@ -1,3 +1,4 @@
+"""Checker."""
 import datetime
 import fnmatch
 from typing import List
@@ -7,6 +8,8 @@ from ghascompliance.policies.state import PolicyState
 
 
 class Checker:
+    """Checker Class."""
+
     def __init__(self, name: str, policy: Policy) -> None:
         self.name = name
         self.policy = policy

@@ -99,6 +99,9 @@ class PolicyEngine:
             Octokit.createGroup(f"{checker.name} Results")
             checker.check()
 
+            for critical in checker.state.criticals:
+                Octokit.error(critical)
+
             for warning in checker.state.warnings:
                 if self.root_policy.display:
                     Octokit.warning(warning)
@@ -109,6 +112,8 @@ class PolicyEngine:
 
             Octokit.info(f"{checker.name} warnings   :: {len(checker.state.warnings)}")
             Octokit.info(f"{checker.name} violations :: {len(checker.state.errors)}")
+
+            total += len(checker.state.criticals)
             total += len(checker.state.errors)
 
             Octokit.endGroup()
