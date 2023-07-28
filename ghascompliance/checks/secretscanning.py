@@ -37,19 +37,28 @@ class SecretScanningChecker(Checker):
     def check(self) -> PolicyState:
         """Checks alerts for Secret Scanning against policy."""
         alerts = self.secret_scanning.getAlerts("open")
+        Octokit.info("Total Code Scanning Alerts :: " + str(len(alerts)))
 
         for policy in self.policy.secretscanning:
             # check: enabled
             if policy.enabled and not self.secret_scanning.isEnabled():
                 self.state.critical(f"Secret Scanning is not enabled")
                 return self.state
-
+            # check: enabled push protection
             if (
                 policy.push_protection
                 and not self.secret_scanning.isPushProtectionEnabled()
             ):
                 self.state.error(
                     f"Secret Scanning Push Protection is disabled", "enabled"
+                )
+            # check: enabled push protection warning
+            elif (
+                policy.push_protection_warning
+                and not self.secret_scanning.isPushProtectionEnabled()
+            ):
+                self.state.warning(
+                    "Secret Scanning Push Protection is disabled", "enabled-warning"
                 )
 
             for alert in alerts:
@@ -61,7 +70,10 @@ class SecretScanningChecker(Checker):
         self, policy: SecretScanningPolicy, alert: SecretAlert
     ):
         """Check a Secret Scanning alert against policy."""
-
+        # check: severity
+        if policy.severity.value == "all":
+            self.error(alert, "severity-all")
+            return
         # check: ignore ids
         if self.matchContent(alert.secret_type, policy.ids_ignores):
             self.state.ignore("ignore alert", "id-match")
@@ -73,6 +85,11 @@ class SecretScanningChecker(Checker):
         # check: match id
         if self.matchContent(alert.secret_type, policy.ids):
             self.error(alert, "id-match")
+            return
+
+        # check: match name
+        if self.matchContent(alert.secret_type_display_name, policy.names):
+            self.error(alert, "name-match")
             return
 
         return

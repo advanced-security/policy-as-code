@@ -134,8 +134,13 @@ class SecretScanningPolicy:
     ids_warnings: List[str] = field(default_factory=list)
     ids_ignores: List[str] = field(default_factory=list)
 
+    names: List[str] = field(default_factory=list)
+    """List of secret display names"""
+
     push_protection: bool = False
     """Push Protection"""
+    push_protection_warning: bool = True
+    """Push Protection warning"""
 
     remediate: RemediationPolicy = field(default_factory=RemediationPolicy)
     """Remediation Policy"""
