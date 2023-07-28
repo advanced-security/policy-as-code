@@ -88,7 +88,10 @@ class SupplyChainPolicy:
     """Make sure the feature is enabled."""
 
     enabled: bool = True
-    """Required to be enabled"""
+    """Required Dependency Graph and Dependabot to be enabled"""
+
+    security_updates: bool = False
+    """Required Security Updates to be enabled"""
 
     severity: SeverityLevelEnum = SeverityLevelEnum.HIGH
     """Base severity"""
@@ -102,18 +105,16 @@ class SupplyChainPolicy:
     advisories_ignores: List[str] = field(default_factory=list)
 
     licenses: List[str] = field(default_factory=list)
-
-    """Unknown Licenses"""
+    """List of licenses"""
     licenses_unknown: bool = False
-
-    """Licenses to warn only on"""
+    """Unknown Licenses"""
     licenses_warnings: List[str] = field(default_factory=list)
-
-    """Licenses to ignore"""
+    """Licenses to warn only on"""
     licenses_ignores: List[str] = field(default_factory=list)
+    """Licenses to ignore"""
 
-    """Remediation Policy"""
     remediate: RemediationPolicy = field(default_factory=RemediationPolicy)
+    """Remediation Policy"""
 
     def __post_init__(self):
         if isinstance(self.severity, str):
@@ -125,22 +126,24 @@ class SecretScanningPolicy:
     """Make sure the feature is enabled."""
 
     enabled: bool = True
+    """Require Secret Scanning to be enabled"""
+    push_protection: bool = False
+    """Require Push Protection"""
+    push_protection_warning: bool = True
+    """Warn on Push Protection being disabled"""
 
     severity: SeverityLevelEnum = SeverityLevelEnum.ALL
     """Base severity"""
 
     ids: List[str] = field(default_factory=list)
-    """List of identifier to match against"""
+    """List of identifiers to match against"""
     ids_warnings: List[str] = field(default_factory=list)
+    """List of identifiers to match warnings against"""
     ids_ignores: List[str] = field(default_factory=list)
+    """List of identifiers to match ignores against"""
 
     names: List[str] = field(default_factory=list)
     """List of secret display names"""
-
-    push_protection: bool = False
-    """Push Protection"""
-    push_protection_warning: bool = True
-    """Push Protection warning"""
 
     remediate: RemediationPolicy = field(default_factory=RemediationPolicy)
     """Remediation Policy"""
