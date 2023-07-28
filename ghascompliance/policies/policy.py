@@ -9,6 +9,7 @@ from ghastoolkit import GitHub, Repository
 from ghascompliance.checks.codescanning import CodeScanningChecker
 
 from ghascompliance import Octokit
+from ghascompliance.checks.secretscanning import SecretScanningChecker
 from ghascompliance.plugins import __PLUGINS__
 from ghascompliance.plugins.plugin import Plugins
 from ghascompliance.policies.base import PolicyConfig, PolicyV3
@@ -39,7 +40,10 @@ class PolicyEngine:
         self.policy = self.root_policy.getPolicy(GitHub.repository)
         Octokit.debug(f"Loaded Policy :: {self.policy.name}")
 
-        self.checkers = [CodeScanningChecker("Code Scanning", self.policy)]
+        self.checkers = [
+            CodeScanningChecker("Code Scanning", self.policy),
+            SecretScanningChecker("Secret Scanning", self.policy),
+        ]
         Octokit.debug(f"Loaded Checkers :: {len(self.checkers)}")
 
         Octokit.debug("Loading plugins...")

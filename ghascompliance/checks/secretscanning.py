@@ -16,6 +16,17 @@ class SecretScanningChecker(Checker):
         self.secret_scanning = SecretScanning()
         super().__init__(name, policy)
 
+    def error(self, alert: SecretAlert, trigger_name: str = "na"):
+        """Secret Scanning check error."""
+        err = f"Unresolved Secret :: {alert.secret_type}"
+        if Octokit.debugging_enabled():
+            err += f" ({alert.number})"
+        self.state.error(err, trigger_name)
+
+    def warning(self, alert: SecretAlert, trigger_name: str = "na"):
+        """Secret Scanning check warning."""
+        self.state.warning(f"Unresolved Secret :: {alert.secret_type}", trigger_name)
+
     def enabled(self) -> bool:
         """Check to see if code scanning is enabled in the policy."""
         if isinstance(self.policy.codescanning, (list)):
@@ -35,7 +46,7 @@ class SecretScanningChecker(Checker):
 
             if (
                 policy.push_protection
-                and self.secret_scanning.isPushProtectionEnabled()
+                and not self.secret_scanning.isPushProtectionEnabled()
             ):
                 self.state.error(
                     f"Secret Scanning Push Protection is disabled", "enabled"
@@ -50,4 +61,18 @@ class SecretScanningChecker(Checker):
         self, policy: SecretScanningPolicy, alert: SecretAlert
     ):
         """Check a Secret Scanning alert against policy."""
+
+        # check: ignore ids
+        if self.matchContent(alert.secret_type, policy.ids_ignores):
+            self.state.ignore("ignore alert", "id-match")
+            return
+        # check: warning ids
+        if self.matchContent(alert.secret_type, policy.ids_warnings):
+            self.warning(alert, "id-match")
+            return
+        # check: match id
+        if self.matchContent(alert.secret_type, policy.ids):
+            self.error(alert, "id-match")
+            return
+
         return
