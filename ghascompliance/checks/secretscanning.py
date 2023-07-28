@@ -1,6 +1,8 @@
 """SecretScanningChecker."""
 
+from typing import List
 from ghastoolkit import SecretScanning, SecretAlert
+from ghastoolkit.octokit.github import GitHub
 from ghascompliance.octokit.octokit import Octokit
 
 from ghascompliance.policies.base import SecretScanningPolicy, Policy
@@ -29,7 +31,7 @@ class SecretScanningChecker(Checker):
 
     def check(self) -> PolicyState:
         """Checks alerts for Secret Scanning against policy."""
-        alerts = self.secret_scanning.getAlerts("open")
+        alerts = self.getAlerts()
         Octokit.info("Total Code Scanning Alerts :: " + str(len(alerts)))
 
         for policy in self.policy.secretscanning:
@@ -58,6 +60,21 @@ class SecretScanningChecker(Checker):
                 self.checkSecretScanningAlert(policy, alert)
 
         return self.state
+
+    def getAlerts(self) -> List[SecretAlert]:
+        """Get Alerts from GitHub."""
+        if GitHub.repository.isInPullRequest():
+            Octokit.info("Secret Scanning Alerts from Pull Request (alert diff)")
+            pr_base = (
+                GitHub.repository.getPullRequestInfo().get("base", {}).get("ref", "")
+            )
+            alerts = self.secret_scanning.getAlertsInPR()
+        else:
+            Octokit.debug(
+                f"Secret Scanning Alerts from reference :: {GitHub.repository.reference}"
+            )
+            alerts = self.secret_scanning.getAlerts("open")
+        return alerts
 
     def checkSecretScanningAlert(
         self, policy: SecretScanningPolicy, alert: SecretAlert

@@ -1,5 +1,5 @@
 """CodeScanningChecker."""
-from typing import List, Optional
+from typing import List
 
 from ghastoolkit import CodeAlert, CodeScanning, GitHub
 
