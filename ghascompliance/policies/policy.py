@@ -100,15 +100,15 @@ class PolicyEngine:
             checker.check()
 
             for critical in checker.state.criticals:
-                Octokit.error(critical)
+                Octokit.error(critical.get("msg"))
 
             for warning in checker.state.warnings:
                 if self.root_policy.display:
-                    Octokit.warning(warning)
+                    Octokit.warning(warning.get("msg"))
 
             for err in checker.state.errors:
                 if self.root_policy.display:
-                    Octokit.error(err)
+                    Octokit.error(err.get("msg"))
 
             Octokit.info(f"{checker.name} warnings   :: {len(checker.state.warnings)}")
             Octokit.info(f"{checker.name} violations :: {len(checker.state.errors)}")

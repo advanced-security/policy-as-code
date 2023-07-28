@@ -24,12 +24,12 @@ class CodeScanningChecker(Checker):
         else:
             return self.policy.codescanning.enabled
 
-    def error(self, alert: CodeAlert, check_name: Optional[str] = None):
+    def error(self, alert: CodeAlert, check_name: str = "na"):
         """Log a Code Scanning error."""
         err = f"{alert.tool_name} - {alert.created_at} - {alert.rule_id}"
         if Octokit.debugging_enabled():
             err += f" ({check_name})"
-        self.state.error(err)
+        self.state.error(err, check_name)
 
     def warning(self, alert: CodeAlert):
         """Warning."""
@@ -38,17 +38,13 @@ class CodeScanningChecker(Checker):
     def check(self):
         """Check Code Scanning alerts."""
         alerts = self.getAlerts()
+
         Octokit.info("Total Code Scanning Alerts :: " + str(len(alerts)))
+        Octokit.debug(
+            f"Total Code Scanning Policies :: {len(self.policy.codescanning)}"
+        )
 
-        policies: List[CodeScanningPolicy] = []
-        Octokit.debug(f"Total Code Scanning Policies :: {len(policies)}")
-
-        if isinstance(self.policy.codescanning, CodeScanningPolicy):
-            policies.append(self.policy.codescanning)
-        else:
-            policies.extend(self.policy.codescanning)
-
-        for policy in policies:
+        for policy in self.policy.codescanning:
             # check: enabled
             if policy.enabled and self.code_scanning.isEnabled():
                 self.state.critical(f"Code Scanning is not enabled")
@@ -101,6 +97,7 @@ class CodeScanningChecker(Checker):
         # check: ignore ids
         alert_id = alert.rule_id
         if self.matchContent(alert_id, policy.ids_ignores):
+            self.state.ignore("", "id-match")
             return
         # check: warning ids
         if self.matchContent(alert_id, policy.ids_warnings):
@@ -108,7 +105,7 @@ class CodeScanningChecker(Checker):
             return
         # check: ids to error on
         if self.matchContent(alert_id, policy.ids):
-            self.error(alert, "id match")
+            self.error(alert, "id-match")
             return
 
         # check: names / description
