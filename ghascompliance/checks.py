@@ -305,6 +305,15 @@ class Checks:
         else:
             dependencies = depgraph.getDependencies()
 
+        # license data
+        licenses = Licenses()
+        for license_path in LICENSES:
+            licenses.load(license_path)
+
+        Octokit.info(f"Loaded extra licensing information :: {len(licenses.data)}")
+
+        dependencies.applyLicenses(licenses)
+
         Octokit.info("Total Dependencies in Graph :: " + str(len(dependencies)))
 
         if not self.policy.policy and not self.policy.policy.get("licensing"):
