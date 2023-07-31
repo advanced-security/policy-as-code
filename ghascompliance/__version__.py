@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = "2.4.0"
+__version__ = "2.4.1"
 
 __title__ = "GitHub Advanced Security Policy as Code"
 __name__ = "ghascompliance"
