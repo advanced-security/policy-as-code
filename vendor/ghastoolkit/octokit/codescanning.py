@@ -296,3 +296,17 @@ class CodeScanning:
         if len(versions) != 0:
             return versions[0]
         return {}
+
+    def downloadExtractorPack(self, repository_name: str, output: str) -> Optional[str]:
+        """Download Extractor Packs from GitHub Releases."""
+        owner, repo = repository_name.split("/", 1)
+
+        latest_release = self.rest.get(
+            f"/repos/{owner}/{repo}/releases/latest",
+        )
+        if not isinstance(latest_release, dict):
+            return
+        version = latest_release.get("tag_name", "0.0.0")
+        logger.debug(f"Latest Releases :: {version}")
+
+        # for asset in latest_release.get("assets", []):

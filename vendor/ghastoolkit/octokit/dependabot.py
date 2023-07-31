@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 
 from ghastoolkit.octokit.github import GitHub, Repository
-from ghastoolkit.octokit.octokit import GraphQLRequest
+from ghastoolkit.octokit.octokit import GraphQLRequest, RestRequest
 from ghastoolkit.supplychain.advisories import Advisory
 from ghastoolkit.supplychain.dependencyalert import DependencyAlert
 
@@ -18,6 +18,29 @@ class Dependabot:
         """Initialise Dependabot API class."""
         self.repository = repository or GitHub.repository
         self.graphql = GraphQLRequest(repository)
+
+        self.rest = RestRequest(repository)
+
+    def isEnabled(self) -> bool:
+        """Is Dependabot enabled."""
+        try:
+            self.graphql.query(
+                "GetDependencyStatus",
+                options={"owner": self.repository.owner, "repo": self.repository.repo},
+            )
+            return True
+        except:
+            logger.debug(f"Failed to get alert count")
+        return False
+
+    def isSecurityUpdatesEnabled(self) -> bool:
+        """Is Security Updates for Dependabot enabled."""
+        result = self.rest.get("get/repos/{owner}/{repo}")
+        if not isinstance(result, dict):
+            raise Exception(f"Unable to get repository info")
+        saa = result.get("source", {}).get("security_and_analysis", {})
+        status = saa.get("dependabot_security_updates", {}).get("status", "disabled")
+        return status == "enabled"
 
     def getAlerts(self) -> list[DependencyAlert]:
         """Get All Dependabot alerts from GraphQL API using the `GetDependencyAlerts` query."""

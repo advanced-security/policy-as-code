@@ -62,27 +62,39 @@ class SecretScanning:
         self.state = None
 
     def isEnabled(self) -> bool:
-        """Check to see if Secret Scanning is enabled or not."""
+        """Check to see if Secret Scanning is enabled or not via the repository status.
+
+        https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#get-a-repository
+        """
         if not self.state:
             self.state = self.getStatus()
-        # if advanced_security is disabled, secret scanning will be
-        adsec = self.state.get("advanced_security", {}).get("status", "disabled")
-        return self.state.get("secret_scanning", {}).get("status", adsec) == "enabled"
+        if self.state.get("visibility") == "public":
+            logger.debug("All public repositories have secret scanning enabled")
+            return True
+        return (
+            self.state.get("security_and_analysis", {})
+            .get("secret_scanning", {})
+            .get("status", "disabled")
+            == "enabled"
+        )
 
     def isPushProtectionEnabled(self) -> bool:
         """Check if Push Protection is enabled."""
         if not self.state:
             self.state = self.getStatus()
-        status = self.state.get("secret_scanning_push_protection", {}).get(
-            "status", "disabled"
+
+        status = (
+            self.state.get("security_and_analysis", {})
+            .get("secret_scanning_push_protection", {})
+            .get("status", "disabled")
         )
         return status == "enabled"
 
     def getStatus(self) -> dict:
         """Get Status of GitHub Advanced Security."""
-        result = self.rest.get("get/repos/{owner}/{repo}")
+        result = self.rest.get("/repos/{owner}/{repo}")
         if isinstance(result, dict):
-            return result.get("source", {}).get("security_and_analysis", {})
+            return result
         raise Exception("Failed to get the current state of secret scanning")
 
     def getOrganizationAlerts(self, state: Optional[str] = None) -> list[dict]:
