@@ -15,6 +15,7 @@ from ghastoolkit import (
 
 from ghascompliance.policy import Policy
 from ghascompliance.octokit import Octokit
+from ghascompliance.octokit.summary import Summary
 
 
 __HERE__ = os.path.dirname(os.path.realpath(__file__))
