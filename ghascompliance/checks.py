@@ -335,10 +335,10 @@ class Checks:
             )
 
         ignores_ids = (
-            self.policy.policy.get("licensing", {}).get("ingores", {}).get("ids", [])
+            self.policy.policy.get("licensing", {}).get("ignores", {}).get("ids", [])
         )
         ignores_names = (
-            self.policy.policy.get("licensing", {}).get("ingores", {}).get("names", [])
+            self.policy.policy.get("licensing", {}).get("ignores", {}).get("names", [])
         )
 
         # License Checks (GPL, etc)
