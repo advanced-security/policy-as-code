@@ -3,18 +3,19 @@ import json
 from datetime import datetime
 from typing import *
 
-from ghastoolkit import GitHub
-from ghastoolkit.octokit.codescanning import CodeScanning
-from ghastoolkit.supplychain.dependencies import Dependencies
-from ghastoolkit.octokit.dependencygraph import DependencyGraph
-from ghastoolkit.octokit.dependabot import Dependabot
-from ghastoolkit.octokit.secretscanning import SecretScanning
+from ghastoolkit import (
+    GitHub,
+    CodeScanning,
+    Dependencies,
+    DependencyGraph,
+    Dependabot,
+    SecretScanning,
+    Licenses,
+)
 
 from ghascompliance.policy import Policy
 from ghascompliance.octokit import Octokit
 from ghascompliance.octokit.summary import Summary
-from vendor.ghastoolkit.octokit.dependencygraph import Dependency
-from vendor.ghastoolkit.supplychain.licensing import Licenses
 
 
 __HERE__ = os.path.dirname(os.path.realpath(__file__))
@@ -343,10 +344,10 @@ class Checks:
             )
 
         ignores_ids = (
-            self.policy.policy.get("licensing", {}).get("ingores", {}).get("ids", [])
+            self.policy.policy.get("licensing", {}).get("ignores", {}).get("ids", [])
         )
         ignores_names = (
-            self.policy.policy.get("licensing", {}).get("ingores", {}).get("names", [])
+            self.policy.policy.get("licensing", {}).get("ignores", {}).get("names", [])
         )
 
         # License Checks (GPL, etc)

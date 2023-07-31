@@ -1,3 +1,13 @@
+DEPENDENCY_GRAPH_STATUS = """\
+{
+    repository(owner: "$owner", name: "$repo") {
+        vulnerabilityAlerts(first: 100, states: [OPEN], $cursor) {
+            totalCount
+        }
+    }
+}
+"""
+
 DEPENDENCY_GRAPH_ALERTS = """\
 {
     repository(owner: "$owner", name: "$repo") {
@@ -80,6 +90,7 @@ DEPENDENCY_GRAPH_INFO = """\
 
 
 QUERIES = {
+    "GetDependencyStatus": DEPENDENCY_GRAPH_STATUS,
     "GetDependencyAlerts": DEPENDENCY_GRAPH_ALERTS,
     "GetDependencyInfo": DEPENDENCY_GRAPH_INFO,
 }

@@ -5,7 +5,6 @@ import json
 import glob
 import logging
 from typing import Any, List, Optional
-from collections import OrderedDict
 from semantic_version import Version
 import yaml
 
@@ -32,7 +31,7 @@ class CodeQLPack:
         """Initialise CodeQL Pack."""
         self.cli = cli or CodeQL()
 
-        self.path = path
+        self.path = path  # dir
         self.library: bool = library or False
         self.name: str = name or ""
         self.version: str = version or "0.0.0"
@@ -45,7 +44,9 @@ class CodeQLPack:
                 path = os.path.realpath(os.path.dirname(path))
 
             self.path = os.path.realpath(os.path.expanduser(path))
-            self.load()
+
+            if os.path.exists(self.qlpack):
+                self.load()
 
         logger.debug(f"Finished loading Pack :: {self}")
 
@@ -63,6 +64,7 @@ class CodeQLPack:
     def load(self):
         """Load QLPack file."""
         if not os.path.exists(self.qlpack):
+            logger.warning(f"Pack Path :: {self.path}")
             raise Exception(f"Failed to find qlpack file")
 
         logger.debug(f"Loading Pack from path :: {self.path}")
@@ -76,6 +78,21 @@ class CodeQLPack:
 
         for name, version in data.get("dependencies", {}).items():
             self.dependencies.append(CodeQLPack(name=name, version=version))
+
+    @staticmethod
+    def findByQuery(query_path: str) -> Optional["CodeQLPack"]:
+        """Find Pack by query path."""
+        stack = query_path.split("/")
+        if query_path.startswith("/"):
+            stack.insert(0, "/")
+
+        while len(stack) != 0:
+            path = os.path.join(*stack, "qlpack.yml")
+            if os.path.exists(path):
+                return CodeQLPack(path)
+
+            stack.pop(-1)
+        return
 
     def run(self, *args, display: bool = False) -> Optional[str]:
         """Run Pack command."""
