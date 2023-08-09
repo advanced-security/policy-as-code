@@ -319,7 +319,7 @@ class Checks:
         if not self.policy.policy and not self.policy.policy.get("licensing"):
             Octokit.debug("Skipping as licensing policy not set")
             return len(licensing_violations)
-        
+
         ignores_ids = (
             self.policy.policy.get("licensing", {}).get("ignores", {}).get("ids", [])
         )
