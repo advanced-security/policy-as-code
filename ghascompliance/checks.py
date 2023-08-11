@@ -320,6 +320,13 @@ class Checks:
             Octokit.debug("Skipping as licensing policy not set")
             return len(licensing_violations)
 
+        ignores_ids = (
+            self.policy.policy.get("licensing", {}).get("ignores", {}).get("ids", [])
+        )
+        ignores_names = (
+            self.policy.policy.get("licensing", {}).get("ignores", {}).get("names", [])
+        )
+
         # Warnings (NA, etc)
         warnings = Dependencies()
 
@@ -334,6 +341,10 @@ class Checks:
         warnings.extend(dependencies.findNames(warnings_names))
 
         for warning in warnings:
+            if warning.name in ignores_names or warning.license in ignores_ids:
+                Octokit.debug(f"Skipping {warning} because in ignore list...")
+                continue
+
             licensing_warnings.append(
                 [warning.fullname, warning.license if warning.license else "None"]
             )
@@ -342,13 +353,6 @@ class Checks:
                     warning.fullname, warning.license
                 )
             )
-
-        ignores_ids = (
-            self.policy.policy.get("licensing", {}).get("ignores", {}).get("ids", [])
-        )
-        ignores_names = (
-            self.policy.policy.get("licensing", {}).get("ignores", {}).get("names", [])
-        )
 
         # License Checks (GPL, etc)
         violations = Dependencies()
