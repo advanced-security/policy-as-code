@@ -50,6 +50,7 @@ jobs:
       uses: ./
       with:
         action: continue
+        token: "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
         policy: advanced-security/policy-as-code-testing
         policy-path: policy.yml
         argvs: --display --github-repository advanced-security/policy-as-code-testing --github-ref refs/heads/main
