@@ -138,11 +138,11 @@ if __name__ == "__main__":
     if arguments.policy_repo_token and arguments.policy_repo_token != "":
         Octokit.debug("Separate policy repo token provided")
         policy_token = arguments.policy_repo_token
-        policy_app_token = arguments.is_policy_github_app_token
+        is_policy_app_token = arguments.is_policy_github_app_token
     else:
         Octokit.debug("Using default token for policy repo")
         policy_token = arguments.github_token
-        policy_app_token = arguments.is_github_app_token
+        is_policy_app_token = arguments.is_github_app_token
 
     results = ".compliance"
 
@@ -153,7 +153,7 @@ if __name__ == "__main__":
         path=arguments.github_policy_path,
         branch=arguments.github_policy_branch,
         token=policy_token,
-        isGithubAppToken=policy_app_token,
+        isGithubAppToken=is_policy_app_token,
         instance=arguments.github_instance,
     )
 

@@ -46,6 +46,8 @@ class Policy:
         if repository:
             self.repository = Repository.parseRepository(repository)
             self.repository.branch = branch
+            self.repository.repo_token = self.token
+            self.repository.is_github_app_token = self.isGithubAppToken
         else:
             self.repository = None
 
