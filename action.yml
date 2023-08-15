@@ -55,6 +55,7 @@ runs:
           --severity "${{ inputs.severity }}" \
           --action "${{ inputs.action }}" \
           --github-token "${{ inputs.token }}" \
+          --policy-repo-token "${{ inputs.policy-repo-token }}" \
           --github-repository "${{ inputs.repository }}" \
           --github-ref "${{ inputs.ref }}" \
           --github-policy "${{ inputs.policy }}" \
