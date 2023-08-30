@@ -62,7 +62,10 @@ class ClearlyDefined:
                 curlicense = curation.get("licensed", {}).get("declared")
                 if curlicense:
                     licenses.add(curlicense)
-        except:
+        except KeyboardInterrupt:
+            raise Exception("Keyboard Interrupt")
+        except Exception as err:
             logger.warning(f"Error getting curation data :: {dependency}")
+            logger.warning(f"Error :: {err}")
 
         return list(licenses)

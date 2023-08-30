@@ -1,104 +1,78 @@
 """ghastoolkit main workflow."""
-import os
+
+from argparse import Namespace
 import logging
-import argparse
 
-from ghastoolkit import __name__ as name, __banner__
-from ghastoolkit.octokit.github import GitHub
+from ghastoolkit import __name__ as name, __banner__, __version__
 from ghastoolkit.octokit.codescanning import CodeScanning
-from ghastoolkit.octokit.dependencygraph import (
-    DependencyGraph,
+from ghastoolkit.octokit.dependencygraph import DependencyGraph
+from ghastoolkit.octokit.github import GitHub
+from ghastoolkit.utils.cli import CommandLine
+from ghastoolkit.supplychain.__main__ import (
+    runDefault as runSCDefault,
+    runOrgAudit as runSCOrgAudit,
 )
 
-# Arguments
-parser = argparse.ArgumentParser(name)
-parser.add_argument("--debug", action="store_true")
 
-parser.add_argument(
-    "mode", choices=["all", "codescanning", "codeql", "dependencygraph"]
-)
-
-parser.add_argument("-sha", default=os.environ.get("GITHUB_SHA"), help="Commit SHA")
-parser.add_argument("-ref", default=os.environ.get("GITHUB_REF"), help="Commit ref")
-
-parser_github = parser.add_argument_group("GitHub")
-parser_github.add_argument(
-    "-r",
-    "--github-repository",
-    default=os.environ.get("GITHUB_REPOSITORY"),
-    help="GitHub Repository",
-)
-parser_github.add_argument(
-    "--github-instance",
-    default=os.environ.get("GITHUB_SERVER_URL", "https://github.com"),
-    help="GitHub Instance",
-)
-parser_github.add_argument(
-    "-t",
-    "--github-token",
-    default=os.environ.get("GITHUB_TOKEN"),
-    help="GitHub API Token",
-)
-
-arguments = parser.parse_args()
+def header(name: str, width: int = 32):
+    logging.info("#" * width)
+    logging.info(f"{name:^32}")
+    logging.info("#" * width)
+    logging.info("")
 
 
-def header(name: str):
-    print("#" * 32)
-    print(f"    {name}")
-    print("#" * 32)
-    print("")
-
-
-# logger
-logging.basicConfig(
-    level=logging.DEBUG if arguments.debug or os.environ.get("DEBUG") else logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-
-print(__banner__)
-
-# GitHub Init
-GitHub.init(
-    repository=arguments.github_repository,
-    instance=arguments.github_instance,
-    token=arguments.github_token,
-)
-
-if not GitHub.repository:
-    raise Exception(f"GitHub Repository must be set")
-
-if arguments.mode in ["all", "codescanning"]:
-    header("Code Scanning")
+def runCodeScanning(arguments):
     codescanning = CodeScanning(GitHub.repository)
 
     alerts = codescanning.getAlerts()
 
-    print(f"Total Alerts :: {len(alerts)}")
+    logging.info(f"Total Alerts :: {len(alerts)}")
 
     analyses = codescanning.getLatestAnalyses(GitHub.repository.reference)
-    print(f"\nTools:   ({len(analyses)})")
+    logging.info(f"\nTools:")
 
     for analyse in analyses:
         tool = analyse.get("tool", {}).get("name")
         version = analyse.get("tool", {}).get("version")
         created_at = analyse.get("created_at")
 
-        print(f" - {tool} v{version} ({created_at})")
+        logging.info(f" - {tool} v{version} ({created_at})")
 
 
-if arguments.mode in ["all", "dependencygraph"]:
-    header("Dependency Graph")
+class MainCli(CommandLine):
+    """Main CLI."""
 
-    depgraph = DependencyGraph(GitHub.repository)
-    bom = depgraph.exportBOM()
-    packages = bom.get("sbom", {}).get("packages", [])
+    def arguments(self):
+        """Adding additional parsers from submodules."""
+        self.addModes(["all"])
 
-    print(f"Total Dependencies :: {len(packages)}")
+    def run(self, arguments: Namespace):
+        """Run main CLI."""
+        if arguments.version:
+            logging.info(f"v{__version__}")
+            return
 
-    info = bom.get("sbom", {}).get("creationInfo", {})
-    print(f"Created :: {info.get('created')}")
+        logging.info(__banner__)
 
-    print("\nTools:")
-    for tool in info.get("creators", []):
-        print(f" - {tool}")
+        if arguments.mode in ["all", "codescanning"]:
+            logging.info("")
+            header("Code Scanning")
+            runCodeScanning(arguments)
+
+        if arguments.mode in ["all", "dependencygraph"]:
+            logging.info("")
+            header("Dependency Graph")
+            runSCDefault(arguments)
+
+        if arguments.mode == "org-audit":
+            # run org audit with all products
+            # supplychain
+            runSCOrgAudit(arguments)
+            return
+
+
+if __name__ == "__main__":
+    # Arguments
+    parser = MainCli(name)
+
+    parser.run(parser.parse_args())

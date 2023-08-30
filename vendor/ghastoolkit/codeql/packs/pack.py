@@ -36,7 +36,13 @@ class CodeQLPack:
         self.name: str = name or ""
         self.version: str = version or "0.0.0"
         self.dependencies: List["CodeQLPack"] = []
+
         self.default_suite: Optional[str] = None
+        self.warnOnImplicitThis: Optional[bool] = None
+        self.dbscheme: Optional[str] = None
+        self.extractor: Optional[str] = None
+        self.upgrades: Optional[str] = None
+        self.groups: Optional[list[str]] = None
 
         if path:
             # if its a file
@@ -75,6 +81,12 @@ class CodeQLPack:
         self.name = data.get("name", "")
         self.version = data.get("version", "")
         self.default_suite = data.get("defaultSuiteFile")
+
+        self.warnOnImplicitThis = data.get("warnOnImplicitThis")
+        self.dbscheme = data.get("dbscheme")
+        self.extractor = data.get("extractor")
+        self.upgrades = data.get("upgrades")
+        self.groups = data.get("groups")
 
         for name, version in data.get("dependencies", {}).items():
             self.dependencies.append(CodeQLPack(name=name, version=version))
@@ -128,10 +140,20 @@ class CodeQLPack:
         """Install Dependencies for a CodeQL Pack."""
         self.run("install", self.path, display=display)
 
+    def updateDependencies(self, version: str = "latest"):
+        for dep in self.dependencies:
+            if version == "latest":
+                dep.version = dep.remote_version
+        self.updatePack()
+
     def resolveQueries(self, suite: Optional[str] = None) -> List[str]:
         """Resolve all the queries in a Pack and return them."""
         results = []
-        pack = f"{self.name}:{suite}" if suite else self.name
+        if self.path:
+            pack = os.path.join(self.path, suite) if suite else self.path
+        else:
+            pack = f"{self.name}:{suite}" if suite else self.name
+
         result = self.cli.runCommand(
             "resolve", "queries", "--format", "bylanguage", pack
         )
@@ -164,7 +186,14 @@ class CodeQLPack:
             "library": self.library,
             "name": self.name,
             "version": self.version,
+            "defaultSuiteFile": self.default_suite,
+            "warnOnImplicitThis": self.warnOnImplicitThis,
+            "dbscheme": self.dbscheme,
+            "extractor": self.extractor,
+            "upgrades": self.upgrades,
+            "groups": self.groups,
         }
+        data = {k: v for k, v in data.items() if v is not None}
 
         if self.dependencies:
             data["dependencies"] = {}
