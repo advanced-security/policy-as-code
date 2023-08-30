@@ -1,82 +1,116 @@
 """GitHub CodeQL Packs CLI."""
 import os
 import logging
-from argparse import ArgumentParser
-from ghastoolkit import __banner__
-from ghastoolkit.codeql.packs.pack import CodeQLPack
+from argparse import Namespace
+from typing import Optional
+
+from yaml import parse
 from ghastoolkit.codeql.packs.packs import CodeQLPacks
-from ghastoolkit.octokit.codescanning import CodeScanning
-from ghastoolkit.octokit.github import GitHub
+from ghastoolkit.utils.cli import CommandLine
 
-logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-parser = ArgumentParser("ghastoolkit.codeql.packs")
-parser.add_argument(
-    "--repository",
-    default=os.environ.get("GITHUB_REPOSITORY"),
-    help="GitHub Repository",
-)
-parser.add_argument("-r", "--remote", action="store_true", help="Enable remote mode")
-parser.add_argument("-p", "--packs-path", default=os.getcwd(), help="Packs Path")
-parser.add_argument(
-    "-dd", "--display-dependencies", action="store_true", help="Display Dependencies"
-)
-
-parser_bumper = parser.add_argument_group("Bumper")
-parser_bumper.add_argument("-b", "--bump", default="minor", help="Bump version")
-
-arguments = parser.parse_args()
-remote = True if arguments.repository else False
-
-logging.info(__banner__)
-
-if remote:
-    GitHub.init(arguments.repository)
-else:
-    logging.warning(f"Repository not set, all remote activities are disabled")
-
-code_scanning = CodeScanning()
-
-if arguments.bump:
-    # version bump mode
-    logging.info(f"Bumping CodeQL Pack Versions")
-    logging.info(f" - Bump: {arguments.bump}")
-
-    if os.path.isdir(arguments.packs_path):
-        packs = CodeQLPacks(arguments.packs_path)
-        for pack in packs:
-            old_version = pack.version
-            v = pack.updateVersion(arguments.bump)
-            logging.info(f"Pack :: {pack.name} - {old_version} -> {v}")
-            pack.updatePack()
-
-    elif os.path.isfile(arguments.packs_path):
-        pack = CodeQLPack(arguments.packs_path)
-        old_version = pack.version
-        new_version = pack.updateVersion(arguments.bump)
-        logging.info(f"Pack :: {pack.name} - {old_version} -> {new_version}")
-
-        pack.updatePack()
-
-else:
-    # display-only mode
-    logging.debug(f"Loading packs from environment...")
-
-    packs = CodeQLPacks()
-    packs.load(arguments.packs_path)
-
-    logging.info(f"CodeQL Packs :: {len(packs)}")
-    logging.info("")
+def codeqlPackPublish(arguments: Namespace, packs: CodeQLPacks):
+    if not arguments.packs or arguments.packs == "":
+        logging.error(f"CodeQL Pack path must be provided")
+        exit(1)
 
     for pack in packs:
-        logging.info(f" - {pack}")
+        remote = pack.remote_version
+        logging.info(f"CodeQL Pack Remote Version :: {remote}")
 
-        if remote:
-            remote_version = pack.remote_version
-            if remote_version:
-                logging.info(f"   |> Remote Version: `{pack.remote_version}`")
+        if pack.version != remote:
+            logging.info("Publishing CodeQL Pack...")
+            pack.publish()
+            logging.info(f"CodeQL Pack published :: {pack}")
+        else:
+            logging.info(f"CodeQL Pack is up to date :: {pack}")
 
-        if arguments.display_dependencies:
-            logging.info(f"   |> Dependencies")
-            for dep in pack.dependencies:
-                logging.info(f"   |--> {dep}")
+
+class CodeQLPacksCommandLine(CommandLine):
+    def arguments(self):
+        self.addModes(["publish", "queries", "compile", "version"])
+        default_pack_path = os.path.expanduser("~/.codeql/packages")
+
+        parser = self.parser.add_argument_group("codeql-packs")
+        parser.add_argument(
+            "--packs",
+            type=str,
+            default=os.environ.get("CODEQL_PACKS_PATH", default_pack_path),
+            help="CodeQL Packs Path",
+        )
+        parser.add_argument(
+            "--bump",
+            type=str,
+            default="patch",
+            help="CodeQL Pack Version Bump",
+        )
+        parser.add_argument(
+            "--suite",
+            type=str,
+            default="default",
+            help="CodeQL Pack Suite",
+        )
+        parser.add_argument(
+            "--latest",
+            action="store_true",
+            help="Update to latest CodeQL Pack Dependencies",
+        )
+        parser.add_argument("--warnings", action="store_true", help="Enable Warnings")
+
+    def run(self, arguments: Optional[Namespace] = None):
+        if not arguments:
+            arguments = self.parse_args()
+
+        logging.info(f"CodeQL Packs Path :: {arguments.packs}")
+        packs = CodeQLPacks(arguments.packs)
+
+        if arguments.latest:
+            logging.info("Updating CodeQL Pack Dependencies...")
+            for pack in packs:
+                pack.updateDependencies()
+
+        if arguments.mode == "publish":
+            codeqlPackPublish(arguments, packs)
+
+        elif arguments.mode == "version":
+            logging.info(f"Loading packs from :: {arguments.packs}")
+
+            for pack in packs:
+                old_version = pack.version
+                pack.updateVersion(arguments.bump)
+                pack.updatePack()
+                logging.info(
+                    f"CodeQL Pack :: {pack.name} :: {old_version} -> {pack.version}"
+                )
+
+        elif arguments.mode == "queries":
+            suite = arguments.suite or "code-scanning"
+            for pack in packs:
+                logging.info(f"CodeQL Pack :: {pack}")
+
+                if not pack.library:
+                    if suite == "default" and pack.default_suite:
+                        suite = pack.default_suite
+
+                    queries = pack.resolveQueries(suite)
+                    logging.info(f"Queries: {len(queries)}")
+                    for query in queries:
+                        logging.info(f"- {query}")
+
+        elif arguments.mode == "compile":
+            for pack in packs:
+                logging.info(f"CodeQL Pack :: {pack}")
+
+        else:
+            logging.info("CodeQL Packs")
+            for pack in packs:
+                logging.info(f"- {pack}")
+
+                for dep in pack.dependencies:
+                    logging.info(f" |-> {dep}")
+
+
+if __name__ == "__main__":
+    parser = CodeQLPacksCommandLine("ghastoolkit-codeql-packs")
+    parser.run(parser.parse_args())
+    logging.info(f"Finished!")

@@ -12,20 +12,28 @@ logger = logging.getLogger("ghastoolkit.supplychain.dependencies")
 
 @dataclass
 class Dependency:
-    name: str
-    namespace: Optional[str] = None
-    version: Optional[str] = None
-    manager: Optional[str] = None
-    path: Optional[str] = None
-    qualifiers: dict[str, str] = field(default_factory=dict)
+    """Dependency."""
 
-    # Licensing information
+    name: str
+    """Name of the Dependency"""
+    namespace: Optional[str] = None
+    """Namespace of the Dependency"""
+    version: Optional[str] = None
+    """Version of the Dependency"""
+    manager: Optional[str] = None
+    """Package Manager"""
+    path: Optional[str] = None
+    """Path to the Dependency"""
+    qualifiers: dict[str, str] = field(default_factory=dict)
+    """Qualifiers"""
     license: Optional[str] = None
-    # Security Alerts
+    """License information"""
     alerts: list[DependencyAlert] = field(default_factory=list)
+    """Security Alerts"""
 
     def getPurl(self, version: bool = True) -> str:
-        """Get PURL
+        """Create a PURL from the Dependency.
+
         https://github.com/package-url/purl-spec
         """
         result = f"pkg:"
@@ -41,6 +49,7 @@ class Dependency:
 
     @staticmethod
     def fromPurl(purl: str) -> "Dependency":
+        """Create a Dependency from a PURL."""
         dep = Dependency("")
         # version (at end)
         if "@" in purl:
@@ -70,7 +79,7 @@ class Dependency:
 
     @property
     def fullname(self) -> str:
-        """Full Name of the Dependency"""
+        """Full Name of the Dependency."""
         if self.namespace:
             sep = "/"
             if self.manager == "maven":
@@ -79,6 +88,7 @@ class Dependency:
         return self.name
 
     def __str__(self) -> str:
+        """To String (PURL)."""
         return self.getPurl()
 
     def __repr__(self) -> str:
@@ -86,6 +96,8 @@ class Dependency:
 
 
 class Dependencies(list[Dependency]):
+    """List of Dependencies."""
+
     def exportBOM(
         self,
         tool: str,
@@ -95,7 +107,7 @@ class Dependencies(list[Dependency]):
         version: str = "0.0.0",
         url: str = "",
     ) -> dict:
-        """Create a dependency graph submission JSON payload for GitHub"""
+        """Create a dependency graph submission JSON payload for GitHub."""
         resolved = {}
         for dep in self:
             name = dep.name
@@ -122,7 +134,7 @@ class Dependencies(list[Dependency]):
         return data
 
     def findLicenses(self, licenses: list[str]) -> "Dependencies":
-        """Find Denied License"""
+        """Find dependencies with a given license."""
         regex_list = [re.compile(name_filter) for name_filter in licenses]
         return Dependencies(
             [
@@ -135,12 +147,12 @@ class Dependencies(list[Dependency]):
     def findUnknownLicenses(
         self, licenses: Optional[list[str]] = None
     ) -> "Dependencies":
-        """Find all the dependencies with no license"""
+        """Find all the dependencies with no licensing information."""
         licenses = licenses or NO_LICENSES
         return self.findLicenses(licenses)
 
     def applyLicenses(self, licenses: Licenses):
-        """Given a list of licenses (Licenses) apply a license"""
+        """Given a list of licenses (Licenses) apply a license."""
         for i, dep in enumerate(self):
             if dep.license and dep.license not in NO_LICENSES:
                 continue
@@ -151,9 +163,7 @@ class Dependencies(list[Dependency]):
                 self[i] = dep
 
     def applyClearlyDefined(self):
-        """Reachout to Clearly Definded API, get the licenses for a component,
-        and update all the Dependencies
-        """
+        """Reachout to ClearlyDefinded API, get the licenses for a component, and update all the Dependencies."""
         from ghastoolkit.octokit.clearlydefined import ClearlyDefined
 
         clearly = ClearlyDefined()
@@ -167,7 +177,7 @@ class Dependencies(list[Dependency]):
                 self[i] = dep
 
     def contains(self, dependency: Dependency) -> bool:
-        """Contains the dependency"""
+        """Contains the dependency."""
         purl = dependency.getPurl(version=False)
         for dep in self:
             if dep.name == dependency.name or dep.getPurl(version=False) == purl:
@@ -175,14 +185,14 @@ class Dependencies(list[Dependency]):
         return False
 
     def find(self, name: str) -> Optional[Dependency]:
-        """Find by name"""
+        """Find by name."""
         for dep in self:
             if dep.name == name or dep.fullname == name:
                 return dep
         logger.debug(f"Unable to find by name :: {name}")
 
     def findPurl(self, purl: str) -> Optional[Dependency]:
-        """Find by PURL"""
+        """Find by PURL."""
         purldep = Dependency.fromPurl(purl)
         for dep in self:
             if purldep.name == purldep.fullname or dep.fullname == dep.fullname:
@@ -190,14 +200,14 @@ class Dependencies(list[Dependency]):
         logger.debug(f"Unable to find by PURL :: {purl}")
 
     def findNames(self, names: list[str]) -> "Dependencies":
-        """Find by Name using wildcards"""
+        """Find by Name using wildcards."""
         regex_list = [re.compile(name_filter) for name_filter in names]
         return Dependencies(
             [dep for dep in self if any(regex.search(dep.name) for regex in regex_list)]
         )
 
     def updateDependency(self, dependency: Dependency):
-        """Update a dependency in our list with the incoming information"""
+        """Update a dependency in our list with the incoming information."""
         for dep in self:
             if dependency.name == dep.name or dependency.fullname == dep.fullname:
                 dep.__dict__.update(dependency.__dict__)
@@ -205,6 +215,6 @@ class Dependencies(list[Dependency]):
                 break
 
     def updateDependencies(self, dependencies: "Dependencies"):
-        """Update a list of dependencies"""
+        """Update a list of dependencies."""
         for dep in dependencies:
             self.updateDependency(dep)

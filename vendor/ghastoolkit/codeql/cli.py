@@ -56,27 +56,30 @@ def findCodeQLBinary() -> Optional[List[str]]:
 class CodeQL:
     """CodeQL CLI."""
 
+    CODEQL_BINARY: Optional[list[str]] = None
+    """CodeQL Binary"""
+
     CODEQL_EXTRACTOR_PATH: str = os.path.expanduser("~/.codeql/extractors")
     """CodeQL Extractor Path"""
 
     def __init__(self, binary: Optional[str] = None) -> None:
         """Initialise CodeQL CLI Class."""
         if binary:
-            self.path_binary = [binary]
-        else:
-            self.path_binary: Optional[list[str]] = findCodeQLBinary()
+            CodeQL.CODEQL_BINARY = [binary]
+        elif not CodeQL.CODEQL_BINARY:
+            CodeQL.CODEQL_BINARY = findCodeQLBinary()
 
     def exists(self) -> bool:
         """Check codeql is present on the system."""
-        return self.path_binary != None
+        return CodeQL.CODEQL_BINARY != None
 
     def runCommand(self, *argvs, display: bool = False) -> Optional[str]:
         """Run CodeQL command without the binary / path."""
         logger.debug(f"Running CodeQL Command :: {argvs[0]}...")
-        if not self.path_binary:
+        if not CodeQL.CODEQL_BINARY:
             raise Exception("CodeQL binary / path was not found")
         cmd = []
-        cmd.extend(self.path_binary)
+        cmd.extend(CodeQL.CODEQL_BINARY)
         cmd.extend(argvs)
 
         logger.debug(f"Running Command :: {cmd}")
@@ -161,7 +164,7 @@ class CodeQL:
             "security-and-quality",
             "security-experimental",
         ]:
-            path = database.getSuite("security-extended")
+            path = database.getSuite(path)
 
         logger.debug(f"Query path :: {path}")
 
@@ -288,6 +291,6 @@ class CodeQL:
 
     def __str__(self) -> str:
         """To String."""
-        if self.path_binary:
+        if CodeQL.CODEQL_BINARY:
             return f"CodeQL('{self.version}')"
         return "CodeQL()"
