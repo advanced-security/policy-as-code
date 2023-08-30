@@ -134,7 +134,7 @@ class RestRequest:
                 result = rest.get(url, parameters=params, authenticated=authenticated)
 
                 if response:
-                    return func(self, responce=result, **kwargs)
+                    return func(self, response=result, **kwargs)
 
                 # TODO: runtime type checking
 
@@ -203,29 +203,29 @@ class RestRequest:
         while True:
             params["page"] = page
 
-            responce = self.session.get(url, params=params)
-            responce_json = responce.json()
+            response = self.session.get(url, params=params)
+            response_json = response.json()
 
-            if responce.status_code != expected:
+            if response.status_code != expected:
                 if display_errors:
-                    logger.error(f"Error code from server :: {responce.status_code}")
-                    logger.error(f"Content :: {responce_json}")
+                    logger.error(f"Error code from server :: {response.status_code}")
+                    logger.error(f"Content :: {response_json}")
 
-                known_error = __OCTOKIT_ERRORS__.get(responce.status_code)
+                known_error = __OCTOKIT_ERRORS__.get(response.status_code)
                 if known_error:
                     raise Exception(known_error)
                 raise Exception("REST Request failed :: non-expected server error")
 
-            if isinstance(responce_json, dict) and responce_json.get("errors"):
-                logger.error(responce_json.get("message"))
+            if isinstance(response_json, dict) and response_json.get("errors"):
+                logger.error(response_json.get("message"))
                 raise Exception("REST Request failed :: error from server")
 
-            if isinstance(responce_json, dict):
-                return responce_json
+            if isinstance(response_json, dict):
+                return response_json
 
-            result.extend(responce_json)
+            result.extend(response_json)
             # if the page is not full, we must have hit the end
-            if len(responce_json) < RestRequest.PER_PAGE:
+            if len(response_json) < RestRequest.PER_PAGE:
                 break
 
             page += 1
