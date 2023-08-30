@@ -13,7 +13,10 @@ inputs:
   token:
     description: GitHub Personal Access Token
     default: ${{ github.token }}
-  
+
+  policy-repo-token:
+    description: Separate GitHub PAT if the policy files are stored in a separate repository
+
   ref:
     description: GitHub Ref
     default: ${{ github.ref }}
@@ -52,6 +55,7 @@ runs:
           --severity "${{ inputs.severity }}" \
           --action "${{ inputs.action }}" \
           --github-token "${{ inputs.token }}" \
+          --policy-repo-token "${{ inputs.policy-repo-token }}" \
           --github-repository "${{ inputs.repository }}" \
           --github-ref "${{ inputs.ref }}" \
           --github-policy "${{ inputs.policy }}" \

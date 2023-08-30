@@ -33,10 +33,12 @@ parser.add_argument("--disable-dependency-licensing", action="store_true")
 parser.add_argument("--disable-dependencies", action="store_true")
 parser.add_argument("--disable-secret-scanning", action="store_true")
 parser.add_argument("--is-github-app-token", action="store_true", default=False)
+parser.add_argument("--is-policy-github-app-token", action="store_true", default=False)
 parser.add_argument("--pr-comment", action="store_true", default=False)
 
 github_arguments = parser.add_argument_group("GitHub")
 github_arguments.add_argument("--github-token", default=GITHUB_TOKEN)
+github_arguments.add_argument("--policy-repo-token")
 github_arguments.add_argument("--github-instance", default=GITHUB_INSTANCE)
 github_arguments.add_argument("--github-repository", default=GITHUB_REPOSITORY)
 # github_arguments.add_argument("--github-event", default=GITHUB_EVENT_PATH)
@@ -133,6 +135,15 @@ if __name__ == "__main__":
                 "Policy config file set: {}".format(arguments.github_policy_path)
             )
 
+    if arguments.policy_repo_token and arguments.policy_repo_token != "":
+        Octokit.debug("Separate policy repo token provided")
+        policy_token = arguments.policy_repo_token
+        is_policy_app_token = arguments.is_policy_github_app_token
+    else:
+        Octokit.debug("Using default token for policy repo")
+        policy_token = arguments.github_token
+        is_policy_app_token = arguments.is_github_app_token
+
     results = ".compliance"
 
     # Load policy engine
@@ -141,8 +152,8 @@ if __name__ == "__main__":
         repository=policy_location,
         path=arguments.github_policy_path,
         branch=arguments.github_policy_branch,
-        token=arguments.github_token,
-        isGithubAppToken=arguments.is_github_app_token,
+        token=policy_token,
+        isGithubAppToken=is_policy_app_token,
         instance=arguments.github_instance,
     )
 
