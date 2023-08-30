@@ -17,7 +17,11 @@ class TestPolicyLoading(unittest.TestCase):
 
     def testGitHubInstance(self):
         instance = "https://github.com"
-        GitHub.init("GeekMasher/advanced-security-compliance", instance=instance)
+        GitHub.init(
+            "GeekMasher/advanced-security-compliance",
+            instance=instance,
+            retrieve_metadata=False,
+        )
 
         self.assertEqual(GitHub.instance, instance)
         self.assertEqual(GitHub.api_rest, "https://api.github.com")
@@ -25,7 +29,11 @@ class TestPolicyLoading(unittest.TestCase):
 
     def testGitHubServerInstance(self):
         instance = "https://ghes.example.com"
-        GitHub.init("GeekMasher/advanced-security-compliance", instance=instance)
+        GitHub.init(
+            "GeekMasher/advanced-security-compliance",
+            instance=instance,
+            retrieve_metadata=False,
+        )
 
         self.assertEqual(GitHub.instance, instance)
         self.assertEqual(GitHub.api_rest, "https://ghes.example.com/api/v3")
