@@ -14,22 +14,26 @@ class SecretAlert(OctoItem):
     """Secret Scanning Alert."""
 
     number: int
+    """Number / Identifier"""
     state: str
+    """Alert State"""
 
     created_at: str
+    """Created Timestamp"""
 
     secret_type: str
+    """Secret Scanning type"""
     secret_type_display_name: str
+    """Secret Scanning type display name"""
     secret: str
+    """Secret value (sensitive)"""
 
     _locations: list[dict] = field(default_factory=list)
     _sha: Optional[str] = None
 
     @property
     def locations(self) -> list[dict]:
-        """Get Alert locations.
-
-        Use cache or request from API."""
+        """Get Alert locations. Uses a cached version or request from API."""
         if not self._locations:
             self._locations = SecretScanning().getAlertLocations(self.number)
         return self._locations
