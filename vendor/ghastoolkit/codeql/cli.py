@@ -161,7 +161,7 @@ class CodeQL:
             "security-and-quality",
             "security-experimental",
         ]:
-            path = database.getSuite(path)
+            path = database.getSuite("security-extended")
 
         logger.debug(f"Query path :: {path}")
 

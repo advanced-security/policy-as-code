@@ -30,14 +30,12 @@ class CodeQLPacks:
             raise Exception("Path does not exist")
 
         logger.debug(f"Loading from path :: {path}")
-        lib_path = os.path.join(".codeql", "libraries")
 
         for root, _, files in os.walk(path):
             for file in files:
                 if file == "qlpack.yml":
                     fpath = os.path.join(root, file)
-
-                    if lib_path in fpath:
+                    if ".codeql/libraries" in fpath:
                         continue
                     self.append(CodeQLPack(fpath))
 

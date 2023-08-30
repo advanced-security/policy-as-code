@@ -1,9 +1,7 @@
 """Dependency Graph Octokit."""
 import logging
-from typing import Any, Dict
+from typing import Any
 import urllib.parse
-
-from semantic_version import Version
 
 from ghastoolkit.octokit.github import GitHub, Repository
 from ghastoolkit.supplychain.advisories import Advisory
@@ -31,48 +29,9 @@ class DependencyGraph:
         self.enable_graphql = enable_graphql
         self.enable_clearlydefined = enable_clearlydefined
 
-    def getOrganizationDependencies(self) -> Dict[Repository, Dependencies]:
-        """Get Organization Dependencies."""
-        deps: Dict[Repository, Dependencies] = {}
-
-        repositories = self.rest.get("/orgs/{org}/repos")
-        if not isinstance(repositories, list):
-            raise Exception("Invalid organization")
-
-        for repo in repositories:
-            repo = Repository.parseRepository(repo.get("full_name"))
-            logger.debug(f"Processing repository :: {repo}")
-            try:
-                self.rest = RestRequest(repo)
-
-                deps[repo] = self.getDependenciesSbom()
-            except Exception as err:
-                logger.warning(f"Failed to get dependencies :: {err}")
-                deps[repo] = Dependencies()
-
-        self.rest = RestRequest(self.repository)
-        return deps
-
     def getDependencies(self) -> Dependencies:
         """Get Dependencies."""
-        if GitHub.isEnterpriseServer():
-            if not self.enable_clearlydefined:
-                logger.warning(
-                    "Enterprise Server does not support licensing information"
-                )
-            # enterprise: 3.8+ use SBOM API
-            if GitHub.server_version >= Version("3.9.0"):
-                logger.info("Using SBOM API to resolve dependencies (GHES 3.9+)")
-                deps = self.getDependenciesSbom()
-            # enterprise: 3.7+ use GraphQL API
-            elif GitHub.server_version >= Version("3.6.0"):
-                logger.warning("Using GraphQL API to resolve dependencies (GHES 3.6+)")
-                deps = self.getDependenciesGraphQL()
-            else:
-                raise Exception("Enterprise Server version must be >= 3.6.0")
-        else:
-            # cloud: download SBOM
-            deps = self.getDependenciesSbom()
+        deps = self.getDependenciesSbom()
 
         if self.enable_graphql:
             logger.debug("Enabled GraphQL Dependencies")
@@ -81,7 +40,7 @@ class DependencyGraph:
             deps.updateDependencies(graph_deps)
 
         if self.enable_clearlydefined:
-            logger.info("Using ClearlyDefined API to resolve dependency licenses")
+            logger.debug("Applying ClearlyDefined on dependencies")
             deps.applyClearlyDefined()
         return deps
 
@@ -160,27 +119,17 @@ class DependencyGraph:
 
     def getDependenciesInPR(self, base: str, head: str) -> Dependencies:
         """Get all the dependencies from a Pull Request."""
-
-        if GitHub.isEnterpriseServer() and GitHub.server_version < Version("3.6.0"):
-            raise Exception("Enterprise Server version must be >= 3.6")
-
         dependencies = Dependencies()
         base = urllib.parse.quote(base, safe="")
         head = urllib.parse.quote(head, safe="")
         basehead = f"{base}...{head}"
         logger.debug(f"PR basehead :: {basehead}")
-
         results = self.rest.get(
             "/repos/{owner}/{repo}/dependency-graph/compare/{basehead}",
             {"basehead": basehead},
             expected=200,
         )
-
         if not results:
-            logger.warning("Failed to get dependencies from Pull Request")
-            logger.warning(
-                "Make sure Advanced Security is enabled and token permissions are correct"
-            )
             return dependencies
 
         for depdata in results:

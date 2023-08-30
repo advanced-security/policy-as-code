@@ -5,10 +5,8 @@ import shutil
 import tempfile
 import subprocess
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 from urllib.parse import urlparse
-
-from semantic_version import Version
 
 
 logger = logging.getLogger("ghastoolkit.octokit.github")
@@ -36,12 +34,6 @@ class Repository:
     clone_path: Optional[str] = None
     """Clone Path"""
 
-    repo_token: Optional[str] = None
-    """Repository Access Token"""
-
-    is_github_app_token: bool = False
-    """Whether the token is a GitHub App Token"""
-
     def __post_init__(self) -> None:
         if self.reference and not self.branch:
             if not self.isInPullRequest():
@@ -64,9 +56,6 @@ class Repository:
 
     def __repr__(self) -> str:
         return self.__str__()
-
-    def __hash__(self) -> int:
-        return hash(self.__str__())
 
     def isInPullRequest(self) -> bool:
         """Check if the current reference is in a Pull Request."""
@@ -160,15 +149,11 @@ class Repository:
     @property
     def clone_url(self) -> str:
         """Repository clone URL."""
-        url = urlparse(GitHub.instance)
-        if self.repo_token:
-            if self.is_github_app_token:
-                return f"{url.scheme}://x-access-token:{self.repo_token}@{url.netloc}/{self.owner}/{self.repo}"
-            else:
-                return f"{url.scheme}://{self.repo_token}@{url.netloc}/{self.owner}/{self.repo}"
-        elif GitHub.github_app:
+        if GitHub.github_app:
+            url = urlparse(GitHub.instance)
             return f"{url.scheme}://x-access-token:{GitHub.token}@{url.netloc}/{self.owner}/{self.repo}.git"
         elif GitHub.token:
+            url = urlparse(GitHub.instance)
             return f"{url.scheme}://{GitHub.token}@{url.netloc}/{self.owner}/{self.repo}.git"
         return f"{GitHub.instance}/{self.owner}/{self.repo}.git"
 
@@ -264,7 +249,6 @@ class GitHub:
     """GraphQL API URL"""
 
     enterprise: Optional[str] = None
-    server_version: Optional[Version] = None
 
     github_app: bool = False
     """GitHub App setting"""
@@ -301,10 +285,6 @@ class GitHub:
             GitHub.instance = instance
             GitHub.api_rest, GitHub.api_graphql = GitHub.parseInstance(instance)
 
-            if GitHub.isEnterpriseServer():
-                # Get the server version
-                GitHub.getMetaInformation()
-
         GitHub.enterprise = enterprise
 
         return
@@ -319,29 +299,11 @@ class GitHub:
             api = url.scheme + "://api." + url.netloc
             return (api, f"{api}/graphql")
         # GitHub Ent Server
-        api = url.scheme + "://" + url.netloc + "/api"
+        api = url.scheme + "://" + url.netloc + "/api/v3"
 
-        return (f"{api}/v3", f"{api}/graphql")
-
-    @staticmethod
-    def isEnterpriseServer() -> bool:
-        """Is the GitHub instance an Enterprise Server."""
-        return GitHub.instance != "https://github.com"
+        return (api, f"{api}/graphql")
 
     @staticmethod
     def display() -> str:
         """Display the GitHub Settings."""
         return f"GitHub('{GitHub.repository.display()}', '{GitHub.instance}')"
-
-    @staticmethod
-    def getMetaInformation() -> Dict:
-        """Get the GitHub Meta Information."""
-        from ghastoolkit.octokit.octokit import RestRequest
-
-        response = RestRequest().session.get(f"{GitHub.api_rest}/meta")
-
-        if response.headers.get("X-GitHub-Enterprise-Version"):
-            version = response.headers.get("X-GitHub-Enterprise-Version")
-            GitHub.server_version = Version(version)
-
-        return response.json()
