@@ -37,7 +37,7 @@ class TestPolicyLoading(unittest.TestCase):
 
         self.assertEqual(GitHub.instance, instance)
         self.assertEqual(GitHub.api_rest, "https://ghes.example.com/api/v3")
-        self.assertEqual(GitHub.api_graphql, "https://ghes.example.com/api/v3/graphql")
+        self.assertEqual(GitHub.api_graphql, "https://ghes.example.com/api/graphql")
 
     def testInPullRequest(self):
         # main ref
