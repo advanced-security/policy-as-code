@@ -279,6 +279,7 @@ class GitHub:
         token: Optional[str] = None,
         instance: Optional[str] = None,
         enterprise: Optional[str] = None,
+        retrieve_metadata: bool = True,
     ) -> None:
         """Initialise a GitHub class using a number of properties."""
         if repository:
@@ -301,7 +302,7 @@ class GitHub:
             GitHub.instance = instance
             GitHub.api_rest, GitHub.api_graphql = GitHub.parseInstance(instance)
 
-            if GitHub.isEnterpriseServer():
+            if GitHub.isEnterpriseServer() and retrieve_metadata:
                 # Get the server version
                 GitHub.getMetaInformation()
 
