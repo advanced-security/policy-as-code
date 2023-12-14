@@ -4,7 +4,6 @@ When working with this action at scale, you might want to use a GitHub App for a
 
 This will allow you to roll this app out to an entire Organisation, without giving that entire organisation access to your PAT.
 
-
 ## Enabling GitHub App Authentication
 
 Enabling this check only requires importing the built in list of known dependencies:
@@ -21,7 +20,7 @@ name: GitHub App Authentication
         app_id: ${{ secrets.GIT_APP_ID }}
 
     - name: Security Compliance Action
-      uses: GeekMasher/advanced-security-compliance@v1.6.3
+      uses: advanced-security/policy-as-code@v2.6.0
 # ...
 
       with:
@@ -32,4 +31,3 @@ name: GitHub App Authentication
         # Argv required to get GitHub App auth working
         argvs: '--is-github-app-token'
 ```
-
