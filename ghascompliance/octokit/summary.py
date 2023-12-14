@@ -73,7 +73,7 @@ class Summary:
     def outputJobSummary() -> None:
         """Outputs the current summary as the job summary."""
         file_path = os.environ.get(Summary.__SUMMARY_ENV_VAR__)
-        
+
         if not file_path or not os.path.isfile(file_path):
             Octokit.warning(
                 f"Unable to find the {Summary.__SUMMARY_ENV_VAR__} environment variable, can't create job summary."
