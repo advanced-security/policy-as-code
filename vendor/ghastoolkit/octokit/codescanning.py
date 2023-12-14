@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 import json
 import logging
-from typing import List, Optional
+from typing import Any, List, Optional
 from ghastoolkit.octokit.github import GitHub, Repository
 from ghastoolkit.octokit.octokit import OctoItem, RestRequest, loadOctoItem
 
@@ -93,6 +93,21 @@ class CodeScanning:
         except:
             logger.debug(f"Failed to get analyses...")
         return False
+
+    def enableDefaultSetup(
+        self,
+        state: str = "configured",
+        query_suite: str = "default",
+        languages: list[str] = [],
+    ) -> dict[str, Any]:
+        """Enable Code Scanning using Default Setup using CodeQL."""
+        data = {"state": state, "query_suite": query_suite, "languages": languages}
+        result = self.rest.patchJson(
+            "/repos/{owner}/{repo}/code-scanning/default-setup",
+            data,
+            expected=[200, 202],
+        )
+        return result
 
     def getOrganizationAlerts(self, state: str = "open") -> list[CodeAlert]:
         """Get list of Organization Alerts.

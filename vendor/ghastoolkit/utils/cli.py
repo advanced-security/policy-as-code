@@ -69,6 +69,12 @@ class CommandLine:
             help="GitHub Instance URL (default: GITHUB_SERVER_URL)",
         )
         github.add_argument(
+            "--github-owner", dest="owner", help="GitHub Owner (Org/User)"
+        )
+        github.add_argument(
+            "--github-enterprise", dest="enterprise", help="GitHub Enterprise"
+        )
+        github.add_argument(
             "-t",
             "--github-token",
             dest="token",
@@ -111,8 +117,10 @@ class CommandLine:
         # GitHub Init
         GitHub.init(
             repository=arguments.repository,
+            owner=arguments.owner,
             instance=arguments.instance,
             token=arguments.token,
+            enterprise=arguments.enterprise,
         )
 
         return arguments

@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 from ghastoolkit.octokit.github import GitHub, Repository
 from ghastoolkit.octokit.octokit import RestRequest
-from ghastoolkit.supplychain.advisories import Advisories, Advisory
+from ghastoolkit.supplychain.advisories import Advisories, Advisory, AdvisoryAffect
 
 
 class SecurityAdvisories:
@@ -78,4 +78,21 @@ class SecurityAdvisories:
             summary=data.get("summary", ""),
             cwes=data.get("cwe_ids", []),
         )
+        # affected
+        for vuln in data.get("vulnerabilities", []):
+            introduced = vuln.get("vulnerable_version_range")
+            if introduced == "":
+                introduced = None
+            fixed = vuln.get("patched_versions")
+            if fixed == "":
+                fixed = None
+
+            affect = AdvisoryAffect(
+                ecosystem=vuln.get("package", {}).get("ecosystem", ""),
+                package=vuln.get("package", {}).get("name", ""),
+                introduced=introduced,
+                fixed=fixed,
+            )
+            adv.affected.append(affect)
+
         return adv

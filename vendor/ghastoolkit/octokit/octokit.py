@@ -27,18 +27,22 @@ logger = logging.getLogger("ghastoolkit.octokit")
 
 
 class Octokit:
+    """Octokit base class."""
+
     @staticmethod
     def route(path: str, repository: Repository, rtype: str = "rest", **options) -> str:
-        """Generate Route string"""
+        """Generate Route string."""
         formatted_path = Octokit.formatPath(path, repository, **options)
 
         if not formatted_path.startswith("/"):
             formatted_path = "/" + formatted_path
+
         url = GitHub.api_rest if rtype == "rest" else GitHub.api_graphql
         return f"{url}{formatted_path}"
 
     @staticmethod
     def formatPath(path: str, repo: Repository, **options) -> str:
+        """Format Path."""
         formatted_path = path.format(
             owner=repo.owner, org=repo.owner, repo=repo.repo, **options
         )
@@ -255,7 +259,11 @@ class RestRequest:
         return response.json()
 
     def patchJson(
-        self, path: str, data: dict, expected: int = 200, parameters={}
+        self,
+        path: str,
+        data: dict,
+        expected: Optional[Union[int, list[int]]] = 200,
+        parameters={},
     ) -> dict:
         repo = self.repository or GitHub.repository
         if not repo:
@@ -266,13 +274,16 @@ class RestRequest:
 
         response = self.session.patch(url, json=data)
 
-        if response.status_code != expected:
-            logger.error(f"Error code from server :: {response.status_code}")
-            logger.error(f"{response.content}")
-            known_error = __OCTOKIT_ERRORS__.get(response.status_code)
-            if known_error:
-                raise Exception(known_error)
-            raise Exception("Failed to patch data")
+        if expected:
+            if (isinstance(expected, int) and response.status_code != expected) or (
+                isinstance(expected, list) and response.status_code not in expected
+            ):
+                logger.error(f"Error code from server :: {response.status_code}")
+                logger.error(f"{response.content}")
+                known_error = __OCTOKIT_ERRORS__.get(response.status_code)
+                if known_error:
+                    raise Exception(known_error)
+                raise Exception("Failed to patch data")
 
         return response.json()
 

@@ -2,8 +2,9 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 import re
-from typing import Optional
+from typing import Optional, Union
 
+from ghastoolkit.octokit.github import Repository
 from ghastoolkit.supplychain.dependencyalert import DependencyAlert
 from ghastoolkit.supplychain.licensing import NO_LICENSES, Licenses
 
@@ -30,6 +31,16 @@ class Dependency:
     """License information"""
     alerts: list[DependencyAlert] = field(default_factory=list)
     """Security Alerts"""
+
+    repository: Optional[Union[str, Repository]] = None
+    """GitHub Repository for the dependency"""
+
+    def __post_init__(self):
+        # normalize manager
+        if self.manager:
+            self.manager = self.manager.lower()
+        if self.repository and isinstance(self.repository, str):
+            self.repository = Repository.parseRepository(self.repository)
 
     def getPurl(self, version: bool = True) -> str:
         """Create a PURL from the Dependency.
