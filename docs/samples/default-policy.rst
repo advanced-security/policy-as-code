@@ -39,4 +39,4 @@ The simplest way to use GHASCompliance is to use the `Default Policy`_.
     level: all
 
 
-.. _Default Policy: https://github.com/GeekMasher/advanced-security-compliance/blob/main/ghascompliance/defaults/policy.yml
+.. _Default Policy: https://github.com/advanced-security/policy-as-code/blob/main/ghascompliance/defaults/policy.yml

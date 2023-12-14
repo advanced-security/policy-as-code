@@ -2,7 +2,7 @@
 __name__ = "ghastoolkit"
 __title__ = "GHAS Toolkit"
 
-__version__ = "0.8.4"
+__version__ = "0.10.0"
 
 __description__ = "GitHub Advanced Security Python Toolkit"
 __summary__ = """\
@@ -27,7 +27,9 @@ __banner__ = f"""\
 
 
 # Octokit
-from ghastoolkit.octokit.github import GitHub, Repository
+from ghastoolkit.octokit.github import GitHub
+from ghastoolkit.octokit.repository import Repository
+from ghastoolkit.octokit.enterprise import Enterprise, Organization
 from ghastoolkit.octokit.octokit import Octokit, RestRequest, GraphQLRequest
 from ghastoolkit.octokit.codescanning import CodeScanning, CodeAlert
 from ghastoolkit.octokit.secretscanning import SecretScanning, SecretAlert

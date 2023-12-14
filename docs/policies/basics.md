@@ -35,7 +35,7 @@ codescanning:
   level: error
 ```
 
-There are a number of levels are [specified in the standard and are constant](https://github.com/GeekMasher/advanced-security-compliance/blob/main/ghascompliance/consts.py#L2-L15):
+There are a number of levels are [specified in the standard and are constant](https://github.com/advanced-security/policy-as-code/blob/main/ghascompliance/consts.py#L2-L15):
 <!-- TODO: update for v2.0 -->
 
 - `critical`

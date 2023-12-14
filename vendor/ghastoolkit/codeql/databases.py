@@ -246,16 +246,22 @@ class CodeQLDatabase:
             zf.extractall(output_db)
 
         logger.debug(f" >>> {output_db}")
-        codeql_lang_path = os.path.join(output_db, self.language)
+        # CodeQL DB is in a folder called `codeql_db` or the language name
+        lang_path = os.path.join(output_db, self.language)
+        codeql_db_path = (
+            lang_path
+            if os.path.exists(lang_path)
+            else os.path.join(output_db, "codeql_db")
+        )
 
-        if os.path.exists(codeql_lang_path):
+        if os.path.exists(codeql_db_path):
             logger.debug(f"Moving Database...")
 
             if os.path.exists(output):
                 logger.debug(f"Removing old DB :: {output}")
                 shutil.rmtree(output)
 
-            shutil.move(codeql_lang_path, output)
+            shutil.move(codeql_db_path, output)
             self.path = output
             return output
 

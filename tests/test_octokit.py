@@ -18,7 +18,7 @@ class TestPolicyLoading(unittest.TestCase):
     def testGitHubInstance(self):
         instance = "https://github.com"
         GitHub.init(
-            "GeekMasher/advanced-security-compliance",
+            "advanced-security/policy-as-code",
             instance=instance,
             retrieve_metadata=False,
         )
@@ -30,7 +30,7 @@ class TestPolicyLoading(unittest.TestCase):
     def testGitHubServerInstance(self):
         instance = "https://ghes.example.com"
         GitHub.init(
-            "GeekMasher/advanced-security-compliance",
+            "advanced-security/policy-as-code",
             instance=instance,
             retrieve_metadata=False,
         )

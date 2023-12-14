@@ -1,5 +1,5 @@
 #!/bin/bash
 
 pipenv run main \
-    --github-policy GeekMasher/advanced-security-compliance \
+    --github-policy advanced-security/policy-as-code \
     --github-policy-path examples/policies/conditions.yml
