@@ -1,9 +1,9 @@
-name: 'ghas-policy-as-code'
-description: 'Advance Security Policy as Code'
+name: "ghas-policy-as-code"
+description: "Advance Security Policy as Code"
 
 inputs:
   severity:
-    description: 'Severity Level'
+    description: "Severity Level"
     default: error
 
   repository:
@@ -22,7 +22,7 @@ inputs:
     default: ${{ github.ref }}
 
   action:
-    description: 'Action to take upon discovery of security issues hitting threshold'
+    description: "Action to take upon discovery of security issues hitting threshold"
     default: break
 
   policy:
@@ -36,17 +36,11 @@ inputs:
     default: main
 
   argvs:
-    description: 'Additional Arguments'
-
+    description: "Additional Arguments"
 
 runs:
   using: "composite"
   steps:
-    # Make sure 3.10 is installed
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-
     - shell: bash
       run: |
         echo "Running Policy as Code..."

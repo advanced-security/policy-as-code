@@ -24,7 +24,7 @@ class TestPolicyLoadingRemote(unittest.TestCase):
         #  More of an integration test
         self.policy = Policy(
             severity="error",
-            repository="GeekMasher/advanced-security-compliance",
+            repository="advanced-security/policy-as-code",
             token=os.environ.get("GITHUB_TOKEN"),
             path="examples/policies/test-policy.yml",
             branch="testing",
