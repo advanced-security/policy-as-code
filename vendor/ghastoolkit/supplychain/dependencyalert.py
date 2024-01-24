@@ -8,12 +8,20 @@ from ghastoolkit.supplychain.advisories import Advisory
 
 @dataclass
 class DependencyAlert(OctoItem):
+    number: int
+    """Number / Identifier"""
+    state: str
+    """Alert State"""
     severity: str
+    """Alert Severity"""
     advisory: Advisory
+    """GitHub Security Advisory"""
 
     purl: str
+    """Package URL"""
 
     created_at: Optional[str] = None
+    """Created Timestamp"""
 
     def __init_post__(self):
         if not self.created_at:

@@ -197,7 +197,13 @@ class Checks:
 
         else:
             # Alerts
-            alerts = dependabot.getAlerts()
+            try:
+                alerts = dependabot.getAlerts("open")
+            except Exception as err:
+                Octokit.warning(f"Unable to get Dependabot alerts :: {err}")
+                Octokit.warning("Trying GraphQL API")
+                alerts = dependabot.getAlertsGraphQL()
+
             # Dependencies
             dependencies = depgraph.getDependencies()
 
