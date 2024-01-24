@@ -1,6 +1,8 @@
 import logging
 from typing import List, Optional
 
+from semantic_version import Version
+
 from ghastoolkit.octokit.github import GitHub
 from ghastoolkit.octokit.octokit import Octokit, RestRequest
 from ghastoolkit.octokit.repository import Repository
@@ -63,6 +65,42 @@ class Organization:
 
         return True
 
+    def enableDefaultSetup(self) -> bool:
+        """Enable Code Scanning Default Setup on all repositories in an organization.
+        Assumes that advanced-security is enabled on all repositories.
+
+        - GHE cloud: supported
+        - GHE server: 3.8 or lower: not supported
+        - GHE server: 3.9 or 3.10: uses repo level setup (may take a while)
+        - GHE server: 3.11 or above: not supported
+        """
+
+        if GitHub.isEnterpriseServer():
+            # version 3.8 or lower
+            if GitHub.server_version and GitHub.server_version < Version("3.9.0"):
+                logger.error(
+                    "Enterprise Server 3.8 or lower does not support default setup"
+                )
+            elif GitHub.server_version and GitHub.server_version < Version("3.11.0"):
+                from ghastoolkit.octokit.codescanning import CodeScanning
+
+                logger.debug("Enterprise Server 3.9/3.10 supports repo level setup")
+
+                for repo in self.getRepositories():
+                    logger.debug(f"Enabling default setup for {repo.repo}")
+
+                    code_scanning = CodeScanning(repo)
+                    code_scanning.enableDefaultSetup()
+                return True
+            else:
+                logger.error(
+                    "Enterprise Server 3.11 or above isn't supported by this version of the toolkit"
+                )
+        else:
+            self.enableSecurityProduct("code_scanning_default_setup")
+            return True
+        return False
+
     def __str__(self) -> str:
         """Return string representation."""
         return f"Organization('{self.name}')"
@@ -123,3 +161,17 @@ class Enterprise:
             last_org_id = organizations[-1].identifier
 
         return organizations
+
+    def enableDefaultSetup(self):
+        """Enable Code Scanning default setup on all repositories in an enterprise.
+
+        Assumes that advanced-security is enabled on all repositories.
+
+        - GHE cloud: supported
+        - GHE server: 3.8 or lower: not supported
+        - GHE server: 3.9 or 3.10: uses repo level setup
+        - GHE server: 3.11 or above: uses default setup
+        """
+
+        for organization in self.getOrganizations():
+            organization.enableDefaultSetup()

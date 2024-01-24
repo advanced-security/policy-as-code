@@ -42,7 +42,61 @@ class Dependabot:
         status = saa.get("dependabot_security_updates", {}).get("status", "disabled")
         return status == "enabled"
 
-    def getAlerts(self) -> list[DependencyAlert]:
+    def getAlerts(
+        self,
+        state: str = "open",
+        severity: Optional[str] = None,
+        ecosystem: Optional[str] = None,
+        package: Optional[str] = None,
+        manifest: Optional[str] = None,
+        scope: Optional[str] = None,
+    ) -> list[DependencyAlert]:
+        """Get All Dependabot alerts from REST API.
+
+        https://docs.github.com/en/enterprise-cloud@latest/rest/dependabot/alerts?apiVersion=2022-11-28
+        """
+        if state not in ["auto_dismissed", "dismissed", "fixed", "open"]:
+            raise Exception(f"Invalid state provided: {state}")
+
+        logger.debug(f"Getting Dependabot alerts with state: {state}")
+
+        results = self.rest.get(
+            "/repos/{owner}/{repo}/dependabot/alerts",
+            {
+                "state": state,
+                "severity": severity,
+                "ecosystem": ecosystem,
+                "package": package,
+                "manifest": manifest,
+                "scope": scope,
+            },
+        )
+        if isinstance(results, list):
+            retval = []
+            for alert in results:
+                advisory_data = alert.get("security_advisory", {})
+                # Fix issues between GraphQL and Advisory class
+                advisory_data["affected"] = advisory_data.pop("vulnerabilities")
+                advisory = Advisory(**advisory_data)
+
+                package = alert.get("dependency", {}).get("package", {})
+
+                retval.append(
+                    DependencyAlert(
+                        number=alert.get("number"),
+                        state=alert.get("state"),
+                        severity=alert.get("security_advisory", {}).get(
+                            "severity", "unknown"
+                        ),
+                        advisory=advisory,
+                        purl=f"pkg:{package.get('ecosystem')}/{package.get('name')}".lower(),
+                    )
+                )
+
+            return retval
+        raise Exception(f"Error getting Dependabot alerts")
+
+    def getAlertsGraphQL(self) -> list[DependencyAlert]:
         """Get All Dependabot alerts from GraphQL API using the `GetDependencyAlerts` query."""
         results = []
 
@@ -51,11 +105,14 @@ class Dependabot:
                 "GetDependencyAlerts",
                 options={"owner": self.repository.owner, "repo": self.repository.repo},
             )
-            alerts = (
-                data.get("data", {})
-                .get("repository", {})
-                .get("vulnerabilityAlerts", {})
-            )
+            repo = data.get("data", {}).get("repository", {})
+            if not repo:
+                logger.error(f"Failed to get GraphQL repository")
+                logger.error(
+                    "This could be due to a lack of permissions or access token"
+                )
+                raise Exception(f"Failed to get GraphQL repository alerts")
+            alerts = repo.get("vulnerabilityAlerts", {})
 
             for alert in alerts.get("edges", []):
                 data = alert.get("node", {})
@@ -63,13 +120,15 @@ class Dependabot:
                 purl = f"pkg:{package.get('ecosystem')}/{package.get('name')}".lower()
                 created_at = data.get("createdAt")
 
-                advisory = Advisory(
-                    ghsa_id=data.get("securityAdvisory", {}).get("ghsaId"),
-                    severity=data.get("securityAdvisory", {}).get("severity"),
-                    # TODO: CWE info
-                )
+                advisory_data = data.get("securityAdvisory", {})
+                # Fix issues between GraphQL and Advisory class
+                advisory_data["ghsa_id"] = advisory_data.pop("ghsaId")
+                advisory = Advisory(**advisory_data)
+
                 dep_alert = DependencyAlert(
-                    severity=advisory.severity,
+                    number=data.get("number"),
+                    state=data.get("state"),
+                    severity=advisory.severity.lower(),
                     purl=purl,
                     advisory=advisory,
                     created_at=created_at,

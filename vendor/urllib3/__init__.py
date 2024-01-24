@@ -32,34 +32,17 @@ except ImportError:
 else:
     if not ssl.OPENSSL_VERSION.startswith("OpenSSL "):  # Defensive:
         warnings.warn(
-            "urllib3 v2.0 only supports OpenSSL 1.1.1+, currently "
+            "urllib3 v2 only supports OpenSSL 1.1.1+, currently "
             f"the 'ssl' module is compiled with {ssl.OPENSSL_VERSION!r}. "
             "See: https://github.com/urllib3/urllib3/issues/3020",
             exceptions.NotOpenSSLWarning,
         )
     elif ssl.OPENSSL_VERSION_INFO < (1, 1, 1):  # Defensive:
         raise ImportError(
-            "urllib3 v2.0 only supports OpenSSL 1.1.1+, currently "
+            "urllib3 v2 only supports OpenSSL 1.1.1+, currently "
             f"the 'ssl' module is compiled with {ssl.OPENSSL_VERSION!r}. "
             "See: https://github.com/urllib3/urllib3/issues/2168"
         )
-
-# === NOTE TO REPACKAGERS AND VENDORS ===
-# Please delete this block, this logic is only
-# for urllib3 being distributed via PyPI.
-# See: https://github.com/urllib3/urllib3/issues/2680
-try:
-    import urllib3_secure_extra  # type: ignore # noqa: F401
-except ModuleNotFoundError:
-    pass
-else:
-    warnings.warn(
-        "'urllib3[secure]' extra is deprecated and will be removed "
-        "in urllib3 v2.1.0. Read more in this issue: "
-        "https://github.com/urllib3/urllib3/issues/2680",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
 
 __author__ = "Andrey Petrov (andrey.petrov@shazow.net)"
 __license__ = "MIT"
