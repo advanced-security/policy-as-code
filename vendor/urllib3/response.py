@@ -58,7 +58,7 @@ from .util.response import is_fp_closed, is_response_to_head
 from .util.retry import Retry
 
 if typing.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
     from .connectionpool import HTTPConnectionPool
 
@@ -208,7 +208,9 @@ def _get_decoder(mode: str) -> ContentDecoder:
     if "," in mode:
         return MultiDecoder(mode)
 
-    if mode == "gzip":
+    # According to RFC 9110 section 8.4.1.3, recipients should
+    # consider x-gzip equivalent to gzip
+    if mode in ("gzip", "x-gzip"):
         return GzipDecoder()
 
     if brotli is not None and mode == "br":
@@ -280,7 +282,7 @@ class BytesQueueBuffer:
 
 
 class BaseHTTPResponse(io.IOBase):
-    CONTENT_DECODERS = ["gzip", "deflate"]
+    CONTENT_DECODERS = ["gzip", "x-gzip", "deflate"]
     if brotli is not None:
         CONTENT_DECODERS += ["br"]
     if zstd is not None:
@@ -767,13 +769,9 @@ class HTTPResponse(BaseHTTPResponse):
         assert self._fp
         c_int_max = 2**31 - 1
         if (
-            (
-                (amt and amt > c_int_max)
-                or (self.length_remaining and self.length_remaining > c_int_max)
-            )
-            and not util.IS_SECURETRANSPORT
-            and (util.IS_PYOPENSSL or sys.version_info < (3, 10))
-        ):
+            (amt and amt > c_int_max)
+            or (self.length_remaining and self.length_remaining > c_int_max)
+        ) and (util.IS_PYOPENSSL or sys.version_info < (3, 10)):
             buffer = io.BytesIO()
             # Besides `max_chunk_amt` being a maximum chunk size, it
             # affects memory overhead of reading a response by this

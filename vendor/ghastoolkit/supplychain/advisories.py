@@ -130,14 +130,44 @@ class Advisory(OctoItem):
 
     summary: Optional[str] = None
     """Summary / Description of the advisory"""
+    description: Optional[str] = None
+    """Description of the advisory"""
     url: Optional[str] = None
     """Reference URL"""
 
+    cve_id: Optional[str] = None
+    """CVE ID (if applicable)"""
     cwes: List[str] = field(default_factory=list)
     """List of CWEs"""
+    cvss: Optional[dict] = None
+    """CVSS Score"""
+    identifiers: List[dict] = field(default_factory=list)
+    """List of identifiers"""
+    references: List[dict] = field(default_factory=list)
+    """List of references"""
+
+    published_at: Optional[str] = None
+    """Published Timestamp"""
+    updated_at: Optional[str] = None
+    """Updated Timestamp"""
+    withdrawn_at: Optional[str] = None
 
     affected: List[AdvisoryAffect] = field(default_factory=list)
     """Affected versions"""
+
+    def __post_init__(self):
+        """Post Init."""
+        self.ghsa_id = self.ghsa_id.lower()
+        self.severity = self.severity.lower()
+
+        # cwes checking and processing
+        cwes = []
+        for cwe in self.cwes:
+            if isinstance(cwe, dict):
+                cwes.append(cwe.get("cwe_id"))
+            else:
+                cwes.append(cwe)
+        self.cwes = cwes
 
     @staticmethod
     def load(path: str) -> "Advisory":
@@ -154,6 +184,7 @@ class Advisory(OctoItem):
     @staticmethod
     def loadJson(path: str) -> "Advisory":
         """Load Advisory from JSON file."""
+        logger.debug(f"Loading Advisory :: {path}")
         with open(path, "r") as handle:
             data = json.load(handle)
 
@@ -162,8 +193,8 @@ class Advisory(OctoItem):
             affected.append(AdvisoryAffect.loadAffect(affect))
 
         advisory = Advisory(
-            data.get("id", "NA"),
-            data.get("database_specific", {}).get("severity", "NA").lower(),
+            ghsa_id=data.get("id", data.get("ghas_id", "NA")),
+            severity=data.get("database_specific", {}).get("severity", "NA").lower(),
             aliases=data.get("aliases", []),
             summary=data.get("summary"),
             affected=affected,
@@ -207,6 +238,9 @@ class Advisories:
 
     def find(self, search: str) -> Optional[Advisory]:
         """Find by id or aliases."""
+        search = search.lower()
+        logging.debug(f"Searching for advisory :: {search}")
+
         for advisory in self.advisories:
             if advisory.ghsa_id == search:
                 return advisory

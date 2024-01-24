@@ -19,6 +19,8 @@ DEPENDENCY_GRAPH_ALERTS = """\
             }
             edges {
                 node {
+                    number
+                    state
                     createdAt
                     dismissReason
                     securityVulnerability {
