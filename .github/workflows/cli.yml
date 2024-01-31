@@ -30,8 +30,14 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: powershell
         run: |
-          echo "testing"
-          # .\policy-as-code.ps1
+          .\policy-as-code.ps1 `
+            --display `
+            --action "continue" `
+            --github-policy-path "policy.yml" `
+            --github-repository "advanced-security/policy-as-code-testing" `
+            --github-ref "refs/heads/main" `
+            --github-token "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
+            
 
       - name: "Run CLI (Linux / Macos)"
         if: ${{ matrix.os == 'ubuntu-latest' }}
