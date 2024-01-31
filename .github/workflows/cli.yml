@@ -1,0 +1,54 @@
+name: CLI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+        python-version: ["3.9", "3.10", "3.11"]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '${{ matrix.python-version }}'
+
+      - name: "Run CLI (Windows)"
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: powershell
+        run: |
+          .\policy-as-code.ps1 `
+            --display `
+            --action "continue" `
+            --github-policy-path "policy.yml" `
+            --github-repository "advanced-security/policy-as-code-testing" `
+            --github-ref "refs/heads/main" `
+            --github-token "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
+            
+
+      - name: "Run CLI (Linux / Macos)"
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        shell: bash
+        run: |
+          ./policy-as-code \
+            --display \
+            --action "continue" \
+            --github-policy-path "policy.yml" \
+            --github-repository "advanced-security/policy-as-code-testing" \
+            --github-ref "refs/heads/main" \
+            --github-token "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
+
+
