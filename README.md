@@ -67,6 +67,9 @@ cd policy-as-code
 .\policy-as-code.ps1 --help
 ```
 
+> [!NOTE]
+> All of the Dependencies for [Policy as Code are vendored][vendored] into this repository
+
 > [!TIP]
 > Checkout the samples of [how to use / run the cli with examples][examples-cli].
 
@@ -278,6 +281,8 @@ Some things to consider when using imports:
 
 Please create [GitHub Issues][github-issues] if there are bugs or feature requests.
 
+This project uses [Sematic Versioning (v2)](https://semver.org/) and with major releases, breaking changes will occur.
+
 ## License
 
 This project is licensed under the terms of the MIT open source license.
@@ -290,8 +295,10 @@ Please refer to [MIT][license] for the full terms.
 [github-codescanning]: https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning
 [github-secretscanning]: https://docs.github.com/en/code-security/secret-scanning/about-secret-scanning
 [github-supplychain]: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-supply-chain-security
-[requirements]: #requirements
+[requirements]: https://github.com/advanced-security/policy-as-code#requirements
 [python-setup]: https://github.com/actions/setup-python
+[vendored]: https://github.com/advanced-security/policy-as-code/tree/main/vendor/README.md
+[docs]: https://github.com/advanced-security/policy-as-code/tree/main/docs
 [examples]: https://github.com/advanced-security/policy-as-code/tree/main/examples
 [examples-actions]: https://github.com/advanced-security/policy-as-code/tree/main/examples/workflows
 [examples-cli]: https://github.com/advanced-security/policy-as-code/tree/main/examples/scripts
