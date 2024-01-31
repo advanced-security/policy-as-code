@@ -28,12 +28,20 @@ jobs:
 
       - name: "Run CLI (Windows)"
         if: ${{ matrix.os == 'windows-latest' }}
+        shell: powershell
         run: |
-          ./policy-as-code.ps1
+          echo "testing"
+          # .\policy-as-code.ps1
 
       - name: "Run CLI (Linux / Macos)"
         if: ${{ matrix.os == 'ubuntu-latest' }}
+        shell: bash
         run: |
-          ./policy-as-code
+          ./policy-as-code \
+            --display \
+            --github-policy-path "policy.yml" \
+            --github-repository "advanced-security/policy-as-code-testing" \
+            --github-ref "refs/heads/main" \
+            --github-token "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
 
 
