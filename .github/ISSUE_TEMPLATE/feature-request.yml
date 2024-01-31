@@ -1,0 +1,41 @@
+name: Feature Request 
+description: File a Feature Request
+title: "[Feat]: "
+labels: ["feature", "enhancement"]
+assignees:
+  - GeekMasher 
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this feature request!
+  - type: textarea
+    id: feature
+    attributes:
+      label: What new feature are you looking for / expect?
+      description: Also tell us, what did you expect to happen?
+      placeholder: Tell us what you see!
+      value: "Here is my feature!"
+    validations:
+      required: true
+  - type: dropdown
+    id: expectations
+    attributes:
+      label: Expectations
+      description: What is your expectation of this feature request?
+      options:
+        - Nice to have
+        - Opt-in Feature
+        - Required / Manditory Feature
+      default: 0
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/advanced-security/policy-as-code/blob/main/CODE_OF_CONDUCT.md)
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
+
