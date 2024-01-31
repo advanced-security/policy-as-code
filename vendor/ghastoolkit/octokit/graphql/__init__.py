@@ -1,9 +1,7 @@
 DEPENDENCY_GRAPH_STATUS = """\
 {
     repository(owner: "$owner", name: "$repo") {
-        vulnerabilityAlerts(first: 100, states: [OPEN], $cursor) {
-            totalCount
-        }
+        hasVulnerabilityAlertsEnabled
     }
 }
 """

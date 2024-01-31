@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass, field
-from typing import Optional
+from datetime import datetime, timedelta
+from typing import Any, Optional
 
 from ghastoolkit.octokit.github import GitHub, Repository
 from ghastoolkit.octokit.octokit import OctoItem, RestRequest, loadOctoItem
@@ -18,15 +19,32 @@ class SecretAlert(OctoItem):
     state: str
     """Alert State"""
 
-    created_at: str
-    """Created Timestamp"""
-
     secret_type: str
     """Secret Scanning type"""
     secret_type_display_name: str
     """Secret Scanning type display name"""
     secret: str
     """Secret value (sensitive)"""
+
+    created_at: str
+    """Created Timestamp"""
+    resolved_at: Optional[str] = None
+    """Resolved Timestamp"""
+    resolved_by: Optional[dict[str, Any]] = None
+    """Resolved By"""
+
+    push_protection_bypassed: bool = False
+    """Push Protection Bypassed"""
+    push_protection_bypassed_by: Optional[dict[str, Any]] = None
+    """Push Protection Bypassed By"""
+    push_protection_bypassed_at: Optional[str] = None
+    """Push Protection Bypassed At"""
+
+    resolution_comment: Optional[str] = None
+    """Resolution Comment"""
+
+    validity: str = "unknown"
+    """Validity of secret"""
 
     _locations: list[dict] = field(default_factory=list)
     _sha: Optional[str] = None
@@ -47,6 +65,17 @@ class SecretAlert(OctoItem):
                     self._sha = loc.get("details", {}).get("blob_sha")
                     break
         return self._sha
+
+    @property
+    def mttr(self) -> Optional[timedelta]:
+        """Calculate Mean Time To Resolution / Remidiate (MTTR) for a closed/fixed alert."""
+        if self.created_at and self.resolved_at:
+            # GitHub returns ISO 8601 timestamps with a Z at the end
+            # datetime.fromisoformat() doesn't like the Z
+            created = self.created_at.replace("Z", "+00:00")
+            resolved = self.resolved_at.replace("Z", "+00:00")
+            return datetime.fromisoformat(resolved) - datetime.fromisoformat(created)
+        return None
 
     def __str__(self) -> str:
         return f"SecretAlert({self.number}, '{self.secret_type}')"
