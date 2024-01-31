@@ -1,14 +1,36 @@
-# policy-as-code
+<div align="center">
+<h1>GitHub Policy as Code</h1>
 
-This Action was designed to allow users to configure their Risk threshold for security issues reported by [GitHub Code Scanning](https://docs.github.com/en/code-security/secure-coding/automatically-scanning-your-code-for-vulnerabilities-and-errors/about-code-scanning), [Secret Scanning](https://docs.github.com/en/code-security/secret-security/about-secret-scanning) and [Dependabot Security](https://docs.github.com/en/code-security/supply-chain-security/managing-vulnerabilities-in-your-projects-dependencies/configuring-dependabot-security-updates#about-configuring-dependabot-security-updates).
+[![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)](https://github.com/advanced-security/policy-as-code)
+[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/advanced-security/policy-as-code/main.yml?style=for-the-badge)](https://github.com/advanced-security/policy-as-code/actions/workflows/python-package.yml?query=branch%3Amain)
+[![GitHub Issues](https://img.shields.io/github/issues/advanced-security/policy-as-code?style=for-the-badge)](https://github.com/advanced-security/policy-as-code/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/advanced-security/policy-as-code?style=for-the-badge)](https://github.com/advanced-security/policy-as-code)
+[![Licence](https://img.shields.io/github/license/Ileriayo/markdown-badges?style=for-the-badge)](./LICENSE)
 
-## Capability Demonstration
+</div>
 
-https://user-images.githubusercontent.com/2083085/131956624-e3f5140a-40e6-4067-9377-1093775aaa01.mp4
+## Overview
 
-## Setup
+GitHub's Policy as Code project is designed to allow users and organizations to configure their Risk threshold for security issues reported by GitHub Advanced Security Platform.
+The main goal is to help make sure that before publishing your application to productions, development, etc. you can validate if the application has any security issues that need to be addressed.
 
-### Action
+## ✨ Features
+
+- Highly Configurable
+- Re-usable across repositories
+- Supports all GitHub Advanced Security Features
+  - [Code Scanning][github-codescanning]
+  - [Secret Scanning][github-secretscanning]
+  - [Supply chain / Dependabot][github-supplychain]
+- Supports GitHub Enterprise Cloud or Server ([see supported features list](#supported-features))
+
+## ⚡️ Requirements
+
+- Python +3.9
+
+## Usage
+
+### GitHub Actions
 
 Here is how you can quickly setup policy-as-code.
 
@@ -18,40 +40,60 @@ Here is how you can quickly setup policy-as-code.
   uses: advanced-security/policy-as-code@v2.6.0
 ```
 
-#### Action Examples
+> [!TIP]
+> Checkout the GitHub Actions [Policy as Code Examples][examples-actions]
 
-- [General Security](examples/workflows/security.yml)
-- [Full Example with Details](examples/workflows/full.yml)
-- [Licensing Compliance](examples/workflows/licensing.yml)
-- [Policy as Code Compliance](examples/workflows/licensing.yml)
+> [!WARNING]
+> The GitHub Action does not install Python on the runner. Please checkout at [the `actions/setup-python` Action][python-setup]
 
 ### CLI
 
-The CLI tool primarily using pipenv to manage dependencies and pip virtual environments to not mismatch dependencies.
+The Policy as Code project is a self-contained Python based CLI tool.
+
+**Bash / Zsh:**
 
 ```bash
-# Install dependencies and virtual environment
-pipenv install
-# [option] Install system wide
-pipenv install --system
+git clone --branch "v2.6.0" https://github.com/advanced-security/policy-as-code.git && cd ./policy-as-code
+
+./policy-as-code --help
 ```
 
-Once installed, you can just call the module using the following command(s):
+**Powershell:**
 
-```bash
-# Using pipenv script
-pipenv run main --help
-# ... or
-pipenv run python -m ghascompliance
+```Powershell
+git clone --branch "v2.6.0" https://github.com/advanced-security/policy-as-code.git
+cd policy-as-code
+
+.\policy-as-code.ps1 --help
 ```
 
-#### CLI Examples
+> [!TIP]
+> Checkout the samples of [how to use / run the cli with examples][examples-cli].
 
-- [Code Scanning](examples/scripts/codescanning.sh)
-- [Dependencies](examples/scripts/dependencies.sh)
-- [Policies](examples/scripts/policies.sh)
+### [GitHub Access Permissions][permissions]
 
-## Features
+For Policy as Code to work correctly, you need to have the following permissions for the different features:
+
+- [required] Repository Permissions
+  - [`security_events: read`][permissions]
+    - [Dependabot Alerts][permissions-dependabot]
+    - [Code Scanning][permissions-codescanning]
+    - [Secret Scanning][permissions-secretscanning]
+  - [`content: read`][permissions]
+    - [Dependency Graph][permissions-dependencygraph] / [Dependency Licenses][permissions-dependencygraph]
+- [optional] Policy Repository
+  - `content: read` to be able to clone external sources of the policies
+
+**[Action Permissions Example][permissions]:**
+
+```yaml
+# workflow or job level
+permissions:
+  content: read
+  security_events: read
+```
+
+## Supported Features
 
 | Feature         | github.com (Br/PR)                      | enterprise server (Br/PR)               | Description                                                                                                |
 | :-------------- | :-------------------------------------- | :-------------------------------------- | :--------------------------------------------------------------------------------------------------------- |
@@ -227,3 +269,34 @@ Some things to consider when using imports:
   - `GitHub Action / CLI directory`
   - `Cloned Repository Directory`
 - Imports are only allowed from a number of predefined paths to prevent loading data on the system (AKA, path traversal).
+
+## Maintainers / Contributors
+
+- [@GeekMasher](https://github.com/GeekMasher) - Author / Core Maintainer
+
+## Support
+
+Please create [GitHub Issues][github-issues] if there are bugs or feature requests.
+
+## License
+
+This project is licensed under the terms of the MIT open source license.
+Please refer to [MIT][license] for the full terms.
+
+<!-- Resources -->
+
+[license]: ./LICENSE
+[github-issues]: https://github.com/advanced-security/policy-as-code/issues
+[github-codescanning]: https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning
+[github-secretscanning]: https://docs.github.com/en/code-security/secret-scanning/about-secret-scanning
+[github-supplychain]: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-supply-chain-security
+[requirements]: #requirements
+[python-setup]: https://github.com/actions/setup-python
+[examples]: https://github.com/advanced-security/policy-as-code/tree/main/examples
+[examples-actions]: https://github.com/advanced-security/policy-as-code/tree/main/examples/workflows
+[examples-cli]: https://github.com/advanced-security/policy-as-code/tree/main/examples/scripts
+[permissions]: https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs#overview
+[permissions-codescanning]: https://docs.github.com/en/rest/code-scanning/code-scanning#list-code-scanning-alerts-for-a-repository
+[permissions-secretscanning]: https://docs.github.com/en/rest/secret-scanning/secret-scanning#list-secret-scanning-alerts-for-a-repository
+[permissions-dependabot]: https://docs.github.com/en/rest/dependabot/alerts#list-dependabot-alerts-for-a-repository
+[permissions-dependencygraph]: https://docs.github.com/en/graphql/reference/objects#dependencygraphmanifestconnection
