@@ -32,7 +32,7 @@ body:
   - type: dropdown
     id: workflow 
     attributes:
-      label: Where are you experiencing the issue?=
+      label: Where are you experiencing the issue?
       multiple: true
       options:
         - GitHub Actions
