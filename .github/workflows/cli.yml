@@ -39,6 +39,7 @@ jobs:
         run: |
           ./policy-as-code \
             --display \
+            --action "continue" \
             --github-policy-path "policy.yml" \
             --github-repository "advanced-security/policy-as-code-testing" \
             --github-ref "refs/heads/main" \
