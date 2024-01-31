@@ -23,6 +23,7 @@ The main goal is to help make sure that before publishing your application to pr
   - [Secret Scanning][github-secretscanning]
   - [Supply chain / Dependabot][github-supplychain]
 - Supports GitHub Enterprise Cloud or Server ([see supported features list](#supported-features))
+- Pull Request Summary
 
 ## ⚡️ Requirements
 
@@ -84,6 +85,8 @@ For Policy as Code to work correctly, you need to have the following permissions
     - [Secret Scanning][permissions-secretscanning]
   - [`content: read`][permissions]
     - [Dependency Graph][permissions-dependencygraph] / [Dependency Licenses][permissions-dependencygraph]
+  - [`pull-requests: write`][permissions]
+    - Policy as Code Pull Request Summary
 - [optional] Policy Repository
   - `content: read` to be able to clone external sources of the policies
 
@@ -94,6 +97,8 @@ For Policy as Code to work correctly, you need to have the following permissions
 permissions:
   content: read
   security_events: read
+  # pull request summaries
+  pull-requests: write
 ```
 
 ## Supported Features
