@@ -24,7 +24,7 @@ body:
       label: Version
       description: What version of our software are you running?
       options:
-        - v2 (current major version
+        - v2 (current major version)
         - v3 (alpha version)
       default: 0
     validations:
