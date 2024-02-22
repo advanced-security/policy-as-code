@@ -105,9 +105,11 @@ class CommandLine:
         """Setup default logger."""
         arguments = self.parse_args()
         logging.basicConfig(
-            level=logging.DEBUG
-            if arguments.debug or os.environ.get("DEBUG")
-            else logging.INFO,
+            level=(
+                logging.DEBUG
+                if arguments.debug or os.environ.get("DEBUG")
+                else logging.INFO
+            ),
             format="%(message)s",
         )
 

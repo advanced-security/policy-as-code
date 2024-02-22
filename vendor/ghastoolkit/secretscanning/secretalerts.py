@@ -33,7 +33,7 @@ class SecretAlert(OctoItem):
         if self._sha is None:
             for loc in self.locations:
                 if loc.get("type") == "commit":
-                    self._sha = loc.get("details", {}).get("blob_sha")
+                    self._sha = loc.get("details", {}).get("commit_sha")
                     break
         return self._sha
 

@@ -1,4 +1,4 @@
-#!/usr/local/python/3.10.13/bin/python
+#!/home/codespace/.local/share/virtualenvs/policy-as-code-tZI3uR7_/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

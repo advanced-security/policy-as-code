@@ -1,4 +1,5 @@
 """GitHub CodeQL Packs CLI."""
+
 import os
 import logging
 from argparse import Namespace

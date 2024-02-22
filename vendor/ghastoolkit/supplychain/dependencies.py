@@ -105,6 +105,9 @@ class Dependency:
     def __repr__(self) -> str:
         return self.getPurl()
 
+    def __hash__(self) -> int:
+        return hash(self.getPurl())
+
 
 class Dependencies(list[Dependency]):
     """List of Dependencies."""

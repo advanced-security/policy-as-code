@@ -1,4 +1,5 @@
 """GitHub and Repository APIs."""
+
 import logging
 import os
 from typing import Dict, Optional, Tuple
@@ -21,6 +22,13 @@ class GitHub:
 
     repository: Repository = Repository("GeekMasher", "ghastoolkit")
     """Repository"""
+
+    owner: Optional[str] = None
+    """Owner / Organisation"""
+
+    enterprise: Optional[str] = None
+    """Enterprise Name"""
+
     token: Optional[str] = None
     """GitHub Access Token"""
 
@@ -32,8 +40,8 @@ class GitHub:
     api_graphql: str = "https://api.github.com/graphql"
     """GraphQL API URL"""
 
-    enterprise: Optional[str] = None
     server_version: Optional[Version] = None
+    """GitHub Enterprise Server Version"""
 
     github_app: bool = False
     """GitHub App setting"""
@@ -51,10 +59,14 @@ class GitHub:
         retrieve_metadata: bool = True,
     ) -> None:
         """Initialise a GitHub class using a number of properties."""
-        if repository:
+        if repository and "/" in repository:
             GitHub.repository = Repository.parseRepository(repository)
+            GitHub.owner = GitHub.repository.owner
+        elif repository or owner:
+            GitHub.owner = owner or repository
         elif owner and repo:
             GitHub.repository = Repository(owner, repo)
+            GitHub.owner = owner
 
         if GitHub.repository:
             if reference:
@@ -105,6 +117,11 @@ class GitHub:
     def display() -> str:
         """Display the GitHub Settings."""
         return f"GitHub('{GitHub.repository.display()}', '{GitHub.instance}')"
+
+    @staticmethod
+    def getOrganization() -> str:
+        """Get the Organization."""
+        return GitHub.owner or GitHub.repository.owner
 
     @staticmethod
     def getMetaInformation() -> Dict:

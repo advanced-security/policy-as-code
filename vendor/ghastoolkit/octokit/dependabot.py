@@ -1,4 +1,5 @@
 """Dependabot API."""
+
 import logging
 from typing import Optional
 

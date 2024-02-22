@@ -1,4 +1,5 @@
 """This is the CodeQL CLI Module."""
+
 import os
 import csv
 import json

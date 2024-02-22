@@ -1,4 +1,5 @@
 """CodeQL CLI for ghastoolkit."""
+
 import logging
 from argparse import Namespace
 from ghastoolkit.codeql.cli import CodeQL

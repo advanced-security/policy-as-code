@@ -1,4 +1,5 @@
 """GitHub Code Scanning API Module."""
+
 from dataclasses import dataclass
 import json
 import logging
