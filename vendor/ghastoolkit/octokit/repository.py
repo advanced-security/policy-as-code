@@ -1,6 +1,7 @@
-import logging
 import os
+import re
 import shutil
+import logging
 import tempfile
 import subprocess
 from dataclasses import dataclass
@@ -24,6 +25,9 @@ class Repository:
     """Reference (`refs/heads/main`)"""
     branch: Optional[str] = None
     """Branch / Tab name"""
+
+    path: Optional[str] = None
+    """Path inside the repository"""
 
     __prinfo__: Optional[dict] = None
 
@@ -231,12 +235,33 @@ class Repository:
 
     @staticmethod
     def parseRepository(name: str) -> "Repository":
-        """Parse the repository name."""
+        """Parse the repository name into a Repository object.
+
+        Samples:
+            - owner/repo
+            - owner/repo@branch
+            - owner/repo:relative/path/in/repo
+            - owner/repo/relative/path/in/repo
+            - owner/repo:relative/path/in/repo@branch
+        """
         ref = None
         branch = None
+        path = None
+
+        # validate the repository name
+        regex = re.compile(
+            r"^[a-zA-Z0-9-_\.]+/[a-zA-Z0-9-_\.]+((:|/)[a-zA-Z0-9-_/\.]+)?(@[a-zA-Z0-9-_/]+)?$"
+        )
+        if not regex.match(name):
+            raise SyntaxError(f"Invalid repository name: '{name}'")
+
         if "@" in name:
             name, branch = name.split("@", 1)
             ref = f"refs/heads/{branch}"
-
-        owner, repo = name.split("/", 1)
-        return Repository(owner, repo, reference=ref, branch=branch)
+        if ":" in name:
+            name, path = name.split(":", 1)
+        if name.count("/") > 1:
+            owner, repo, path = name.split("/", 2)
+        else:
+            owner, repo = name.split("/", 1)
+        return Repository(owner, repo, reference=ref, branch=branch, path=path)

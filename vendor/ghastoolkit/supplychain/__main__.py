@@ -1,4 +1,5 @@
 """Supply Chain Toolkit CLI."""
+
 from argparse import Namespace
 import logging
 
@@ -54,18 +55,17 @@ def runOrgAudit(arguments):
 
 
 class SupplyChainCLI(CommandLine):
-    def set_modes(self):
-        """Return a list of supplychain modes."""
-        self.modes.extend(["org-audit"])
-
     def arguments(self):
         """CLI for Supply Chain Toolkit."""
-        parser = self.parser.add_argument_group("supplychain")
-        parser.add_argument(
-            "--licenses",
-            default="GPL-*,AGPL-*,LGPL-*",
-            help="License(s) to check for (default: 'GPL-*,AGPL-*,LGPL-*')",
-        )
+        if self.subparser:
+            self.addModes(["org-audit"])
+
+            parser = self.parser.add_argument_group("supplychain")
+            parser.add_argument(
+                "--licenses",
+                default="GPL-*,AGPL-*,LGPL-*",
+                help="License(s) to check for (default: 'GPL-*,AGPL-*,LGPL-*')",
+            )
 
     def run(self, arguments: Namespace):
         """Run Supply Chain Toolkit."""

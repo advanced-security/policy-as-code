@@ -1,4 +1,5 @@
 """Dependency Graph Octokit."""
+
 import logging
 from typing import Any, Dict
 import urllib.parse

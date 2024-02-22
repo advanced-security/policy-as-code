@@ -1,4 +1,5 @@
 """GitHub Security Advisories API."""
+
 from typing import Dict, Optional
 from ghastoolkit.octokit.github import GitHub, Repository
 from ghastoolkit.octokit.octokit import RestRequest
