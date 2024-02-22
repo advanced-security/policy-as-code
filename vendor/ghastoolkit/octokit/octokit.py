@@ -2,7 +2,7 @@ import os
 import inspect
 import logging
 from string import Template
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 from dataclasses import field, is_dataclass
 
 from requests import Session
@@ -178,6 +178,7 @@ class RestRequest:
         expected: Optional[int] = 200,
         authenticated: bool = False,
         display_errors: bool = True,
+        error_handler: Optional[Callable[[int, dict], Any]] = None,
     ) -> Union[dict, list[dict]]:
         """Get Request.
 
@@ -208,21 +209,33 @@ class RestRequest:
             params["page"] = page
 
             response = self.session.get(url, params=params)
+            # Every response should be a JSON (including errors)
             response_json = response.json()
 
             if expected and response.status_code != expected:
                 if display_errors:
                     logger.error(f"Error code from server :: {response.status_code}")
-                    logger.error(f"Content :: {response_json}")
 
                 known_error = __OCTOKIT_ERRORS__.get(response.status_code)
                 if known_error:
                     raise Exception(known_error)
-                raise Exception("REST Request failed :: non-expected server error")
 
-            if isinstance(response_json, dict) and response_json.get("errors"):
-                logger.error(response_json.get("message"))
-                raise Exception("REST Request failed :: error from server")
+            # Handle errors in the response
+            if isinstance(response_json, dict) and response_json.get("message"):
+                # Custom error handler callback
+                if error_handler:
+                    return error_handler(response.status_code, response_json)
+
+                # Default error handling
+                message = response_json.get("message", "No message provided")
+                docs = response_json.get(
+                    "documentation_url", "No documentation link provided"
+                )
+
+                logger.error(f"Error message from server :: {message}")
+                logger.error(f"Documentation Link :: {docs}")
+
+                raise Exception(f"REST Request failed :: {message}")
 
             if isinstance(response_json, dict):
                 return response_json
