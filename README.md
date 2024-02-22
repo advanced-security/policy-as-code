@@ -38,7 +38,7 @@ Here is how you can quickly setup policy-as-code.
 ```yaml
 # Policy as Code
 - name: Advance Security Policy as Code
-  uses: advanced-security/policy-as-code@v2.7.1
+  uses: advanced-security/policy-as-code@v2.7.2
 ```
 
 > [!TIP]
@@ -54,7 +54,7 @@ The Policy as Code project is a self-contained Python based CLI tool.
 **Bash / Zsh:**
 
 ```bash
-git clone --branch "v2.7.1" https://github.com/advanced-security/policy-as-code.git && cd ./policy-as-code
+git clone --branch "v2.7.2" https://github.com/advanced-security/policy-as-code.git && cd ./policy-as-code
 
 ./policy-as-code --help
 ```
@@ -62,7 +62,7 @@ git clone --branch "v2.7.1" https://github.com/advanced-security/policy-as-code.
 **Powershell:**
 
 ```Powershell
-git clone --branch "v2.7.1" https://github.com/advanced-security/policy-as-code.git
+git clone --branch "v2.7.2" https://github.com/advanced-security/policy-as-code.git
 cd policy-as-code
 
 .\policy-as-code.ps1 --help
@@ -124,7 +124,7 @@ Here is an example of using a simple yet cross-organization using Policy as Code
 ```yaml
 # Compliance
 - name: Advance Security Policy as Code
-  uses: advanced-security/policy-as-code@v2.7.1
+  uses: advanced-security/policy-as-code@v2.7.2
   with:
     # The owner/repo of where the policy is stored
     policy: GeekMasher/security-queries
