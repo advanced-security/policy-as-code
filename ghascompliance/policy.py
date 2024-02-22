@@ -1,14 +1,13 @@
 import os
 import json
-from ghastoolkit.octokit.octokit import GitHub, Repository
+from ghastoolkit.octokit.github import Dict
+from ghastoolkit.octokit.octokit import Repository
 import yaml
 import shutil
 import fnmatch
 import datetime
 import tempfile
-import subprocess
 from typing import List, Optional
-from urllib.parse import urlparse
 from ghascompliance.consts import SEVERITIES, TECHNOLOGIES, LICENSES
 from ghascompliance.octokit import Octokit
 
@@ -122,8 +121,11 @@ class Policy:
 
         self.policy = policy
 
-    def loadPolicySection(self, name: str, data: dict):
+    def loadPolicySection(self, name: str, data: Optional[Dict] = None):
         time_to_remediate_policy = False
+
+        if not data:
+            data = {"level": "disabled"}
 
         for section, section_data in data.items():
             # check if only certain sections are present
@@ -260,6 +262,9 @@ class Policy:
             if results:
                 return True
         return False
+
+    def checkTechnologyActive(self, technology: str):
+        return self.policy.get(technology, {}).get("level", "") != "disabled"
 
     def checkViolationRemediation(
         self,

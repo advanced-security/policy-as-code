@@ -79,6 +79,15 @@ class Checks:
 
         codescanning = CodeScanning()
 
+        if not self.policy.checkTechnologyActive("codescanning"):
+            Octokit.info("Code Scanning is not active in the policy")
+            return 0
+
+        if not codescanning.isEnabled():
+            code_scanning_violations.append(["Code Scanning", "", "critical", ""])
+            Octokit.error("Code Scanning is not enabled")
+            return 1
+
         if GitHub.repository.isInPullRequest():
             Octokit.info("Code Scanning Alerts from Pull Request (alert diff)")
             pr_base = (
@@ -302,6 +311,13 @@ class Checks:
 
         # Dependencies
         depgraph = DependencyGraph()
+
+        if not self.policy.checkTechnologyActive("licensing"):
+            Octokit.debug("Skipping as licensing policy not set")
+            return 0
+
+        # TODO: Check if enabled
+
         if GitHub.repository.isInPullRequest():
             Octokit.info("Dependencies from Pull Request")
             pr_info = GitHub.repository.getPullRequestInfo()
@@ -439,6 +455,13 @@ class Checks:
 
         # Dependencies
         depgraph = DependencyGraph()
+
+        if not self.policy.checkTechnologyActive("dependencygraph"):
+            Octokit.info("Skipping as DependencyGraph policy not set")
+            return 0
+
+        # TODO: Check if DependencyGraph is enabled in GitHub
+
         if GitHub.repository.isInPullRequest():
             Octokit.info("Dependencies from Pull Request")
             pr_info = GitHub.repository.getPullRequestInfo()
@@ -499,6 +522,15 @@ class Checks:
         secret_violations = []
 
         secretscanning = SecretScanning()
+
+        if not self.policy.checkTechnologyActive("secretscanning"):
+            Octokit.info("Skipping as secret scanning policy not set")
+            return 0
+
+        if not secretscanning.isEnabled():
+            secret_violations.append(["Secret Scanning not enabled", ""])
+            return 1
+
         if GitHub.repository.isInPullRequest():
             Octokit.info("Secret Scanning Alerts from Pull Request")
             alerts = secretscanning.getAlertsInPR()

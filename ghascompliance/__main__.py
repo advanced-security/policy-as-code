@@ -165,7 +165,8 @@ if __name__ == "__main__":
 
     Octokit.info("Finished loading policy")
 
-    if arguments.display and policy.policy:
+    if policy.policy:
+        Octokit.info("Policy as Code Summary:")
         Octokit.info("```")
         for plcy, data in policy.policy.items():
             if plcy == "name":
@@ -189,37 +190,41 @@ if __name__ == "__main__":
 
     errors = 0
 
-    try:
-        if not arguments.disable_code_scanning:
-            errors += checks.checkCodeScanning()
+    checks = [
+        ("code_scanning", checks.checkCodeScanning),
+        ("dependabot", checks.checkDependabot),
+        ("dependencies", checks.checkDependencies),
+        ("dependency_licensing", checks.checkDependencyLicensing),
+        ("secret_scanning", checks.checkSecretScanning),
+    ]
 
-        if not arguments.disable_dependabot:
-            errors += checks.checkDependabot()
+    for check in checks:
+        try:
+            if not getattr(arguments, f"disable_{check[0]}"):
+                errors += check[1]()
 
-        # Dependency Graph
-        if not arguments.disable_dependencies:
-            errors += checks.checkDependencies()
+        except Exception as err:
+            Octokit.error("Unknown Exception was hit, please repo this to " + __url__)
+            Octokit.error(str(err))
 
-        # Dependency Graph Licensing
-        if not arguments.disable_dependency_licensing:
-            errors += checks.checkDependencyLicensing()
+            errors += 1  # add to error count
 
-        if not arguments.disable_secret_scanning:
-            errors += checks.checkSecretScanning()
+            # Add to summary
+            Summary.addHeader(f"{Summary.__ICONS__['cross']} :: Error Encountered", 2)
+            Summary.addLine(
+                f"An unexpected exception was encountered while performing policy checks. Please report this to {__url__}"
+            )
+            Summary.addLine(Summary.formatItalics(str(err)))
 
-    except Exception as err:
-        Octokit.error("Unknown Exception was hit, please repo this to " + __url__)
-        Octokit.error(str(err))
-        Summary.addHeader(f"{Summary.__ICONS__['cross']} :: Error Encountered", 2)
-        Summary.addLine(
-            f"An unexpected exception was encountered while performing policy checks. Please report this to {__url__}"
-        )
-        Summary.addLine(Summary.formatItalics(str(err)))
+            if arguments.debug:
+                raise err
 
-        if arguments.debug:
-            raise err
-    finally:
-        # Summary and PR comment
+    Octokit.endGroup()
+
+    Octokit.createGroup("Summary")
+
+    # Summary and PR comment
+    if GitHub.repository.isInPullRequest():
         Summary.outputJobSummary()
         PullRequest.addPrComment(policy.name)
 
