@@ -13,6 +13,7 @@ sphinx = "*"
 myst-parser = "*"
 black = "*"
 typing_extensions = "*"
+tomli = "*"
 
 [scripts]
 main = "python -m ghascompliance"
