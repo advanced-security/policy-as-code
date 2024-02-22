@@ -83,11 +83,6 @@ class Checks:
             Octokit.info("Code Scanning is not active in the policy")
             return 0
 
-        if not codescanning.isEnabled():
-            code_scanning_violations.append(["Code Scanning", "", "critical", ""])
-            Octokit.error("Code Scanning is not enabled")
-            return 1
-
         if GitHub.repository.isInPullRequest():
             Octokit.info("Code Scanning Alerts from Pull Request (alert diff)")
             pr_base = (
