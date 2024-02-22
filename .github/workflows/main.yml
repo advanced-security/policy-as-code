@@ -64,5 +64,4 @@ jobs:
     - name: Run action
       uses: ./
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-      
+        token: "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"

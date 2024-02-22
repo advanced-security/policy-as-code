@@ -12,7 +12,7 @@ if [ -f $PWD/Pipfile ]; then
     
     # pipenv clean
     # pipenv install --deploy
-    pipenv run pip freeze > "$VENDOR/requirements.txt"
+    pipenv requirements > "$VENDOR/requirements.txt"
     pip install -r "$VENDOR/requirements.txt" --target=$VENDOR --upgrade
 
     echo "[+] Clean up vendor folder"
