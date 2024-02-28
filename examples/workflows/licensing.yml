@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Advance Security Compliance Action
-        uses: advanced-security/policy-as-code@policy
+        uses: advanced-security/policy-as-code@main
         with:
           # We'll need an access token that can call the GraphQL GitHub API to get
           #  all the of the licensing data.
