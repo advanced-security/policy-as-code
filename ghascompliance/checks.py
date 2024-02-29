@@ -23,6 +23,10 @@ LICENSES = [os.path.join(__HERE__, "data", "clearlydefined.json")]
 GRAPHQL_QUERIES = [os.path.join(__HERE__, "octokit", "graphql")]
 
 
+class FeatureNotEnabledException(Exception):
+    pass
+
+
 class Checks:
     def __init__(
         self,
@@ -88,13 +92,31 @@ class Checks:
             pr_base = (
                 GitHub.repository.getPullRequestInfo().get("base", {}).get("ref", "")
             )
-            alerts = codescanning.getAlertsInPR(pr_base)
+            try:
+                alerts = codescanning.getAlertsInPR(pr_base)
+            except Exception as err:
+                if (
+                    "Advanced Security must be enabled for this repository to use code scanning"
+                    in str(err)
+                ):
+                    raise FeatureNotEnabledException(
+                        "Advanced Security must be enabled for this repository to use code scanning"
+                    )
 
         else:
             Octokit.debug(
                 f"Code Scanning Alerts from reference :: {GitHub.repository.reference}"
             )
-            alerts = codescanning.getAlerts("open", ref=GitHub.repository.reference)
+            try:
+                alerts = codescanning.getAlerts("open", ref=GitHub.repository.reference)
+            except Exception as err:
+                if (
+                    "Advanced Security must be enabled for this repository to use code scanning"
+                    in str(err)
+                ):
+                    raise FeatureNotEnabledException(
+                        "Advanced Security must be enabled for this repository to use code scanning"
+                    )
 
         Octokit.info("Total Code Scanning Alerts :: " + str(len(alerts)))
 
@@ -204,6 +226,11 @@ class Checks:
             try:
                 alerts = dependabot.getAlerts("open")
             except Exception as err:
+                if "Dependabot alerts are disabled for this repository" in str(err):
+                    raise FeatureNotEnabledException(
+                        "Dependabot alerts are disabled for this repository"
+                    )
+
                 Octokit.warning(f"Unable to get Dependabot alerts :: {err}")
                 Octokit.warning("Trying GraphQL API")
                 alerts = dependabot.getAlertsGraphQL()
@@ -523,8 +550,9 @@ class Checks:
             return 0
 
         if not secretscanning.isEnabled():
-            secret_violations.append(["Secret Scanning not enabled", ""])
-            return 1
+            raise FeatureNotEnabledException(
+                "Secret Scanning alerts are disabled for this repository"
+            )
 
         if GitHub.repository.isInPullRequest():
             Octokit.info("Secret Scanning Alerts from Pull Request")

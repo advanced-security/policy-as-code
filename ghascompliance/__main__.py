@@ -188,6 +188,8 @@ if __name__ == "__main__":
         caching=arguments.disable_caching,
     )
 
+    alerts = 0
+    disabled_features = 0
     errors = 0
 
     checks = [
@@ -201,14 +203,17 @@ if __name__ == "__main__":
     for check in checks:
         try:
             if not getattr(arguments, f"disable_{check[0]}"):
-                errors += check[1]()
+                alerts += check[1]()
 
         except Exception as err:
-            Octokit.error("Unknown Exception was hit, please repo this to " + __url__)
+            if isinstance(err, FeatureNotEnabledException):
+                Octokit.info(str(err))
+                disabled_features += 1
+                continue
+
+            Octokit.error("Unknown Exception was hit, please report this to " + __url__)
             Octokit.error(str(err))
-
             errors += 1  # add to error count
-
             # Add to summary
             Summary.addHeader(f"{Summary.__ICONS__['cross']} :: Error Encountered", 2)
             Summary.addLine(
@@ -228,14 +233,18 @@ if __name__ == "__main__":
         Summary.outputJobSummary()
         PullRequest.addPrComment(policy.name)
 
-    Octokit.info("Total unacceptable alerts :: " + str(errors))
+    Octokit.info("Total unacceptable alerts :: " + str(alerts))
+    Octokit.info("Total disabled features :: " + str(disabled_features))
+    Octokit.info("Total API errors :: " + str(errors))
 
-    if arguments.action == "break" and errors > 0:
+    things_to_check = alerts + disabled_features + errors
+
+    if arguments.action == "break" and things_to_check > 0:
         Octokit.error("Unacceptable Threshold of Risk has been hit!")
         exit(1)
     elif arguments.action == "continue":
         Octokit.info("Skipping threshold break check...")
-    elif errors == 0:
+    elif things_to_check == 0:
         Octokit.info("Acceptable risk and no threshold reached.")
     else:
         Octokit.error("Unknown action type :: " + str(arguments.action))
