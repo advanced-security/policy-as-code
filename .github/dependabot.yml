@@ -5,24 +5,36 @@
 
 version: 2
 updates:
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    reviewers:
-      - "geekmasher"
-    groups:
-      production-dependencies:
-        dependency-type: "production"
-      development-dependencies:
-        dependency-type: "development"
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     reviewers:
       - "geekmasher"
+    target-branch: "main"
+    commit-message:
+      prefix: deps
+      prefix-development: chore
+    labels:
+      - "Dependencies"
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+      development-dependencies:
+        dependency-type: "development"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "geekmasher"
+    target-branch: "main"
+    commit-message:
+      prefix: deps
+      prefix-development: chore
+    labels:
+      - "Dependencies"
     groups:
       production-dependencies:
         dependency-type: "production"
