@@ -1,0 +1,15 @@
+name: Markdown
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  markdown:
+    uses: advanced-security/reusable-workflows/.github/workflows/markdown-lint.yml@main
+    secrets: inherit
