@@ -11,9 +11,9 @@ ghastoolkit = "==0.12.2"
 [dev-packages]
 sphinx = "*"
 myst-parser = "*"
-black = "*"
 typing_extensions = "*"
 tomli = "*"
+black = "*"
 
 [scripts]
 main = "python -m ghascompliance"
