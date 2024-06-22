@@ -31,6 +31,8 @@ class Checks:
         debugging: bool = False,
         results_path: str = ".compliance",
         caching: bool = True,
+        base_ref: str = None,
+        head_ref: str = None,
     ):
         self.policy = policy
 
@@ -39,6 +41,9 @@ class Checks:
         self.results = results_path
 
         self.caching = caching
+
+        self.base_ref = base_ref
+        self.head_ref = head_ref
 
         os.makedirs(self.results, exist_ok=True)
 
@@ -83,7 +88,11 @@ class Checks:
             Octokit.info("Code Scanning is not active in the policy")
             return 0
 
-        if GitHub.repository.isInPullRequest():
+        if self.base_ref:
+            Octokit.info("Code Scanning Alerts from Base Ref (alert diff)")
+            alerts = codescanning.getAlertsInPR(self.base_ref)
+
+        elif GitHub.repository.isInPullRequest():
             Octokit.info("Code Scanning Alerts from Pull Request (alert diff)")
             pr_base = (
                 GitHub.repository.getPullRequestInfo().get("base", {}).get("ref", "")
@@ -187,7 +196,14 @@ class Checks:
 
         depgraph = DependencyGraph()
 
-        if GitHub.repository.isInPullRequest():
+        if self.base_ref and self.head_ref:
+            Octokit.info("Dependabot Alerts from Base Ref (alert diff)")
+            dependencies = depgraph.getDependenciesInPR(self.base_ref, self.head_ref)
+            alerts = []
+            for dep in dependencies:
+                alerts.extend(dep.alerts)
+
+        elif GitHub.repository.isInPullRequest():
             Octokit.info("Dependabot Alerts from Pull Request")
             pr_info = GitHub.repository.getPullRequestInfo()
             pr_base = pr_info.get("base", {}).get("ref", "")
@@ -312,12 +328,20 @@ class Checks:
             return 0
 
         # TODO: Check if enabled
-
-        if GitHub.repository.isInPullRequest():
+        if self.base_ref and self.head_ref:
+            Octokit.info("Dependencies from Base Ref")
+            dependencies = depgraph.getDependenciesInPR(self.base_ref, self.head_ref)
+        elif GitHub.repository.isInPullRequest():
             Octokit.info("Dependencies from Pull Request")
             pr_info = GitHub.repository.getPullRequestInfo()
-            pr_base = pr_info.get("base", {}).get("ref", "")
-            pr_head = pr_info.get("head", {}).get("ref", "")
+            if self.base_ref:
+                pr_base = self.base_ref
+            else:
+                pr_base = pr_info.get("base", {}).get("ref", "")
+            if self.head_ref:
+                pr_head = self.head_ref
+            else:
+                pr_head = pr_info.get("head", {}).get("ref", "")
             dependencies = depgraph.getDependenciesInPR(pr_base, pr_head)
         else:
             dependencies = depgraph.getDependencies()
@@ -456,12 +480,20 @@ class Checks:
             return 0
 
         # TODO: Check if DependencyGraph is enabled in GitHub
-
+        if self.base_ref and self.head_ref:
+            Octokit.info("Dependencies from Base Ref")
+            dependencies = depgraph.getDependenciesInPR(self.base_ref, self.head_ref)
         if GitHub.repository.isInPullRequest():
             Octokit.info("Dependencies from Pull Request")
             pr_info = GitHub.repository.getPullRequestInfo()
-            pr_base = pr_info.get("base", {}).get("ref", "")
-            pr_head = pr_info.get("head", {}).get("ref", "")
+            if self.base_ref:
+                pr_base = self.base_ref
+            else:
+                pr_base = pr_info.get("base", {}).get("ref", "")
+            if self.head_ref:
+                pr_head = self.head_ref
+            else:
+                pr_head = pr_info.get("head", {}).get("ref", "")
             dependencies = depgraph.getDependenciesInPR(pr_base, pr_head)
 
         else:
