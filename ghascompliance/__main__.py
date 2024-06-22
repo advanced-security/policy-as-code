@@ -103,6 +103,10 @@ if __name__ == "__main__":
     )
     Octokit.info(f"GitHub Instance :: {GitHub.instance}")
     Octokit.info(f"GitHub Reference (branch/pr) :: {GitHub.repository.reference}")
+    if arguments.github_base_ref:
+        Octokit.info(f"GitHub Base Reference :: {arguments.github_base_ref}")
+    if arguments.github_head_ref:
+        Octokit.info(f"GitHub Head Reference :: {arguments.github_head_ref}")
 
     if arguments.list_severities:
         for severity in SEVERITIES:
