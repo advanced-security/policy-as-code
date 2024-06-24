@@ -200,9 +200,20 @@ class Checks:
             Octokit.info("Dependabot Alerts from Base Ref (alert diff)")
             dependencies = depgraph.getDependenciesInPR(self.base_ref, self.head_ref)
             alerts = []
-            for dep in dependencies:
-                alerts.extend(dep.alerts)
-
+            try:
+                open_alerts = dependabot.getAlerts("open")
+                for pending_alert in open_alerts:
+                    for alert in dependencies:
+                        if pending_alert.manifest == alert.path:
+                            # Compare the Purl
+                            if alert.getPurl(version=False) == pending_alert.purl:
+                                # check if the security_advisory ghsa_id matches the alert vulnerabilitity advisory_ghsa_id
+                                for vuln in alert.alerts:
+                                    if vuln.advisory.ghsa_id == pending_alert.advisory.ghsa_id:
+                                        alerts.append(pending_alert)
+                                        break
+            except Exception as err:
+                Octokit.warning(f"Unable to get Dependabot alerts :: {err}")
         elif GitHub.repository.isInPullRequest():
             Octokit.info("Dependabot Alerts from Pull Request")
             pr_info = GitHub.repository.getPullRequestInfo()
@@ -212,8 +223,20 @@ class Checks:
             # note, need to use dep review API
             dependencies = depgraph.getDependenciesInPR(pr_base, pr_head)
             alerts = []
-            for dep in dependencies:
-                alerts.extend(dep.alerts)
+            try:
+                open_alerts = dependabot.getAlerts("open")
+                for pending_alert in open_alerts:
+                    for alert in dependencies:
+                        if pending_alert.manifest == alert.path:
+                            # Compare the Purl
+                            if alert.getPurl(version=False) == pending_alert.purl:
+                                # check if the security_advisory ghsa_id matches the alert vulnerabilitity advisory_ghsa_id
+                                for vuln in alert.alerts:
+                                    if vuln.advisory.ghsa_id == pending_alert.advisory.ghsa_id:
+                                        alerts.append(pending_alert)
+                                        break
+            except Exception as err:
+                Octokit.warning(f"Unable to get Dependabot alerts :: {err}")
 
         else:
             # Alerts
@@ -228,7 +251,6 @@ class Checks:
             dependencies = depgraph.getDependencies()
 
         Octokit.info("Total Dependabot Alerts :: " + str(len(alerts)))
-
         for alert in alerts:
             if alert.get("dismissReason") is not None:
                 Octokit.debug(
