@@ -534,12 +534,13 @@ class Checks:
             names.append(dependency.getPurl())
 
             #  none is set to just check if the name or pattern is discovered
-            if self.policy.checkViolation("none", "dependencies", names=names, ids=ids):
-                dependency_violations.append([dependency.fullname])
-                if self.display:
-                    Octokit.error(
-                        "Dependency Graph Alert :: {}".format(dependency.fullname)
-                    )
+            for alert in dependency.alerts:
+                if self.policy.checkViolation(alert.severity, "dependencies", names=names, ids=ids):                    
+                    dependency_violations.append([dependency.fullname])
+                    if self.display:
+                        Octokit.error(
+                            "Dependency Graph Alert :: {}".format(dependency.fullname)
+                        )
 
         violation_count = len(dependency_violations)
         Octokit.info(f"Dependency Graph violations :: {violation_count}")
