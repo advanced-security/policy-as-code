@@ -23,6 +23,9 @@ class DependencyAlert(OctoItem):
     created_at: Optional[str] = None
     """Created Timestamp"""
 
+    manifest: Optional[str] = None
+    """Manifest"""
+
     def __init_post__(self):
         if not self.created_at:
             self.created_at = datetime.now().strftime("%Y-%m-%dT%XZ")

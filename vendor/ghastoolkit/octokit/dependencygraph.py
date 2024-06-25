@@ -215,6 +215,8 @@ class DependencyGraph:
 
             for alert in depdata.get("vulnerabilities", []):
                 dep_alert = DependencyAlert(
+                    depdata.get("vulnerabilities").index(alert),
+                    "open",
                     alert.get("severity"),
                     purl=dep.getPurl(False),
                     advisory=Advisory(
@@ -223,6 +225,7 @@ class DependencyGraph:
                         summary=alert.get("advisory_summary"),
                         url=alert.get("advisory_ghsa_url"),
                     ),
+                    manifest=alert.get("manifest"),
                 )
                 dep.alerts.append(dep_alert)
 
