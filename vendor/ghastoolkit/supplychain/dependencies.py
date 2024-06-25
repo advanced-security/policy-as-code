@@ -51,7 +51,7 @@ class Dependency:
         if self.manager:
             result += f"{self.manager.lower()}/"
         if self.namespace:
-            result += f"{self.namespace}:"
+            result += f"{self.namespace}/"
         result += f"{self.name}"
         if version and self.version:
             result += f"@{self.version}"
