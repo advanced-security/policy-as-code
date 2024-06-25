@@ -438,7 +438,7 @@ class Checks:
                 continue
 
             licensing_violations.append(
-                [violation.fullname, violation.license if warning.license else "None"]
+                [violation.fullname, violation.license if violation.license else "None"]
             )
             if self.display:
                 Octokit.error(
