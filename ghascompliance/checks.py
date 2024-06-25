@@ -483,7 +483,7 @@ class Checks:
         if self.base_ref and self.head_ref:
             Octokit.info("Dependencies from Base Ref")
             dependencies = depgraph.getDependenciesInPR(self.base_ref, self.head_ref)
-        if GitHub.repository.isInPullRequest():
+        elif GitHub.repository.isInPullRequest():
             Octokit.info("Dependencies from Pull Request")
             pr_info = GitHub.repository.getPullRequestInfo()
             if self.base_ref:
