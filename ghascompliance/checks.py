@@ -83,6 +83,15 @@ class Checks:
             Octokit.info("Code Scanning is not active in the policy")
             return 0
 
+        if not codescanning.isEnabled():
+            Octokit.warning("Code Scanning not enabled")
+
+            code_scanning_violations.append(["Code Scanning not enabled", ""])
+            Summary.addLine(
+                f"{Summary.__ICONS__['cross']} Code Scanning Disable"
+            )
+            return 1
+
         if GitHub.repository.isInPullRequest():
             Octokit.info("Code Scanning Alerts from Pull Request (alert diff)")
             pr_base = (
@@ -186,6 +195,19 @@ class Checks:
         dependabot.graphql.loadQueries(GRAPHQL_QUERIES)
 
         depgraph = DependencyGraph()
+
+        if not self.policy.checkTechnologyActive("dependabot"):
+            Octokit.debug("Skipping as dependabot policy not set")
+            return 0
+        
+        if not dependabot.isEnabled():
+            Octokit.warning("Dependabot not enabled")
+
+            dependabot_violations.append(["Dependabot not enabled", ""])
+            Summary.addLine(
+                f"{Summary.__ICONS__['cross']} Dependabot Disable"
+            )
+            return 1
 
         if GitHub.repository.isInPullRequest():
             Octokit.info("Dependabot Alerts from Pull Request")
@@ -304,14 +326,12 @@ class Checks:
         licensing_warnings = []
         licensing_violations = []
 
-        # Dependencies
-        depgraph = DependencyGraph()
-
         if not self.policy.checkTechnologyActive("licensing"):
-            Octokit.debug("Skipping as licensing policy not set")
+            Octokit.info("Skipping as licensing policy not set")
             return 0
 
-        # TODO: Check if enabled
+        # Dependencies
+        depgraph = DependencyGraph()
 
         if GitHub.repository.isInPullRequest():
             Octokit.info("Dependencies from Pull Request")
@@ -523,7 +543,12 @@ class Checks:
             return 0
 
         if not secretscanning.isEnabled():
+            Octokit.warning("Secret Scanning not enabled")
+
             secret_violations.append(["Secret Scanning not enabled", ""])
+            Summary.addLine(
+                f"{Summary.__ICONS__['cross']} Secret Scanning Disable"
+            )
             return 1
 
         if GitHub.repository.isInPullRequest():
