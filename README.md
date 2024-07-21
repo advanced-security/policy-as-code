@@ -39,20 +39,24 @@ you can validate if the application has any security issues that need to be addr
 
 Here is how you can quickly setup policy-as-code.
 
+> [!TIP]
+> Checkout the GitHub Actions [Policy as Code Examples][examples-actions]
+
 ```yaml
 # Policy as Code
 - name: Advance Security Policy as Code
   uses: advanced-security/policy-as-code@v2.7.4
 ```
 
-> [!TIP]
-> Checkout the GitHub Actions [Policy as Code Examples][examples-actions]
 > [!WARNING]
 > The GitHub Action does not install Python on the runner. Please checkout at [the `actions/setup-python` Action][python-setup]
 
 ### CLI
 
 The Policy as Code project is a self-contained Python based CLI tool.
+
+> [!NOTE]
+> All of the Dependencies for [Policy as Code are vendored][vendored] into this repository
 
 **Bash / Zsh:**
 
@@ -71,8 +75,6 @@ cd policy-as-code
 .\policy-as-code.ps1 --help
 ```
 
-> [!NOTE]
-> All of the Dependencies for [Policy as Code are vendored][vendored] into this repository
 > [!TIP]
 > Checkout the samples of [how to use / run the cli with examples][examples-cli].
 
