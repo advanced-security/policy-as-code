@@ -1,0 +1,11 @@
+name: "policy-as-code"
+version: "2.7.3"
+
+locations:
+  - name: "Update Docs"
+    paths:
+      - "*.md"
+    patterns:
+      - 'advanced-security/policy-as-code@v([0-9]\.[0-9]\.[0-9])'
+      - '--branch "v([0-9]\.[0-9]\.[0-9])"'
+
