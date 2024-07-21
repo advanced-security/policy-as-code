@@ -300,6 +300,7 @@ Please refer to [MIT][license] for the full terms.
 [license]: ./LICENSE
 [github]: https://github.com/advanced-security/policy-as-code
 [github-issues]: https://github.com/advanced-security/policy-as-code/issues
+[github-actions]: https://github.com/advanced-security/policy-as-code/actions
 
 [advanced-security]: https://github.com/features/security
 [github-codescanning]: https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning
