@@ -6,7 +6,7 @@ verify_ssl = true
 [packages]
 pyyaml = "*"
 semantic-version = "*"
-ghastoolkit = "==0.12.6"
+ghastoolkit = "==0.12.7"
 
 [dev-packages]
 sphinx = "*"
