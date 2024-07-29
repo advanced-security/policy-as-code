@@ -87,9 +87,7 @@ class Checks:
             Octokit.warning("Code Scanning not enabled")
 
             code_scanning_violations.append(["Code Scanning not enabled", ""])
-            Summary.addLine(
-                f"{Summary.__ICONS__['cross']} Code Scanning Disable"
-            )
+            Summary.addLine(f"{Summary.__ICONS__['cross']} Code Scanning Disable")
             return 1
 
         if GitHub.repository.isInPullRequest():
@@ -199,14 +197,12 @@ class Checks:
         if not self.policy.checkTechnologyActive("dependabot"):
             Octokit.debug("Skipping as dependabot policy not set")
             return 0
-        
+
         if not dependabot.isEnabled():
             Octokit.warning("Dependabot not enabled")
 
             dependabot_violations.append(["Dependabot not enabled", ""])
-            Summary.addLine(
-                f"{Summary.__ICONS__['cross']} Dependabot Disable"
-            )
+            Summary.addLine(f"{Summary.__ICONS__['cross']} Dependabot Disable")
             return 1
 
         if GitHub.repository.isInPullRequest():
@@ -546,9 +542,7 @@ class Checks:
             Octokit.warning("Secret Scanning not enabled")
 
             secret_violations.append(["Secret Scanning not enabled", ""])
-            Summary.addLine(
-                f"{Summary.__ICONS__['cross']} Secret Scanning Disable"
-            )
+            Summary.addLine(f"{Summary.__ICONS__['cross']} Secret Scanning Disable")
             return 1
 
         if GitHub.repository.isInPullRequest():
