@@ -97,31 +97,56 @@ class SecretScanning:
     def isEnabled(self) -> bool:
         """Check to see if Secret Scanning is enabled or not via the repository status.
 
+        Permissions:
+          - [Repository Administration](https://docs.github.com/en/enterprise-cloud@latest/rest/authentication/permissions-required-for-github-apps#repository-permissions-for-administration)
+
         https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#get-a-repository
         """
         if not self.state:
             self.state = self.getStatus()
+
         if self.state.get("visibility") == "public":
             logger.debug("All public repositories have secret scanning enabled")
             return True
-        return (
-            self.state.get("security_and_analysis", {})
-            .get("secret_scanning", {})
-            .get("status", "disabled")
-            == "enabled"
+        if saa := self.state.get("security_and_analysis"):
+            return saa.get("secret_scanning", {}).get("status", "disabled") == "enabled"
+
+        logger.warning("Issue accessing the repository status.")
+        logger.warning(
+            "Check if the token has the correct permissions (repository administration)"
+        )
+        logger.warning(
+            "https://docs.github.com/en/enterprise-cloud@latest/rest/repos/repos#get-a-repository"
         )
 
+        return False
+
     def isPushProtectionEnabled(self) -> bool:
-        """Check if Push Protection is enabled."""
+        """Check if Push Protection is enabled.
+
+        Permissions:
+          - [Repository Administration](https://docs.github.com/en/enterprise-cloud@latest/rest/authentication/permissions-required-for-github-apps#repository-permissions-for-administration)
+
+        https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#get-a-repository
+        """
         if not self.state:
             self.state = self.getStatus()
 
-        status = (
-            self.state.get("security_and_analysis", {})
-            .get("secret_scanning_push_protection", {})
-            .get("status", "disabled")
+        if ssa := self.state.get("security_and_analysis"):
+            return (
+                ssa.get("secret_scanning_push_protection", {}).get("status", "disabled")
+                == "enabled"
+            )
+
+        logger.warning("Issue accessing the repository status.")
+        logger.warning(
+            "Check if the token has the correct permissions (repository administration)"
         )
-        return status == "enabled"
+        logger.warning(
+            "https://docs.github.com/en/enterprise-cloud@latest/rest/repos/repos#get-a-repository"
+        )
+
+        return False
 
     def getStatus(self) -> dict:
         """Get Status of GitHub Advanced Security."""
@@ -132,6 +157,9 @@ class SecretScanning:
 
     def getOrganizationAlerts(self, state: Optional[str] = None) -> list[dict]:
         """Get Organization Alerts.
+
+        Permissions:
+        - "Secret scanning alerts" repository permissions (read)
 
         https://docs.github.com/en/rest/secret-scanning#list-secret-scanning-alerts-for-an-organization
         """
@@ -144,6 +172,9 @@ class SecretScanning:
     def getAlerts(self, state: str = "open") -> list[SecretAlert]:
         """Get Repository alerts.
 
+        Permissions:
+        - "Secret scanning alerts" repository permissions (read)
+
         https://docs.github.com/en/rest/secret-scanning#list-secret-scanning-alerts-for-a-repository
         """
         return []
@@ -152,6 +183,9 @@ class SecretScanning:
         self, alert_number: int, state: Optional[str] = None
     ) -> Optional[SecretAlert]:
         """Get Alert by `alert_number`.
+
+        Permissions:
+        - "Secret scanning alerts" repository permissions (read)
 
         https://docs.github.com/en/rest/secret-scanning#get-a-secret-scanning-alert
         """
@@ -163,7 +197,12 @@ class SecretScanning:
             return loadOctoItem(SecretAlert, results)
 
     def getAlertsInPR(self) -> list[SecretAlert]:
-        """Get Alerts in a Pull Request."""
+        """Get Alerts in a Pull Request.
+
+        Permissions:
+        - "Secret scanning alerts" repository permissions (read)
+        - "Pull requests" repository permissions (read)
+        """
         results = []
         pr_commits = self.repository.getPullRequestCommits()
         logger.debug(f"Number of Commits in PR :: {len(pr_commits)}")
@@ -176,6 +215,9 @@ class SecretScanning:
 
     def getAlertLocations(self, alert_number: int) -> list[dict]:
         """Get Alert Locations by `alert_number`.
+
+        Permissions:
+        - "Secret scanning alerts" repository permissions (read)
 
         https://docs.github.com/en/rest/secret-scanning#list-locations-for-a-secret-scanning-alert
         """

@@ -83,7 +83,13 @@ class CodeScanning:
         self.rest = RestRequest(self.repository)
 
     def isEnabled(self) -> bool:
-        """Check to see if Code Scanning is enabled or not on a repository level."""
+        """Check to see if Code Scanning is enabled or not on a repository level.
+
+        Permissions:
+        - "Code scanning alerts" repository permissions (read)
+
+        https://docs.github.com/en/rest/code-scanning/code-scanning#list-code-scanning-analyses-for-a-repository
+        """
         try:
             self.rest.get(
                 "/repos/{org}/{repo}/code-scanning/analyses",
@@ -101,7 +107,13 @@ class CodeScanning:
         query_suite: str = "default",
         languages: list[str] = [],
     ) -> dict[str, Any]:
-        """Enable Code Scanning using Default Setup using CodeQL."""
+        """Enable Code Scanning using Default Setup using CodeQL.
+
+        Permissions:
+        - "Administration" repository permissions (write)
+
+        https://docs.github.com/en/rest/code-scanning#set-up-code-scanning
+        """
         data = {"state": state, "query_suite": query_suite, "languages": languages}
         result = self.rest.patchJson(
             "/repos/{owner}/{repo}/code-scanning/default-setup",
@@ -112,6 +124,9 @@ class CodeScanning:
 
     def getOrganizationAlerts(self, state: str = "open") -> list[CodeAlert]:
         """Get list of Organization Alerts.
+
+        Permissions:
+        - "Code scanning alerts" repository permissions (read)
 
         https://docs.github.com/en/rest/code-scanning#list-code-scanning-alerts-for-an-organization
         """
@@ -131,6 +146,9 @@ class CodeScanning:
         severity: Optional[str] = None,
     ) -> list[CodeAlert]:
         """Get all code scanning alerts.
+
+        Permissions:
+        - "Code scanning alerts" repository permissions (read)
 
         https://docs.github.com/en/rest/code-scanning#list-code-scanning-alerts-for-a-repository
         """
@@ -155,7 +173,10 @@ class CodeScanning:
         Note this operation is slow due to it needing to lookup each alert instance
         information.
 
-        base: str - Base reference
+        Permissions:
+        - "Code scanning alerts" repository permissions (read)
+        - "Pull Requests" repository permissions (read)
+
         https://docs.github.com/en/rest/code-scanning#list-instances-of-a-code-scanning-alert
         """
         if not self.repository.reference or not self.repository.isInPullRequest():
@@ -174,6 +195,9 @@ class CodeScanning:
     def getAlert(self, alert_number: int) -> CodeAlert:
         """Get Single Alert information from Code Scanning.
 
+        Permissions:
+        - "Code scanning alerts" repository permissions (read)
+
         https://docs.github.com/en/rest/code-scanning#get-a-code-scanning-alert
         """
         result = self.rest.get(
@@ -187,17 +211,28 @@ class CodeScanning:
     def getAlertInstances(
         self, alert_number: int, ref: Optional[str] = None
     ) -> list[dict]:
-        """Get a list of alert instances."""
+        """Get a list of alert instances.
+
+        Permissions:
+        - "Code scanning alerts" repository permissions (read)
+
+        https://docs.github.com/en/rest/code-scanning/code-scanning#list-instances-of-a-code-scanning-alert
+        """
         result = self.rest.get(
             "/repos/{owner}/{repo}/code-scanning/alerts/{alert_number}/instances",
             {"alert_number": alert_number, "ref": ref},
         )
-        return result
+        if isinstance(result, list):
+            return result
+        raise Exception(f"Error getting alert instances from Repository")
 
     def getAnalyses(
         self, reference: Optional[str] = None, tool: Optional[str] = None
     ) -> list[dict]:
         """Get a list of all the analyses for a given repository.
+
+        Permissions:
+        - "Code scanning alerts" repository permissions (read)
 
         https://docs.github.com/en/enterprise-cloud@latest/rest/code-scanning#list-code-scanning-analyses-for-a-repository
         """
@@ -207,12 +242,18 @@ class CodeScanning:
         )
         if isinstance(results, list):
             return results
-        raise Exception(f"")
+        raise Exception(f"Error getting analyses from Repository")
 
     def getLatestAnalyses(
         self, reference: Optional[str] = None, tool: Optional[str] = None
     ) -> list[dict]:
-        """Get Latest Analyses for every tool."""
+        """Get Latest Analyses for every tool.
+
+        Permissions:
+        - "Code scanning alerts" repository permissions (read)
+
+        https://docs.github.com/en/rest/code-scanning/code-scanning#get-a-code-scanning-analysis-for-a-repository
+        """
         tools = set()
         results = []
         for analysis in self.getAnalyses(reference, tool):
@@ -227,7 +268,13 @@ class CodeScanning:
         return results
 
     def getTools(self, reference: Optional[str] = None) -> List[str]:
-        """Get list of tools from the latest analyses."""
+        """Get list of tools from the latest analyses.
+
+        Permissions:
+        - "Code scanning alerts" repository permissions (read)
+
+        https://docs.github.com/en/rest/code-scanning/code-scanning#get-a-code-scanning-analysis-for-a-repository
+        """
         if len(self.tools) == 0:
             self.getLatestAnalyses(reference)
         return self.tools
@@ -239,7 +286,13 @@ class CodeScanning:
         return -1
 
     def downloadSARIF(self, output: str, sarif_id: int) -> bool:
-        """Get SARIF by ID (UUID)."""
+        """Get SARIF by ID (UUID).
+
+        Permissions:
+        - "Code scanning alerts" repository permissions (read)
+
+        https://docs.github.com/en/rest/code-scanning/code-scanning#get-a-code-scanning-analysis-for-a-repository
+        """
         logger.debug(f"Downloading SARIF file :: {sarif_id}")
 
         # need to change "Accept" and then reset
@@ -262,19 +315,31 @@ class CodeScanning:
     def getCodeQLDatabases(self) -> list[dict]:
         """List CodeQL databases for a repository.
 
+        Permissions:
+        - "Contents" repository permissions (read)
+
         https://docs.github.com/en/rest/code-scanning?apiVersion=2022-11-28#list-codeql-databases-for-a-repository
         """
-        return self.rest.get("/repos/{owner}/{repo}/code-scanning/codeql/databases")
+        result = self.rest.get("/repos/{owner}/{repo}/code-scanning/codeql/databases")
+        if isinstance(result, list):
+            return result
+        return []
 
     def getCodeQLDatabase(self, language: str) -> dict:
         """Get a CodeQL database for a repository.
 
+        Permissions:
+        - "Contents" repository permissions (read)
+
         https://docs.github.com/en/rest/code-scanning?apiVersion=2022-11-28#get-a-codeql-database-for-a-repository
         """
-        return self.rest.get(
+        result = self.rest.get(
             "/repos/{owner}/{repo}/code-scanning/codeql/databases/{language}",
             {"language": language},
         )
+        if isinstance(result, dict):
+            return result
+        return {}
 
     def getPacks(self, visibility: str = "internal") -> List[dict]:
         """Get all CodeQL Packs from remote GitHub instance.
