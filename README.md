@@ -1,24 +1,28 @@
+<!-- markdownlint-disable -->
 <div align="center">
 <h1>GitHub Policy as Code</h1>
 
-[![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)](https://github.com/advanced-security/policy-as-code)
-[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/advanced-security/policy-as-code/main.yml?style=for-the-badge)](https://github.com/advanced-security/policy-as-code/actions/workflows/python-package.yml?query=branch%3Amain)
-[![GitHub Issues](https://img.shields.io/github/issues/advanced-security/policy-as-code?style=for-the-badge)](https://github.com/advanced-security/policy-as-code/issues)
-[![GitHub Stars](https://img.shields.io/github/stars/advanced-security/policy-as-code?style=for-the-badge)](https://github.com/advanced-security/policy-as-code)
-[![Licence](https://img.shields.io/github/license/Ileriayo/markdown-badges?style=for-the-badge)](./LICENSE)
+[![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)][github]
+[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/advanced-security/policy-as-code/main.yml?style=for-the-badge)][github-actions]
+[![GitHub Issues](https://img.shields.io/github/issues/advanced-security/policy-as-code?style=for-the-badge)][github-issues]
+[![GitHub Stars](https://img.shields.io/github/stars/advanced-security/policy-as-code?style=for-the-badge)][github]
+[![Licence](https://img.shields.io/github/license/Ileriayo/markdown-badges?style=for-the-badge)][license]
 
 </div>
+<!-- markdownlint-restore -->
 
 ## Overview
 
-GitHub's Policy as Code project is designed to allow users and organizations to configure their Risk threshold for security issues reported by GitHub Advanced Security Platform.
-The main goal is to help make sure that before publishing your application to productions, development, etc. you can validate if the application has any security issues that need to be addressed.
+[GitHub's Policy as Code][github] project is designed to allow users and organizations to configure their Risk
+threshold for security issues reported by GitHub Advanced Security Platform.
+The main goal is to help make sure that before publishing your application to productions, development, etc.
+you can validate if the application has any security issues that need to be addressed.
 
 ## ✨ Features
 
 - Highly Configurable
 - Re-usable across repositories
-- Supports all GitHub Advanced Security Features
+- Supports all [GitHub Advanced Security][advanced-security] Features
   - [Code Scanning][github-codescanning]
   - [Secret Scanning][github-secretscanning]
   - [Supply chain / Dependabot][github-supplychain]
@@ -35,14 +39,14 @@ The main goal is to help make sure that before publishing your application to pr
 
 Here is how you can quickly setup policy-as-code.
 
+> [!TIP]
+> Checkout the GitHub Actions [Policy as Code Examples][examples-actions]
+
 ```yaml
 # Policy as Code
 - name: Advance Security Policy as Code
-  uses: advanced-security/policy-as-code@v2.7.3
+  uses: advanced-security/policy-as-code@v2.7.4
 ```
-
-> [!TIP]
-> Checkout the GitHub Actions [Policy as Code Examples][examples-actions]
 
 > [!WARNING]
 > The GitHub Action does not install Python on the runner. Please checkout at [the `actions/setup-python` Action][python-setup]
@@ -51,10 +55,13 @@ Here is how you can quickly setup policy-as-code.
 
 The Policy as Code project is a self-contained Python based CLI tool.
 
+> [!NOTE]
+> All of the Dependencies for [Policy as Code are vendored][vendored] into this repository
+
 **Bash / Zsh:**
 
 ```bash
-git clone --branch "v2.7.3" https://github.com/advanced-security/policy-as-code.git && cd ./policy-as-code
+git clone --branch "v2.7.4" https://github.com/advanced-security/policy-as-code.git && cd ./policy-as-code
 
 ./policy-as-code --help
 ```
@@ -62,14 +69,11 @@ git clone --branch "v2.7.3" https://github.com/advanced-security/policy-as-code.
 **Powershell:**
 
 ```Powershell
-git clone --branch "v2.7.3" https://github.com/advanced-security/policy-as-code.git
+git clone --branch "v2.7.4" https://github.com/advanced-security/policy-as-code.git
 cd policy-as-code
 
 .\policy-as-code.ps1 --help
 ```
-
-> [!NOTE]
-> All of the Dependencies for [Policy as Code are vendored][vendored] into this repository
 
 > [!TIP]
 > Checkout the samples of [how to use / run the cli with examples][examples-cli].
@@ -124,7 +128,7 @@ Here is an example of using a simple yet cross-organization using Policy as Code
 ```yaml
 # Compliance
 - name: Advance Security Policy as Code
-  uses: advanced-security/policy-as-code@v2.7.3
+  uses: advanced-security/policy-as-code@v2.7.4
   with:
     # The owner/repo of where the policy is stored
     policy: GeekMasher/security-queries
@@ -296,17 +300,20 @@ Please refer to [MIT][license] for the full terms.
 <!-- Resources -->
 
 [license]: ./LICENSE
+[github]: https://github.com/advanced-security/policy-as-code
 [github-issues]: https://github.com/advanced-security/policy-as-code/issues
+[github-actions]: https://github.com/advanced-security/policy-as-code/actions
+
+[advanced-security]: https://github.com/features/security
 [github-codescanning]: https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning
 [github-secretscanning]: https://docs.github.com/en/code-security/secret-scanning/about-secret-scanning
 [github-supplychain]: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-supply-chain-security
-[requirements]: https://github.com/advanced-security/policy-as-code#requirements
+
 [python-setup]: https://github.com/actions/setup-python
 [vendored]: https://github.com/advanced-security/policy-as-code/tree/main/vendor/README.md
-[docs]: https://github.com/advanced-security/policy-as-code/tree/main/docs
-[examples]: https://github.com/advanced-security/policy-as-code/tree/main/examples
 [examples-actions]: https://github.com/advanced-security/policy-as-code/tree/main/examples/workflows
 [examples-cli]: https://github.com/advanced-security/policy-as-code/tree/main/examples/scripts
+
 [permissions]: https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs#overview
 [permissions-codescanning]: https://docs.github.com/en/rest/code-scanning/code-scanning#list-code-scanning-alerts-for-a-repository
 [permissions-secretscanning]: https://docs.github.com/en/rest/secret-scanning/secret-scanning#list-secret-scanning-alerts-for-a-repository
