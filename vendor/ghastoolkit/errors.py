@@ -12,10 +12,12 @@ class GHASToolkitError(Exception):
         message: Optional[str] = None,
         docs: Optional[str] = None,
         permissions: Optional[List[str]] = [],
+        status: Optional[int] = None,
     ) -> None:
         self.message = message
         self.docs = docs
         self.permissions = permissions
+        self.status = status
 
         super().__init__(message)
 
@@ -26,6 +28,9 @@ class GHASToolkitError(Exception):
             msg = self.message
         else:
             msg = "An error occurred"
+
+        if status := self.status:
+            msg += f" (status code: {status})"
 
         if permissions := self.permissions:
             msg += "\n\nPermissions Required:"

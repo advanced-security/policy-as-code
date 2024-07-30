@@ -21,7 +21,15 @@ REST_MAX_CALLS = 80  # ~5000 per hour
 __OCTOKIT_PATH__ = os.path.dirname(os.path.realpath(__file__))
 
 __OCTOKIT_ERRORS__ = {
-    401: GHASToolkitAuthenticationError("Authentication / Permission Issue")
+    401: GHASToolkitAuthenticationError(
+        "Authentication / Permission Issue", status=401
+    ),
+    403: GHASToolkitAuthenticationError(
+        "Authentication / Permission Issue", status=403
+    ),
+    404: GHASToolkitError("Not Found", status=404),
+    429: GHASToolkitError("Rate limit hit", status=429),
+    500: GHASToolkitError("GitHub Server Error", status=500),
 }
 
 
@@ -223,6 +231,9 @@ class RestRequest:
             if expected and response.status_code != expected:
                 if display_errors:
                     logger.error(f"Error code from server :: {response.status_code}")
+
+                if error_handler:
+                    return error_handler(response.status_code, response_json)
 
                 known_error = __OCTOKIT_ERRORS__.get(response.status_code)
                 if known_error:
