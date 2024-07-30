@@ -8,6 +8,7 @@ from dataclasses import field, is_dataclass
 from requests import Session
 from ratelimit import limits, sleep_and_retry
 
+from ghastoolkit.errors import GHASToolkitAuthenticationError, GHASToolkitError
 from ghastoolkit.octokit.github import GitHub, Repository
 from ghastoolkit.octokit.graphql import QUERIES
 
@@ -19,7 +20,17 @@ REST_MAX_CALLS = 80  # ~5000 per hour
 
 __OCTOKIT_PATH__ = os.path.dirname(os.path.realpath(__file__))
 
-__OCTOKIT_ERRORS__ = {401: "Authentication Issue"}
+__OCTOKIT_ERRORS__ = {
+    401: GHASToolkitAuthenticationError(
+        "Authentication / Permission Issue", status=401
+    ),
+    403: GHASToolkitAuthenticationError(
+        "Authentication / Permission Issue", status=403
+    ),
+    404: GHASToolkitError("Not Found", status=404),
+    429: GHASToolkitError("Rate limit hit", status=429),
+    500: GHASToolkitError("GitHub Server Error", status=500),
+}
 
 
 # logger
@@ -195,7 +206,9 @@ class RestRequest:
         logger.debug(f"Fetching content from URL :: {url}")
 
         if authenticated and not self.session.headers.get("Authorization"):
-            raise Exception(f"GitHub Token required for this request")
+            raise GHASToolkitAuthenticationError(
+                "GitHub Token required for this request"
+            )
 
         result = []
         params = {}
@@ -219,9 +232,12 @@ class RestRequest:
                 if display_errors:
                     logger.error(f"Error code from server :: {response.status_code}")
 
+                if error_handler:
+                    return error_handler(response.status_code, response_json)
+
                 known_error = __OCTOKIT_ERRORS__.get(response.status_code)
                 if known_error:
-                    raise Exception(known_error)
+                    raise known_error
 
             # Handle errors in the response
             if isinstance(response_json, dict) and response_json.get("message"):
@@ -238,7 +254,7 @@ class RestRequest:
                 logger.error(f"Error message from server :: {message}")
                 logger.error(f"Documentation Link :: {docs}")
 
-                raise Exception(f"REST Request failed :: {message}")
+                raise GHASToolkitError(f"REST Request failed :: {message}", docs=docs)
 
             if isinstance(response_json, dict):
                 return response_json
@@ -283,7 +299,7 @@ class RestRequest:
     ) -> dict:
         repo = self.repository or GitHub.repository
         if not repo:
-            raise Exception("Repository needs to be set")
+            raise GHASToolkitError("Repository needs to be set")
 
         url = Octokit.route(path, repo, rtype="rest", **parameters)
         logger.debug(f"Patching content from URL :: {url}")
@@ -298,8 +314,8 @@ class RestRequest:
                 logger.error(f"{response.content}")
                 known_error = __OCTOKIT_ERRORS__.get(response.status_code)
                 if known_error:
-                    raise Exception(known_error)
-                raise Exception("Failed to patch data")
+                    raise known_error
+                raise GHASToolkitError("Failed to patch data")
 
         return response.json()
 
@@ -328,7 +344,10 @@ class GraphQLRequest:
         query_content = self.queries.get(name)
 
         if not query_content:
-            raise Exception(f"Failed to load GraphQL query :: {name}")
+            raise GHASToolkitError(
+                f"Failed to load GraphQL query :: {name}",
+                docs="https://docs.github.com/en/enterprise-cloud@latest/graphql/overview/about-the-graphql-api",
+            )
 
         cursor = f'after: "{self.cursor}"' if self.cursor != "" else ""
 
@@ -340,7 +359,10 @@ class GraphQLRequest:
         if response.status_code != 200:
             logger.error(f"GraphQL API Status :: {response.status_code}")
             logger.error(f"GraphQL Content :: {response.content}")
-            raise Exception(f"Failed to get data from GraphQL API")
+            raise GHASToolkitError(
+                f"Failed to get data from GraphQL API",
+                docs="https://docs.github.com/en/enterprise-cloud@latest/graphql/overview/about-the-graphql-api",
+            )
 
         rjson = response.json()
         if rjson.get("errors"):

@@ -1,6 +1,7 @@
 """GitHub Security Advisories API."""
 
 from typing import Dict, Optional
+from ghastoolkit.errors import GHASToolkitError, GHASToolkitTypeError
 from ghastoolkit.octokit.github import GitHub, Repository
 from ghastoolkit.octokit.octokit import RestRequest
 from ghastoolkit.supplychain.advisories import Advisories, Advisory, AdvisoryAffect
@@ -20,7 +21,10 @@ class SecurityAdvisories:
         self.rest = RestRequest(self.repository)
 
     def getAdvisories(self) -> Advisories:
-        """Get list of security advisories from a repository."""
+        """Get list of security advisories from a repository.
+
+        https://docs.github.com/en/rest/security-advisories/repository-advisories#list-repository-security-advisories
+        """
         results = self.rest.get(
             "/repos/{owner}/{repo}/security-advisories", authenticated=True
         )
@@ -29,10 +33,17 @@ class SecurityAdvisories:
             for advisory in results:
                 advisories.append(self.loadAdvisoryData(advisory))
             return advisories
-        raise Exception(f"Error getting advisories from repository")
+
+        raise GHASToolkitTypeError(
+            f"Error getting advisories from repository",
+            docs="https://docs.github.com/en/rest/security-advisories/repository-advisories#list-repository-security-advisories",
+        )
 
     def getAdvisory(self, ghsa_id: str) -> Advisory:
-        """Get advisory by ghsa id."""
+        """Get advisory by ghsa id.
+
+        https://docs.github.com/en/rest/security-advisories/repository-advisories#get-a-repository-security-advisory
+        """
         result = self.rest.get(
             "/repos/{owner}/{repo}/security-advisories/{ghsa_id}",
             {"ghsa_id": ghsa_id},
@@ -40,13 +51,20 @@ class SecurityAdvisories:
         )
         if isinstance(result, dict):
             return self.loadAdvisoryData(result)
-        raise Exception(f"Error getting advisory by id")
+
+        raise GHASToolkitTypeError(
+            f"Error getting advisory by id",
+            docs="https://docs.github.com/en/rest/security-advisories/repository-advisories#get-a-repository-security-advisory",
+        )
 
     def createAdvisory(
         self, advisory: Advisory, repository: Optional[Repository] = None
     ):
-        """Create a GitHub Security Advisories for a repository."""
-        raise Exception("Unsupported feature")
+        """Create a GitHub Security Advisories for a repository.
+
+        https://docs.github.com/en/rest/security-advisories/repository-advisories#create-a-repository-security-advisory
+        """
+        raise GHASToolkitError("Unsupported feature")
 
     def createPrivateAdvisory(
         self, advisory: Advisory, repository: Optional[Repository] = None
@@ -57,8 +75,11 @@ class SecurityAdvisories:
     def updateAdvisory(
         self, advisory: Advisory, repository: Optional[Repository] = None
     ):
-        """Update GitHub Security Advisory."""
-        raise Exception("Unsupported feature")
+        """Update GitHub Security Advisory.
+
+        https://docs.github.com/en/rest/security-advisories/repository-advisories#update-a-repository-security-advisory
+        """
+        raise GHASToolkitError("Unsupported feature")
 
     def loadAdvisoryData(self, data: Dict) -> Advisory:
         """Load Advisory from API data."""

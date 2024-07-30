@@ -32,5 +32,7 @@ else
     exit 1
 fi
 
-echo "[+] Completed vendor update"
+# Remove changes to the semantic_version package
+git restore ./vendor/semantic_version/__init__.py
 
+echo "[+] Completed vendor update"

@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from typing import Optional, Union
 from urllib.parse import urlparse
 
+from ghastoolkit.errors import GHASToolkitError
+
 
 logger = logging.getLogger("ghastoolkit.octokit.repository")
 
@@ -28,6 +30,9 @@ class Repository:
 
     path: Optional[str] = None
     """Path inside the repository"""
+
+    pr_number: Optional[int] = None
+    """Pull Request Number (if in a PR)"""
 
     __prinfo__: Optional[dict] = None
 
@@ -89,16 +94,17 @@ class Repository:
         if not self.__prinfo__:
             from ghastoolkit.octokit.octokit import RestRequest
 
-            pull_number = self.getPullRequestNumber()
+            self.pr_number = self.getPullRequestNumber()
             self.__prinfo__ = RestRequest().get(
                 "/repos/{owner}/{repo}/pulls/{pull_number}",
-                {"pull_number": pull_number},
+                {"pull_number": self.pr_number},
             )
         return self.__prinfo__
 
     def getPullRequestCommits(self) -> list[str]:
         """Get list of Pull Request commits."""
         result = []
+
         if self.isInPullRequest():
             from ghastoolkit.octokit.octokit import RestRequest
 
@@ -224,7 +230,7 @@ class Repository:
     def getFile(self, path: str) -> str:
         """Get a path relative from the base of the cloned repository."""
         if not self.clone_path:
-            raise Exception(f"Unknown clone path")
+            raise GHASToolkitError(f"Unknown clone path")
         return os.path.join(self.clone_path, path)
 
     def display(self) -> str:

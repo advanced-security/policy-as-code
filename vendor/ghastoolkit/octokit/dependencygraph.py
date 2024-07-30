@@ -6,6 +6,7 @@ import urllib.parse
 
 from semantic_version import Version
 
+from ghastoolkit.errors import GHASToolkitError, GHASToolkitTypeError
 from ghastoolkit.octokit.github import GitHub, Repository
 from ghastoolkit.supplychain.advisories import Advisory
 from ghastoolkit.supplychain.dependencyalert import DependencyAlert
@@ -70,7 +71,7 @@ class DependencyGraph:
                 logger.warning("Using GraphQL API to resolve dependencies (GHES 3.6+)")
                 deps = self.getDependenciesGraphQL()
             else:
-                raise Exception("Enterprise Server version must be >= 3.6.0")
+                raise GHASToolkitError("Enterprise Server version must be >= 3.6.0")
         else:
             # cloud: download SBOM
             deps = self.getDependenciesSbom()
@@ -179,7 +180,7 @@ class DependencyGraph:
         """Get all the dependencies from a Pull Request."""
 
         if GitHub.isEnterpriseServer() and GitHub.server_version < Version("3.6.0"):
-            raise Exception("Enterprise Server version must be >= 3.6")
+            raise GHASToolkitError("Enterprise Server version must be >= 3.6")
 
         dependencies = Dependencies()
         base = urllib.parse.quote(base, safe="")
@@ -234,8 +235,18 @@ class DependencyGraph:
         return dependencies
 
     def exportBOM(self) -> Dependencies:
-        """Download / Export DependencyGraph SBOM."""
-        return self.rest.get("/repos/{owner}/{repo}/dependency-graph/sbom")
+        """Download / Export DependencyGraph SBOM.
+
+        https://docs.github.com/en/rest/dependency-graph/sboms#export-a-software-bill-of-materials-sbom-for-a-repository
+        """
+        result = self.rest.get("/repos/{owner}/{repo}/dependency-graph/sbom")
+        if result:
+            return result
+
+        raise GHASToolkitTypeError(
+            "Failed to download SBOM",
+            docs="https://docs.github.com/en/rest/dependency-graph/sboms#export-a-software-bill-of-materials-sbom-for-a-repository",
+        )
 
     def submitDependencies(
         self,

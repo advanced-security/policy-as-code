@@ -2,7 +2,7 @@ import os
 import argparse
 import logging
 
-from ghastoolkit.octokit.github import GitHub
+from ghastoolkit import GitHub, GHASToolkitAuthenticationError
 
 from ghascompliance.__version__ import __name__ as tool_name, __banner__, __url__
 from ghascompliance.consts import SEVERITIES
@@ -202,6 +202,15 @@ if __name__ == "__main__":
         try:
             if not getattr(arguments, f"disable_{check[0]}"):
                 errors += check[1]()
+
+        except GHASToolkitAuthenticationError as err:
+            Octokit.error("Authentication Error")
+            Octokit.error(str(err))
+
+            errors += 1
+            # Add to summary
+            Summary.addLine(f"{Summary.__ICONS__['cross']} :: Authentication Error")
+            Summary.addLine(Summary.formatItalics(str(err)))
 
         except Exception as err:
             Octokit.error("Unknown Exception was hit, please repo this to " + __url__)
