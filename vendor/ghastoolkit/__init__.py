@@ -3,7 +3,7 @@
 __name__ = "ghastoolkit"
 __title__ = "GHAS Toolkit"
 
-__version__ = "0.12.7"
+__version__ = "0.13.0"
 
 __description__ = "GitHub Advanced Security Python Toolkit"
 __summary__ = """\
@@ -26,6 +26,8 @@ __banner__ = f"""\
  \\____/\\_| |_/\\_| |_/\\____/  \\_/\\___/ \\___/|_|_|\\_\\_|\\__| v{__version__} 
 """
 
+
+from ghastoolkit.errors import *
 
 # Octokit
 from ghastoolkit.octokit.github import GitHub

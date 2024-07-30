@@ -2,6 +2,7 @@ import logging
 from typing import Any, Optional
 from requests import Session
 
+from ghastoolkit.errors import GHASToolkitError
 from ghastoolkit.supplychain.dependencies import Dependency
 
 
@@ -41,7 +42,7 @@ class ClearlyDefined:
 
     def getCurations(self, dependency: Dependency) -> dict[str, Any]:
         if not dependency.manager:
-            raise Exception(f"Dependency manager / type must be set")
+            raise GHASToolkitError(f"Dependency manager / type must be set")
 
         url = self.createCurationUrl(dependency)
         if not url:

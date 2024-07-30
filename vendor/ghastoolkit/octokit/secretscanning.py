@@ -3,6 +3,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
+from ghastoolkit.errors import (
+    GHASToolkitAuthenticationError,
+    GHASToolkitError,
+    GHASToolkitTypeError,
+)
 from ghastoolkit.octokit.github import GitHub, Repository
 from ghastoolkit.octokit.octokit import OctoItem, RestRequest, loadOctoItem
 
@@ -88,7 +93,7 @@ class SecretScanning:
         """Initialise Secret Scanning API."""
         self.repository = repository or GitHub.repository
         if not self.repository:
-            raise Exception("SecretScanning requires Repository to be set")
+            raise GHASToolkitError("SecretScanning requires Repository to be set")
 
         self.rest = RestRequest(self.repository)
 
@@ -97,61 +102,105 @@ class SecretScanning:
     def isEnabled(self) -> bool:
         """Check to see if Secret Scanning is enabled or not via the repository status.
 
+        Permissions:
+        - "Administration" repository permissions (read)
+
         https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#get-a-repository
         """
         if not self.state:
             self.state = self.getStatus()
+
         if self.state.get("visibility") == "public":
             logger.debug("All public repositories have secret scanning enabled")
             return True
-        return (
-            self.state.get("security_and_analysis", {})
-            .get("secret_scanning", {})
-            .get("status", "disabled")
-            == "enabled"
+        if saa := self.state.get("security_and_analysis"):
+            return saa.get("secret_scanning", {}).get("status", "disabled") == "enabled"
+
+        raise GHASToolkitAuthenticationError(
+            "Failed to fetch Secret Scanning repository settings",
+            docs="https://docs.github.com/en/enterprise-cloud@latest/rest/repos/repos#get-a-repository",
+            permissions=["Repository Administration (read)"],
         )
 
     def isPushProtectionEnabled(self) -> bool:
-        """Check if Push Protection is enabled."""
+        """Check if Push Protection is enabled.
+
+        Permissions:
+        - "Administration" repository permissions (read)
+
+        https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#get-a-repository
+        """
         if not self.state:
             self.state = self.getStatus()
 
-        status = (
-            self.state.get("security_and_analysis", {})
-            .get("secret_scanning_push_protection", {})
-            .get("status", "disabled")
+        if ssa := self.state.get("security_and_analysis"):
+            return (
+                ssa.get("secret_scanning_push_protection", {}).get("status", "disabled")
+                == "enabled"
+            )
+
+        raise GHASToolkitAuthenticationError(
+            "Failed to get Push Protection status",
+            permissions=["Repository Administration (read)"],
+            docs="https://docs.github.com/en/rest/repos/repos#get-a-repository",
         )
-        return status == "enabled"
 
     def getStatus(self) -> dict:
         """Get Status of GitHub Advanced Security."""
         result = self.rest.get("/repos/{owner}/{repo}")
         if isinstance(result, dict):
             return result
-        raise Exception("Failed to get the current state of secret scanning")
+        raise GHASToolkitTypeError(
+            "Failed to get the current state of secret scanning",
+            permissions=["Repository Administration (read)"],
+            docs="https://docs.github.com/en/rest/repos/repos#get-a-repository",
+        )
 
     def getOrganizationAlerts(self, state: Optional[str] = None) -> list[dict]:
         """Get Organization Alerts.
+
+        Permissions:
+        - "Secret scanning alerts" repository permissions (read)
 
         https://docs.github.com/en/rest/secret-scanning#list-secret-scanning-alerts-for-an-organization
         """
         results = self.rest.get("/orgs/{org}/secret-scanning/alerts", {"state": state})
         if isinstance(results, list):
             return results
-        raise Exception(f"Error getting organization secret scanning results")
 
-    @RestRequest.restGet("/repos/{owner}/{repo}/secret-scanning/alerts")
+        raise GHASToolkitTypeError(
+            f"Error getting organization secret scanning results",
+            permissions=["Secret scanning alerts (read)"],
+            docs="https://docs.github.com/en/rest/secret-scanning#list-secret-scanning-alerts-for-an-organization",
+        )
+
     def getAlerts(self, state: str = "open") -> list[SecretAlert]:
         """Get Repository alerts.
 
+        Permissions:
+        - "Secret scanning alerts" repository permissions (read)
+
         https://docs.github.com/en/rest/secret-scanning#list-secret-scanning-alerts-for-a-repository
         """
-        return []
+
+        results = self.rest.get(
+            "/repos/{owner}/{repo}/secret-scanning/alerts", {"state": state}
+        )
+        if isinstance(results, list):
+            return [loadOctoItem(SecretAlert, item) for item in results]
+
+        raise GHASToolkitTypeError(
+            "Error getting secret scanning alerts",
+            docs="https://docs.github.com/en/rest/secret-scanning#list-secret-scanning-alerts-for-a-repository",
+        )
 
     def getAlert(
         self, alert_number: int, state: Optional[str] = None
     ) -> Optional[SecretAlert]:
         """Get Alert by `alert_number`.
+
+        Permissions:
+        - "Secret scanning alerts" repository permissions (read)
 
         https://docs.github.com/en/rest/secret-scanning#get-a-secret-scanning-alert
         """
@@ -161,9 +210,18 @@ class SecretScanning:
         )
         if isinstance(results, dict):
             return loadOctoItem(SecretAlert, results)
+        raise GHASToolkitTypeError(
+            "Error getting secret scanning alert",
+            docs="https://docs.github.com/en/rest/secret-scanning#get-a-secret-scanning-alert",
+        )
 
     def getAlertsInPR(self) -> list[SecretAlert]:
-        """Get Alerts in a Pull Request."""
+        """Get Alerts in a Pull Request.
+
+        Permissions:
+        - "Secret scanning alerts" repository permissions (read)
+        - "Pull requests" repository permissions (read)
+        """
         results = []
         pr_commits = self.repository.getPullRequestCommits()
         logger.debug(f"Number of Commits in PR :: {len(pr_commits)}")
@@ -177,6 +235,9 @@ class SecretScanning:
     def getAlertLocations(self, alert_number: int) -> list[dict]:
         """Get Alert Locations by `alert_number`.
 
+        Permissions:
+        - "Secret scanning alerts" repository permissions (read)
+
         https://docs.github.com/en/rest/secret-scanning#list-locations-for-a-secret-scanning-alert
         """
         results = self.rest.get(
@@ -185,4 +246,7 @@ class SecretScanning:
         )
         if isinstance(results, list):
             return results
-        raise Exception(f"Error getting alert locations")
+        raise GHASToolkitTypeError(
+            f"Error getting alert locations",
+            docs="https://docs.github.com/en/rest/secret-scanning#list-locations-for-a-secret-scanning-alert",
+        )

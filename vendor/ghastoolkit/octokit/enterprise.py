@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from semantic_version import Version
 
+from ghastoolkit.errors import GHASToolkitError
 from ghastoolkit.octokit.github import GitHub
 from ghastoolkit.octokit.octokit import Octokit, RestRequest
 from ghastoolkit.octokit.repository import Repository
@@ -23,12 +24,19 @@ class Organization:
         self.rest = RestRequest(GitHub.repository)
 
     def getRepositories(self) -> List[Repository]:
-        """Get Repositories."""
+        """Get Repositories.
+
+        https://docs.github.com/en/rest/repos/repos#list-organization-repositories
+        """
         repositories = []
         result = self.rest.get(f"/orgs/{self.name}/repos")
         if not isinstance(result, list):
             logger.error("Error getting repositories")
-            return []
+            raise GHASToolkitError(
+                "Error getting repositories",
+                permissions=["Metadata repository permissions (read)"],
+                docs="https://docs.github.com/en/rest/repos/repos#list-organization-repositories",
+            )
 
         for repository in result:
             repositories.append(Repository.parseRepository(repository.get("full_name")))
@@ -81,6 +89,10 @@ class Organization:
                 logger.error(
                     "Enterprise Server 3.8 or lower does not support default setup"
                 )
+                raise GHASToolkitError(
+                    "Enterprise Server 3.8 or lower does not support default setup"
+                )
+
             elif GitHub.server_version and GitHub.server_version < Version("3.11.0"):
                 from ghastoolkit.octokit.codescanning import CodeScanning
 
@@ -136,13 +148,21 @@ class Enterprise:
 
             if response.status_code != 200:
                 logger.error("Error getting organizations")
-                return []
+                raise GHASToolkitError(
+                    "Error getting organizations",
+                    permissions=["Metadata repository permissions (read)"],
+                    docs="https://docs.github.com/en/rest/orgs/orgs#list-organizations",
+                )
 
             result = response.json()
 
             if not isinstance(result, list):
                 logger.error("Error getting organizations")
-                return []
+                raise GHASToolkitError(
+                    "Error getting organizations",
+                    permissions=["Metadata repository permissions (read)"],
+                    docs="https://docs.github.com/en/rest/orgs/orgs#list-organizations",
+                )
 
             for org in result:
                 if not include_github and org.get("login") in github_orgs:
