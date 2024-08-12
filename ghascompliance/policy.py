@@ -1,13 +1,14 @@
 import os
 import json
-from ghastoolkit.octokit.github import Dict
-from ghastoolkit.octokit.octokit import Repository
 import yaml
 import shutil
 import fnmatch
 import datetime
 import tempfile
-from typing import List, Optional
+from typing import List, Dict, Optional
+
+from ghastoolkit import Repository
+
 from ghascompliance.consts import SEVERITIES, TECHNOLOGIES, LICENSES
 from ghascompliance.octokit import Octokit
 
@@ -75,6 +76,16 @@ class Policy:
 
         Octokit.info(f"Cloning policy repo - {self.repository}")
         self.repository.clone(clobber=True, depth=1)
+
+        if (
+            not os.path.exists(self.repository.clone_path)
+            and not self.repository.is_github_app_token
+        ):
+            # Try as a GitHub App Token
+            Octokit.info("Retrying as GitHub App Token")
+
+            self.repository.is_github_app_token = True
+            self.repository.clone(clobber=True, depth=1)
 
         if not os.path.exists(self.repository.clone_path):
             raise Exception("Repository failed to clone")
