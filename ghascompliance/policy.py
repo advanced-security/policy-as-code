@@ -77,7 +77,10 @@ class Policy:
         Octokit.info(f"Cloning policy repo - {self.repository}")
         self.repository.clone(clobber=True, depth=1)
 
-        if not os.path.exists(self.repository.clone_path) and not self.repository.is_github_app_token:
+        if (
+            not os.path.exists(self.repository.clone_path)
+            and not self.repository.is_github_app_token
+        ):
             # Try as a GitHub App Token
             Octokit.info("Retrying as GitHub App Token")
 
