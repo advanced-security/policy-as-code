@@ -31,6 +31,8 @@ class Checks:
         debugging: bool = False,
         results_path: str = ".compliance",
         caching: bool = True,
+        base_ref: str = None,
+        head_ref: str = None,
     ):
         self.policy = policy
 
@@ -39,6 +41,9 @@ class Checks:
         self.results = results_path
 
         self.caching = caching
+
+        self.base_ref = base_ref
+        self.head_ref = head_ref
 
         os.makedirs(self.results, exist_ok=True)
 
@@ -83,7 +88,11 @@ class Checks:
             Octokit.info("Code Scanning is not active in the policy")
             return 0
 
-        if GitHub.repository.isInPullRequest():
+        if self.base_ref:
+            Octokit.info("Code Scanning Alerts from Base Ref (alert diff)")
+            alerts = codescanning.getAlertsInPR(self.base_ref)
+
+        elif GitHub.repository.isInPullRequest():
             Octokit.info("Code Scanning Alerts from Pull Request (alert diff)")
             pr_base = (
                 GitHub.repository.getPullRequestInfo().get("base", {}).get("ref", "")
@@ -187,7 +196,25 @@ class Checks:
 
         depgraph = DependencyGraph()
 
-        if GitHub.repository.isInPullRequest():
+        if self.base_ref and self.head_ref:
+            Octokit.info("Dependabot Alerts from Base Ref (alert diff)")
+            dependencies = depgraph.getDependenciesInPR(self.base_ref, self.head_ref)
+            alerts = []
+            try:
+                open_alerts = dependabot.getAlerts("open")
+                for pending_alert in open_alerts:
+                    for alert in dependencies:
+                        if pending_alert.manifest == alert.path:
+                            # Compare the Purl
+                            if alert.getPurl(version=False) == pending_alert.purl:
+                                # check if the security_advisory ghsa_id matches the alert vulnerabilitity advisory_ghsa_id
+                                for vuln in alert.alerts:
+                                    if vuln.advisory.ghsa_id == pending_alert.advisory.ghsa_id:
+                                        alerts.append(pending_alert)
+                                        break
+            except Exception as err:
+                Octokit.warning(f"Unable to get Dependabot alerts :: {err}")
+        elif GitHub.repository.isInPullRequest():
             Octokit.info("Dependabot Alerts from Pull Request")
             pr_info = GitHub.repository.getPullRequestInfo()
             pr_base = pr_info.get("base", {}).get("ref", "")
@@ -196,8 +223,20 @@ class Checks:
             # note, need to use dep review API
             dependencies = depgraph.getDependenciesInPR(pr_base, pr_head)
             alerts = []
-            for dep in dependencies:
-                alerts.extend(dep.alerts)
+            try:
+                open_alerts = dependabot.getAlerts("open")
+                for pending_alert in open_alerts:
+                    for alert in dependencies:
+                        if pending_alert.manifest == alert.path:
+                            # Compare the Purl
+                            if alert.getPurl(version=False) == pending_alert.purl:
+                                # check if the security_advisory ghsa_id matches the alert vulnerabilitity advisory_ghsa_id
+                                for vuln in alert.alerts:
+                                    if vuln.advisory.ghsa_id == pending_alert.advisory.ghsa_id:
+                                        alerts.append(pending_alert)
+                                        break
+            except Exception as err:
+                Octokit.warning(f"Unable to get Dependabot alerts :: {err}")
 
         else:
             # Alerts
@@ -212,7 +251,6 @@ class Checks:
             dependencies = depgraph.getDependencies()
 
         Octokit.info("Total Dependabot Alerts :: " + str(len(alerts)))
-
         for alert in alerts:
             if alert.get("dismissReason") is not None:
                 Octokit.debug(
@@ -312,12 +350,20 @@ class Checks:
             return 0
 
         # TODO: Check if enabled
-
-        if GitHub.repository.isInPullRequest():
+        if self.base_ref and self.head_ref:
+            Octokit.info("Dependencies from Base Ref")
+            dependencies = depgraph.getDependenciesInPR(self.base_ref, self.head_ref)
+        elif GitHub.repository.isInPullRequest():
             Octokit.info("Dependencies from Pull Request")
             pr_info = GitHub.repository.getPullRequestInfo()
-            pr_base = pr_info.get("base", {}).get("ref", "")
-            pr_head = pr_info.get("head", {}).get("ref", "")
+            if self.base_ref:
+                pr_base = self.base_ref
+            else:
+                pr_base = pr_info.get("base", {}).get("ref", "")
+            if self.head_ref:
+                pr_head = self.head_ref
+            else:
+                pr_head = pr_info.get("head", {}).get("ref", "")
             dependencies = depgraph.getDependenciesInPR(pr_base, pr_head)
         else:
             dependencies = depgraph.getDependencies()
@@ -392,7 +438,7 @@ class Checks:
                 continue
 
             licensing_violations.append(
-                [violation.fullname, violation.license if warning.license else "None"]
+                [violation.fullname, violation.license if violation.license else "None"]
             )
             if self.display:
                 Octokit.error(
@@ -456,12 +502,20 @@ class Checks:
             return 0
 
         # TODO: Check if DependencyGraph is enabled in GitHub
-
-        if GitHub.repository.isInPullRequest():
+        if self.base_ref and self.head_ref:
+            Octokit.info("Dependencies from Base Ref")
+            dependencies = depgraph.getDependenciesInPR(self.base_ref, self.head_ref)
+        elif GitHub.repository.isInPullRequest():
             Octokit.info("Dependencies from Pull Request")
             pr_info = GitHub.repository.getPullRequestInfo()
-            pr_base = pr_info.get("base", {}).get("ref", "")
-            pr_head = pr_info.get("head", {}).get("ref", "")
+            if self.base_ref:
+                pr_base = self.base_ref
+            else:
+                pr_base = pr_info.get("base", {}).get("ref", "")
+            if self.head_ref:
+                pr_head = self.head_ref
+            else:
+                pr_head = pr_info.get("head", {}).get("ref", "")
             dependencies = depgraph.getDependenciesInPR(pr_base, pr_head)
 
         else:
@@ -480,12 +534,13 @@ class Checks:
             names.append(dependency.getPurl())
 
             #  none is set to just check if the name or pattern is discovered
-            if self.policy.checkViolation("none", "dependencies", names=names, ids=ids):
-                dependency_violations.append([dependency.fullname])
-                if self.display:
-                    Octokit.error(
-                        "Dependency Graph Alert :: {}".format(dependency.fullname)
-                    )
+            for alert in dependency.alerts:
+                if self.policy.checkViolation(alert.severity, "dependencies", names=names, ids=ids):                    
+                    dependency_violations.append([dependency.fullname])
+                    if self.display:
+                        Octokit.error(
+                            "Dependency Graph Alert :: {}".format(dependency.fullname)
+                        )
 
         violation_count = len(dependency_violations)
         Octokit.info(f"Dependency Graph violations :: {violation_count}")

@@ -43,6 +43,8 @@ github_arguments.add_argument("--github-instance", default=GITHUB_INSTANCE)
 github_arguments.add_argument("--github-repository", default=GITHUB_REPOSITORY)
 # github_arguments.add_argument("--github-event", default=GITHUB_EVENT_PATH)
 github_arguments.add_argument("--github-ref", default=GITHUB_REF)
+github_arguments.add_argument("--github-base-ref", default=None)
+github_arguments.add_argument("--github-head-ref", default=None)
 # github_arguments.add_argument("--workflow-event", default=GITHUB_EVENT_NAME)
 github_arguments.add_argument("--github-policy")
 github_arguments.add_argument("--github-policy-branch", default="main")
@@ -101,6 +103,10 @@ if __name__ == "__main__":
     )
     Octokit.info(f"GitHub Instance :: {GitHub.instance}")
     Octokit.info(f"GitHub Reference (branch/pr) :: {GitHub.repository.reference}")
+    if arguments.github_base_ref:
+        Octokit.info(f"GitHub Base Reference :: {arguments.github_base_ref}")
+    if arguments.github_head_ref:
+        Octokit.info(f"GitHub Head Reference :: {arguments.github_head_ref}")
 
     if arguments.list_severities:
         for severity in SEVERITIES:
@@ -186,6 +192,8 @@ if __name__ == "__main__":
         display=arguments.display,
         results_path=results,
         caching=arguments.disable_caching,
+        base_ref=arguments.github_base_ref,
+        head_ref=arguments.github_head_ref,
     )
 
     errors = 0
