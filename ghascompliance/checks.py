@@ -83,8 +83,12 @@ class Checks:
         code_scanning_violations = []
 
         # Code Scanning + Retries for large repos (e.g. 240 * 15 = 60 minutes)
-        codescanning = CodeScanning(retry_count=self.retry_count, retry_sleep=self.retry_sleep)
-        Octokit.debug(f"Code Scanning retries enabled :: x{self.retry_count}/{self.retry_sleep}s")
+        codescanning = CodeScanning(
+            retry_count=self.retry_count, retry_sleep=self.retry_sleep
+        )
+        Octokit.debug(
+            f"Code Scanning retries enabled :: x{self.retry_count}/{self.retry_sleep}s"
+        )
 
         if not self.policy.checkTechnologyActive("codescanning"):
             Octokit.info("Code Scanning is not active in the policy")
