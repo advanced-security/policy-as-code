@@ -31,6 +31,8 @@ class Checks:
         debugging: bool = False,
         results_path: str = ".compliance",
         caching: bool = True,
+        retry_count: int = 240,
+        retry_sleep: int = 15,
     ):
         self.policy = policy
 
@@ -39,6 +41,9 @@ class Checks:
         self.results = results_path
 
         self.caching = caching
+        # Retry count and sleep for Code Scanning
+        self.retry_count = retry_count
+        self.retry_sleep = retry_sleep
 
         os.makedirs(self.results, exist_ok=True)
 
@@ -77,7 +82,9 @@ class Checks:
         ]
         code_scanning_violations = []
 
-        codescanning = CodeScanning()
+        # Code Scanning + Retries for large repos (e.g. 240 * 15 = 60 minutes)
+        codescanning = CodeScanning(retry_count=self.retry_count, retry_sleep=self.retry_sleep)
+        Octokit.debug(f"Code Scanning retries enabled :: x{self.retry_count}/{self.retry_sleep}s")
 
         if not self.policy.checkTechnologyActive("codescanning"):
             Octokit.info("Code Scanning is not active in the policy")
