@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import json
+import time
 import logging
 from typing import Any, List, Optional
 from ghastoolkit.errors import GHASToolkitError, GHASToolkitTypeError
@@ -71,8 +72,18 @@ class CodeAlert(OctoItem):
 class CodeScanning:
     """Code Scanning."""
 
-    def __init__(self, repository: Optional[Repository] = None) -> None:
+    def __init__(
+        self,
+        repository: Optional[Repository] = None,
+        retry_count: int = 1,
+        retry_sleep: int = 15,
+    ) -> None:
         """Code Scanning REST API.
+
+        Retries currently are only for fetching the analyses by default is only done once.
+        If you want to retry more than once you can set the `retry_count` to a higher number.
+        You can also set the `retry_sleep` to a higher number to sleep longer between
+        each retry.
 
         https://docs.github.com/en/rest/code-scanning
         """
@@ -83,6 +94,9 @@ class CodeScanning:
 
         if not self.repository:
             raise GHASToolkitError("CodeScanning requires Repository to be set")
+
+        self.retry_count = retry_count
+        self.retry_sleep = retry_sleep
         self.rest = RestRequest(self.repository)
 
     def isEnabled(self) -> bool:
@@ -288,20 +302,48 @@ class CodeScanning:
     ) -> list[dict]:
         """Get a list of all the analyses for a given repository.
 
+        This function will retry X times with a Y second sleep between each retry to
+        make sure the analysis is ready. This is primarily used for CodeQL Default Setup
+        in Pull Requests where the analysis might not be ready yet.
+
         Permissions:
         - "Code scanning alerts" repository permissions (read)
 
+        Thrown Exceptions:
+        - GHASToolkitError on retry limit reached
+        - GHASToolkitTypeError on error getting analyses
+
         https://docs.github.com/en/enterprise-cloud@latest/rest/code-scanning#list-code-scanning-analyses-for-a-repository
         """
-        results = self.rest.get(
-            "/repos/{org}/{repo}/code-scanning/analyses",
-            {"tool_name": tool, "ref": reference or self.repository.reference},
-        )
-        if isinstance(results, list):
-            return results
+        counter = 0
+        while counter < self.retry_count:
+            counter += 1
 
-        raise GHASToolkitTypeError(
-            "Error getting analyses from Repository",
+            results = self.rest.get(
+                "/repos/{org}/{repo}/code-scanning/analyses",
+                {"tool_name": tool, "ref": reference or self.repository.reference},
+            )
+            if not isinstance(results, list):
+                raise GHASToolkitTypeError(
+                    "Error getting analyses from Repository",
+                    permissions=[
+                        '"Code scanning alerts" repository permissions (read)'
+                    ],
+                    docs="https://docs.github.com/en/enterprise-cloud@latest/rest/code-scanning#list-code-scanning-analyses-for-a-repository",
+                )
+
+            if len(results) > 0 and self.retry_count > 1:
+                logger.info(
+                    f"No analyses found, retrying {counter}/{self.retry_count})"
+                )
+                time.sleep(self.retry_sleep)
+            else:
+                return results
+
+        # If we get here, we have retried the max number of times and still no results
+        raise GHASToolkitError(
+            "Error getting analyses from Repository (retry limit reached)",
+            permissions=['"Code scanning alerts" repository permissions (read)'],
             docs="https://docs.github.com/en/enterprise-cloud@latest/rest/code-scanning#list-code-scanning-analyses-for-a-repository",
         )
 
