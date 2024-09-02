@@ -50,6 +50,8 @@ github_arguments.add_argument(
     "--github-policy-path",
     default=os.path.join(HERE, "defaults", "policy.yml"),
 )
+github_arguments.add_argument("--retry-count", type=int, default=240)
+github_arguments.add_argument("--retry-sleep", type=int, default=15)
 
 thresholds = parser.add_argument_group("Thresholds")
 thresholds.add_argument(
@@ -186,6 +188,8 @@ if __name__ == "__main__":
         display=arguments.display,
         results_path=results,
         caching=arguments.disable_caching,
+        retry_count=arguments.retry_count,
+        retry_sleep=arguments.retry_sleep,
     )
 
     errors = 0

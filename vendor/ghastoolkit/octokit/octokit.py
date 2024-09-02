@@ -6,6 +6,7 @@ from typing import Any, Callable, Optional, Union
 from dataclasses import field, is_dataclass
 
 from requests import Session
+from requests.adapters import HTTPAdapter, Retry
 from ratelimit import limits, sleep_and_retry
 
 from ghastoolkit.errors import GHASToolkitAuthenticationError, GHASToolkitError
@@ -100,7 +101,9 @@ class RestRequest:
     PER_PAGE = 100
     VERSION: str = "2022-11-28"
 
-    def __init__(self, repository: Optional[Repository] = None) -> None:
+    def __init__(
+        self, repository: Optional[Repository] = None, retries: Optional[Retry] = None
+    ) -> None:
         self.repository = repository or GitHub.repository
         self.session = Session()
         # https://docs.github.com/en/rest/overview/authenticating-to-the-rest-api
@@ -109,6 +112,9 @@ class RestRequest:
             "X-GitHub-Api-Version": RestRequest.VERSION,
             "Authorization": f"token {GitHub.token}",
         }
+
+        if retries:
+            self.session.mount("https://", HTTPAdapter(max_retries=retries))
 
     @staticmethod
     def restGet(url: str, authenticated: bool = False):

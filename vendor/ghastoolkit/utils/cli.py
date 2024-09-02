@@ -119,6 +119,7 @@ class CommandLine:
         # GitHub Init
         GitHub.init(
             repository=arguments.repository,
+            reference=arguments.ref,
             owner=arguments.owner,
             instance=arguments.instance,
             token=arguments.token,
