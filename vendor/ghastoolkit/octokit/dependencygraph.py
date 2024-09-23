@@ -127,52 +127,121 @@ class DependencyGraph:
 
         return result
 
-    def getDependenciesGraphQL(self) -> Dependencies:
-        """Get Dependencies from GraphQL."""
+    def getDependenciesGraphQL(self, dependencies_count: int = 100) -> Dependencies:
+        """Get Dependencies from GraphQL.
+
+        This functions requests each manifest file in the repository and the
+        dependencies associated with it. It then paginates through both the manifests
+        and dependencies.
+
+        This is done to avoid the timeout errors in the GraphQL API when requesting
+        large projects with many manifests and dependencies.
+        """
         deps = Dependencies()
-        data = self.graphql.query(
-            "GetDependencyInfo",
-            {"owner": self.repository.owner, "repo": self.repository.repo},
-        )
-        graph_manifests = (
-            data.get("data", {})
-            .get("repository", {})
-            .get("dependencyGraphManifests", {})
-        )
-        logger.debug(
-            f"Graph Manifests Total Count :: {graph_manifests.get('totalCount')}"
-        )
 
-        for manifest in graph_manifests.get("edges", []):
-            node = manifest.get("node", {})
-            logger.debug(f"Processing :: '{node.get('filename')}'")
+        manifests = True
+        manifests_cursor = ""
+        dependencies_cursor = ""
 
-            for dep in node.get("dependencies", {}).get("edges", []):
-                dep = dep.get("node", {})
-                license = None
-                repository = None
+        while manifests:
+            # Query a single manifest at a time
+            data = self.graphql.query(
+                "GetDependencyInfo",
+                {
+                    "owner": self.repository.owner,
+                    "repo": self.repository.repo,
+                    "manifests_cursor": manifests_cursor,
+                    "dependencies_first": dependencies_count,
+                    "dependencies_cursor": dependencies_cursor,
+                },
+            )
 
-                if dep.get("repository"):
-                    if dep.get("repository", {}).get("licenseInfo"):
-                        license = (
-                            dep.get("repository", {}).get("licenseInfo", {}).get("name")
-                        )
-                    if dep.get("repository", {}).get("nameWithOwner"):
-                        repository = dep.get("repository", {}).get("nameWithOwner")
+            graph_manifests = (
+                data.get("data", {})
+                .get("repository", {})
+                .get("dependencyGraphManifests", {})
+            )
+            logger.debug(f"Processing :: '{graph_manifests.get('totalCount')}'")
 
-                version = dep.get("requirements")
-                if version:
-                    version = version.replace("= ", "")
+            # Runs at least once
+            has_next_page = True
 
-                deps.append(
-                    Dependency(
-                        name=dep.get("packageName"),
-                        manager=dep.get("packageManager"),
-                        version=version,
-                        license=license,
-                        repository=repository,
+            while has_next_page:
+                for manifest in graph_manifests.get("edges", []):
+                    node = manifest.get("node", {})
+                    dependencies = node.get("dependencies", {})
+                    logger.debug(f"Processing :: '{node.get('filename')}'")
+
+                    # Pagination
+                    has_next_page = dependencies.get("pageInfo", {}).get(
+                        "hasNextPage", False
                     )
-                )
+                    if has_next_page:
+                        dependencies_cursor = f'after: "{dependencies.get("pageInfo", {}).get("endCursor")}"'
+                    else:
+                        dependencies_cursor = ""
+
+                    for dep in dependencies.get("edges", []):
+                        dep = dep.get("node", {})
+                        license = None
+                        repository = None
+
+                        if dep.get("repository"):
+                            if dep.get("repository", {}).get("licenseInfo"):
+                                license = (
+                                    dep.get("repository", {})
+                                    .get("licenseInfo", {})
+                                    .get("name")
+                                )
+                            if dep.get("repository", {}).get("nameWithOwner"):
+                                repository = dep.get("repository", {}).get(
+                                    "nameWithOwner"
+                                )
+
+                        version = dep.get("requirements")
+                        if version:
+                            version = version.replace("= ", "")
+
+                        deps.append(
+                            Dependency(
+                                name=dep.get("packageName"),
+                                manager=dep.get("packageManager"),
+                                version=version,
+                                license=license,
+                                repository=repository,
+                            )
+                        )
+
+                if has_next_page:
+                    logger.debug(
+                        f"Re-run and fetch next data page :: {manifests_cursor} ({dependencies_cursor})"
+                    )
+
+                    data = self.graphql.query(
+                        "GetDependencyInfo",
+                        {
+                            "owner": self.repository.owner,
+                            "repo": self.repository.repo,
+                            "manifests_cursor": manifests_cursor,
+                            "dependencies_first": dependencies_count,
+                            "dependencies_cursor": dependencies_cursor,
+                        },
+                    )
+                    graph_manifests = (
+                        data.get("data", {})
+                        .get("repository", {})
+                        .get("dependencyGraphManifests", {})
+                    )
+
+            # If there are no other manifest files, then we are done
+            if graph_manifests.get("pageInfo", {}).get("hasNextPage"):
+                cursor = graph_manifests.get("pageInfo", {}).get("endCursor")
+                manifests_cursor = f'after: "{cursor}"' if cursor != "" else ""
+                logger.debug(f"Cursor :: {manifests_cursor}")
+            else:
+                manifests = False
+                manifests_cursor = ""
+                logger.debug("No more manifests to be processed")
 
         return deps
 
