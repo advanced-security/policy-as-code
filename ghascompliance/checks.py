@@ -86,9 +86,6 @@ class Checks:
         codescanning = CodeScanning(
             retry_count=self.retry_count, retry_sleep=self.retry_sleep
         )
-        Octokit.debug(
-            f"Code Scanning retries enabled :: x{self.retry_count}/{self.retry_sleep}s"
-        )
 
         if not self.policy.checkTechnologyActive("codescanning"):
             Octokit.info("Code Scanning is not active in the policy")
@@ -96,6 +93,9 @@ class Checks:
 
         if GitHub.repository.isInPullRequest():
             Octokit.info("Code Scanning Alerts from Pull Request (alert diff)")
+            Octokit.info(
+                f"Code Scanning retries enabled :: x{self.retry_count}/{self.retry_sleep}s"
+            )
             pr_base = (
                 GitHub.repository.getPullRequestInfo().get("base", {}).get("ref", "")
             )

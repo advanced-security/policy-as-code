@@ -493,11 +493,11 @@ class CodeScanning:
                         docs="https://docs.github.com/en/enterprise-cloud@latest/rest/code-scanning#list-code-scanning-analyses-for-a-repository",
                     )
 
-            if len(results) < 0:
+            if len(results) == 0:
                 # If the retry count is less than 1, we don't retry
-                if self.retry_count < 1:
+                if self.retry_count > 1:
                     logger.debug(
-                        f"No analyses found, retrying {counter}/{self.retry_count})"
+                        f"No analyses found, retrying ({counter}/{self.retry_count})"
                     )
                     time.sleep(self.retry_sleep)
             else:
