@@ -18,6 +18,7 @@ from ghastoolkit.octokit.graphql import QUERIES
 # a GitHub App which has a higher limit
 # https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#rate-limiting
 REST_MAX_CALLS = 80  # ~5000 per hour
+GRAPHQL_MAX_CALLS = 100  # ~5000 per hour
 
 __OCTOKIT_PATH__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -342,9 +343,13 @@ class GraphQLRequest:
         # load in default hardcoded queries
         self.queries = QUERIES
 
+    @sleep_and_retry
+    @limits(calls=GRAPHQL_MAX_CALLS, period=60)
     def query(self, name: str, options: dict[str, Any] = {}) -> dict:
         """Run a GraphQL query.
+
         https://docs.github.com/en/enterprise-cloud@latest/graphql/overview/about-the-graphql-api
+        https://docs.github.com/en/enterprise-cloud@latest/graphql/overview/rate-limits-and-node-limits-for-the-graphql-api#primary-rate-limit
         """
         logger.debug(f"Loading Query by Name :: {name}")
         query_content = self.queries.get(name)
@@ -371,6 +376,7 @@ class GraphQLRequest:
             )
 
         rjson = response.json()
+
         if rjson.get("errors"):
             for err in rjson.get("errors"):
                 logger.warning(f"GraphQL Query failed :: {err.get('message')}")

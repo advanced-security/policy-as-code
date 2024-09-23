@@ -52,7 +52,7 @@ DEPENDENCY_GRAPH_INFO = """\
         licenseInfo {
             name
         }
-        dependencyGraphManifests {
+        dependencyGraphManifests(first: 1, $manifests_cursor) {
             totalCount
             pageInfo {
                 hasNextPage
@@ -61,7 +61,12 @@ DEPENDENCY_GRAPH_INFO = """\
             edges {
                 node {
                     filename
-                    dependencies {
+                    dependencies(first: $dependencies_first, $dependencies_cursor) {
+                        totalCount
+                        pageInfo {
+                            hasNextPage
+                            endCursor
+                        }
                         edges {
                             node {
                                 packageName
