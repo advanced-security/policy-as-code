@@ -217,7 +217,7 @@ if __name__ == "__main__":
             Summary.addLine(Summary.formatItalics(str(err)))
 
         except Exception as err:
-            Octokit.error("Unknown Exception was hit, please repo this to " + __url__)
+            Octokit.error("Unknown Exception was hit, please report this to " + __url__)
             Octokit.error(str(err))
 
             errors += 1  # add to error count
