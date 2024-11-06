@@ -99,8 +99,8 @@ For Policy as Code to work correctly, you need to have the following permissions
 ```yaml
 # workflow or job level
 permissions:
-  content: read
-  security_events: read
+  contents: read
+  security-events: read
   # pull request summaries
   pull-requests: write
 ```
