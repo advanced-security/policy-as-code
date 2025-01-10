@@ -1,11 +1,15 @@
 name: "policy-as-code"
-version: "2.9.0"
+repository: "advanced-security/policy-as-code"
+version: "2.9.1"
+
+ecosystems:
+  - Python
 
 locations:
   - name: "Update Docs"
     paths:
       - "*.md"
+      - "docs/*.md"
     patterns:
-      - 'advanced-security/policy-as-code@v([0-9]\.[0-9]\.[0-9])'
-      - '--branch "v([0-9]\.[0-9]\.[0-9])"'
-
+      - "{repository}@v{version}"
+      - '--branch "v{version}"'
