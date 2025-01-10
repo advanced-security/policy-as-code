@@ -1,3 +1,5 @@
+"""Octokit"""
+
 import os
 import inspect
 import logging
@@ -217,6 +219,9 @@ class RestRequest:
                 "GitHub Token required for this request"
             )
 
+        cursor = None
+        page = 1  # Page starts at 1
+
         result = []
         params = {}
         # if the parameter is in the path, ignore it
@@ -226,10 +231,11 @@ class RestRequest:
 
         params["per_page"] = RestRequest.PER_PAGE
 
-        page = 1  # index starts at 1
-
         while True:
-            params["page"] = page
+            if cursor:
+                params["after"] = cursor.replace("%3D", "=")
+            else:
+                params["page"] = page
 
             response = self.session.get(url, params=params)
             # Every response should be a JSON (including errors)
@@ -270,6 +276,17 @@ class RestRequest:
             # if the page is not full, we must have hit the end
             if len(response_json) < RestRequest.PER_PAGE:
                 break
+
+            # Use a cursor for pagination
+            if link := response.headers.get("Link"):
+                if next := [x for x in link.split(", ") if x.endswith('rel="next"')]:
+                    next = next[0].split(">;")[0].replace("<", "")
+                    # If `after` parameter is not in the URL
+                    if after := next.split("&after="):
+                        # We don't want to paginate if the cursor is a URL
+                        if not after[0].startswith("http"):
+                            cursor = after[0]
+                            logger.debug(f"Cursor :: {cursor}")
 
             page += 1
 
