@@ -470,68 +470,47 @@ class CodeScanning:
             raise GHASToolkitError("Reference is required for getting analyses")
 
         counter = 0
+        logger.debug(f"Fetching Analyses (retries {self.retry_count} every {self.retry_sleep}s)")
 
-        logger.debug(
-            f"Fetching Analyses (retries {self.retry_count} every {self.retry_sleep}s)"
-        )
+        # If we're in a PR, try merge ref first
+        if self.repository.isInPullRequest() and "/pull/" in ref:
+            pr_number = self.repository.getPullRequestNumber()
+            refs_to_try = [
+                f"refs/pull/{pr_number}/merge",  # Try merge first
+                f"refs/pull/{pr_number}/head",   # Then head
+                ref                              # Then original ref
+            ]
+        else:
+            refs_to_try = [ref]
 
-        while counter < self.retry_count:
-            counter += 1
+        for try_ref in refs_to_try:
+            counter = 0
+            while counter < self.retry_count:
+                counter += 1
+                logger.debug(f"Attempting with ref {try_ref} (attempt {counter}/{self.retry_count})")
 
-            results = self.rest.get(
-                "/repos/{org}/{repo}/code-scanning/analyses",
-                {"tool_name": tool, "ref": ref},
-            )
-            logger.debug(f"Initial API response for ref {ref}: {len(results) if isinstance(results, list) else 'error'} results")
-            
-            if not isinstance(results, list):
-                raise GHASToolkitTypeError(
-                    "Error getting analyses from Repository",
-                    permissions=[
-                        '"Code scanning alerts" repository permissions (read)'
-                    ],
-                    docs="https://docs.github.com/en/enterprise-cloud@latest/rest/code-scanning#list-code-scanning-analyses-for-a-repository",
-                )
-
-            # Try default setup `head` if no results (required for default setup)
-            if (
-                len(results) == 0
-                and self.repository.isInPullRequest()
-                and (ref.endswith("/merge") or ref.endswith("/head"))
-            ):
-                logger.debug("No analyses found for `merge`, trying `head`")
-                head_ref = ref.replace("/merge", "/head")
-                logger.debug(f"Trying head ref: {head_ref}")
-                results = self.rest.get(
-                    "/repos/{org}/{repo}/code-scanning/analyses",
-                    {"tool_name": tool, "ref": head_ref},
-                )
-                logger.debug(f"Head ref API response: {len(results) if isinstance(results, list) else 'error'} results")
-                
-                if not isinstance(results, list):
-                    raise GHASToolkitTypeError(
-                        "Error getting analyses from Repository",
-                        permissions=[
-                            '"Code scanning alerts" repository permissions (read)'
-                        ],
-                        docs="https://docs.github.com/en/enterprise-cloud@latest/rest/code-scanning#list-code-scanning-analyses-for-a-repository",
+                try:
+                    results = self.rest.get(
+                        "/repos/{org}/{repo}/code-scanning/analyses",
+                        {"tool_name": tool, "ref": try_ref},
                     )
-
-            if len(results) == 0:
-                # If the retry count is less than 1, we don't retry
-                if self.retry_count > 1:
-                    logger.debug(
-                        f"No analyses found, retrying ({counter}/{self.retry_count})"
-                    )
+                    
+                    if isinstance(results, list) and len(results) > 0:
+                        logger.debug(f"Found {len(results)} analyses with ref {try_ref}")
+                        return [loadOctoItem(CodeScanningAnalysis, analysis) for analysis in results]
+                    
+                    logger.debug(f"No results found with ref {try_ref}, will retry or try next ref")
                     time.sleep(self.retry_sleep)
-            else:
-                return [
-                    loadOctoItem(CodeScanningAnalysis, analysis) for analysis in results
-                ]
+                
+                except Exception as e:
+                    logger.debug(f"Error getting analyses with ref {try_ref}: {str(e)}")
+                    if "Code scanning alerts" in str(e) and "repository permissions" in str(e):
+                        raise  # Re-raise permission errors immediately
+                    time.sleep(self.retry_sleep)
 
-        # If we get here, we have retried the max number of times and still no results
+        # If we get here, we have tried all refs and retried the max number of times
         raise GHASToolkitError(
-            "Error getting analyses from Repository (retry limit reached)",
+            "Error getting analyses from Repository (all refs and retries exhausted)",
             permissions=['"Code scanning alerts" repository permissions (read)'],
             docs="https://docs.github.com/en/enterprise-cloud@latest/rest/code-scanning#list-code-scanning-analyses-for-a-repository",
         )
