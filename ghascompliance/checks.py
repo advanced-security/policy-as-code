@@ -159,10 +159,10 @@ class Checks:
             ids = []
             # Rule ID
             ids.append(alert.rule_id)
-            # TODO: CWE?
+            # TODO: CWE?
 
             names = []
-            #  Rule Name
+            # Rule Name
             names.append(rule_name)
 
             alert_creation_time = datetime.strptime(
@@ -293,15 +293,15 @@ class Checks:
                 alert_creation_time = datetime.now()
 
             ids = []
-            #  GitHub Advisory
+            # GitHub Advisory
             ids.append(alert.advisory.ghsa_id.lower())
-            #  CWE support
+            # CWE support
             ids.extend(alert.advisory.cwes)
 
             names = [
                 # org.apache.commons
                 dependency.fullname,
-                #  maven://org.apache.commons
+                # maven://org.apache.commons
                 dependency.getPurl(version=False),
             ]
 
@@ -532,7 +532,7 @@ class Checks:
             # manager + name + version
             names.append(dependency.getPurl())
 
-            #  none is set to just check if the name or pattern is discovered
+            # none is set to just check if the name or pattern is discovered
             if self.policy.checkViolation("none", "dependencies", names=names, ids=ids):
                 dependency_violations.append([dependency.fullname])
                 if self.display:
