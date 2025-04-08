@@ -34,5 +34,5 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           # [optional]: What action to take if the policy requirements are broken
           action: continue
-          # This is needed to 
+          # This is needed to specify that the token being used is a GitHub App token
           argvs: "--is-github-app-token"
