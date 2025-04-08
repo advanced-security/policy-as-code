@@ -1,39 +1,38 @@
-name: Licensing Compliance
+name: Policy as Code
 
 on:
   push:
-    branches: [master, main]
+    branches: [ master, main ]
   pull_request:
-    branches: [master, main]
+    branches: [ master, main ]
   workflow_dispatch:
 
 jobs:
-  licensing:
+  policy-as-code:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: tibdex/github-app-token@v1
-        id: get-token
+      - uses: actions/create-github-app-token@v1
+        id: app-token
         with:
-          private_key: ${{ secrets.GIT_APP_PRIVATE_KEY }}
-          app_id: ${{ secrets.GIT_APP_ID }}
+          app-id: ${{ secrets.GIT_APP_ID }}
+          private-key: ${{ secrets.GIT_APP_PRIVATE_KEY }}
 
       - name: Security Compliance Action
         uses: advanced-security/policy-as-code@main
         with:
-          policy: KPMG-UK/security-compliance
+          # Which repository the policy is stored
+          policy: advanced-security/security
           # The local (within the workspace) or repository
-          policy-path: policies/kpmg-uk.yml
-          # The branch you want to target
+          policy-path: policies/production.yml
+          # [optional] The branch you want to target
           policy-branch: main
-
-          # The branch you want to target using `policy` argument
-          # policy-branch: main
-
           # GitHub Personal Access Token to access the GitHub API.
           # Secret Scanning and Dependabot do not allow their resources to be
           #  exposed to Actions so this might need to be set using a token that has
           #  the ability to access the resources
-          token: ${{ steps.get-token.outputs.token }}
+          token: ${{ steps.app-token.outputs.token }}
+          # [optional]: What action to take if the policy requirements are broken
           action: continue
+          # This is needed to specify that the token being used is a GitHub App token
           argvs: "--is-github-app-token"
