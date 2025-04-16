@@ -84,15 +84,27 @@ For Policy as Code to work correctly, you need to have the following permissions
 
 - [required] Repository Permissions
   - [`security_events: read`][permissions]
-    - [Dependabot Alerts][permissions-dependabot]
     - [Code Scanning][permissions-codescanning]
-    - [Secret Scanning][permissions-secretscanning]
   - [`content: read`][permissions]
     - [Dependency Graph][permissions-dependencygraph] / [Dependency Licenses][permissions-dependencygraph]
   - [`pull-requests: write`][permissions]
     - Policy as Code Pull Request Summary
+  - ["Secret scanning alerts" repository permissions (read)][permissions-secretscanning]
+    - ⚠️ GitHub App or PAT only, not Actions Token
+  - ["Dependabot alerts" repository permissions (read)][permissions-dependabot]
+    - ⚠️ GitHub App or PAT only, not Actions Token
 - [optional] Policy Repository
   - `content: read` to be able to clone external sources of the policies
+
+> [!WARNING]
+> Secret Scanning and Dependabot Alerts results cannot be accessed using the Actions Token, use a GitHub App
+
+**GitHub App:**
+
+- Contents
+- [Code scanning alerts][permissions-codescanning]
+- [Dependabot alerts][permissions-dependabot]
+- [Secret scanning alerts][permissions-secretscanning]
 
 **[Action Permissions Example][permissions]:**
 
