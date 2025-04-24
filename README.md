@@ -45,7 +45,7 @@ Here is how you can quickly setup policy-as-code.
 ```yaml
 # Policy as Code
 - name: Advance Security Policy as Code
-  uses: advanced-security/policy-as-code@v2.10.0
+  uses: advanced-security/policy-as-code@v2.10.1
 ```
 
 > [!WARNING]
