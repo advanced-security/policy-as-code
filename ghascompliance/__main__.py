@@ -75,6 +75,8 @@ if __name__ == "__main__":
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
     Octokit.setLevel(logging.DEBUG if arguments.debug else logging.INFO)
+    ghastoolkit_logger = logging.getLogger("ghastoolkit")
+    ghastoolkit_logger.setLevel(logging.DEBUG if arguments.debug else logging.INFO)
 
     if arguments.debug:
         Octokit.debug("Debugging enabled")
