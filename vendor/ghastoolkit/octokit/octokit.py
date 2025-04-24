@@ -25,6 +25,7 @@ GRAPHQL_MAX_CALLS = 100  # ~5000 per hour
 __OCTOKIT_PATH__ = os.path.dirname(os.path.realpath(__file__))
 
 __OCTOKIT_ERRORS__ = {
+    400: GHASToolkitError("Bad Request", status=400),
     401: GHASToolkitAuthenticationError(
         "Authentication / Permission Issue", status=401
     ),
@@ -32,6 +33,9 @@ __OCTOKIT_ERRORS__ = {
         "Authentication / Permission Issue", status=403
     ),
     404: GHASToolkitError("Not Found", status=404),
+    422: GHASToolkitError(
+        "Validation failed, or the endpoint has been spammed.", status=422
+    ),
     429: GHASToolkitError("Rate limit hit", status=429),
     500: GHASToolkitError("GitHub Server Error", status=500),
 }
@@ -113,7 +117,7 @@ class RestRequest:
         self.session.headers = {
             "Accept": "application/vnd.github.v3+json",
             "X-GitHub-Api-Version": RestRequest.VERSION,
-            "Authorization": f"token {GitHub.token}",
+            "Authorization": f"Bearer {GitHub.getToken(masked=False)}",
         }
 
         if retries:
