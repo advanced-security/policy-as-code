@@ -24,7 +24,7 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 parser = argparse.ArgumentParser(tool_name)
 
 parser.add_argument(
-    "--debug", action="store_true", default=bool(os.environ.get("RUNNER_DEBUG", os.environ.get("DEBUG", 0))
+    "--debug", action="store_true", default=bool(os.environ.get("RUNNER_DEBUG", os.environ.get("DEBUG", 0)))
 )
 parser.add_argument("--disable-caching", action="store_false")
 parser.add_argument("--disable-code-scanning", action="store_true")
