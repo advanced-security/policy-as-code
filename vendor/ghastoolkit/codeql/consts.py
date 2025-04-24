@@ -1,5 +1,7 @@
 # Dict of CodeQL supported Languages
 CODEQL_LANGUAGES = {
+    "actions": "actions",
+    "c": "cpp",
     "cpp": "cpp",
     "csharp": "csharp",
     "java": "java",
@@ -8,5 +10,7 @@ CODEQL_LANGUAGES = {
     "typescript": "javascript",
     "go": "go",
     "python": "python",
+    "rust": "rust",
+    "swift": "swift",
     "ruby": "ruby",
 }

@@ -52,7 +52,11 @@ class MainCli(CommandLine):
             logging.info(f"v{__version__}")
             return
 
-        logging.info(__banner__)
+        print(__banner__)
+
+        if not arguments.token or arguments.token == "":
+            logging.error("Missing GitHub token.")
+            return
 
         if arguments.mode in ["all", "codescanning"]:
             logging.info("")

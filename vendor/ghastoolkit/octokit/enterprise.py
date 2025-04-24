@@ -41,6 +41,7 @@ class Organization:
         for repository in result:
             repositories.append(Repository.parseRepository(repository.get("full_name")))
 
+        logger.debug(f"Found {len(repositories)} repositories in {self.name}")
         return repositories
 
     def enableAllSecurityProduct(self) -> bool:

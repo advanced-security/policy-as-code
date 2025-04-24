@@ -3,7 +3,7 @@
 __name__ = "ghastoolkit"
 __title__ = "GHAS Toolkit"
 
-__version__ = "0.15.1"
+__version__ = "0.16.0"
 
 __description__ = "GitHub Advanced Security Python Toolkit"
 __summary__ = """\
@@ -23,7 +23,7 @@ __banner__ = f"""\
 | |  \\/| |_| |/ /_\\ \\\\ `--.  | | ___   ___ | | | ___| |_ 
 | | __ |  _  ||  _  | `--. \\ | |/ _ \\ / _ \\| | |/ / | __|
 | |_\\ \\| | | || | | |/\\__/ / | | (_) | (_) | |   <| | |_ 
- \\____/\\_| |_/\\_| |_/\\____/  \\_/\\___/ \\___/|_|_|\\_\\_|\\__| v{__version__} 
+ \\____/\\_| |_/\\_| |_/\\____/  \\_/\\___/ \\___/|_|_|\\_\\_|\\__|  v{__version__} by {__author__}
 """
 
 
@@ -43,7 +43,8 @@ from ghastoolkit.octokit.advisories import SecurityAdvisories
 # Supply Chain
 from ghastoolkit.supplychain.advisories import Advisory, Advisories
 from ghastoolkit.supplychain.dependencyalert import DependencyAlert
-from ghastoolkit.supplychain.dependencies import Dependency, Dependencies
+from ghastoolkit.supplychain.dependencies import Dependencies
+from ghastoolkit.supplychain.dependency import Dependency
 from ghastoolkit.supplychain.licensing import Licenses
 
 # CodeQL

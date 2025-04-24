@@ -78,8 +78,6 @@ RECENT_DATE = datetime.date(2023, 6, 1)
 
 _CONTAINS_CONTROL_CHAR_RE = re.compile(r"[^-!#$%&'*+.^_`|~0-9a-zA-Z]")
 
-_HAS_SYS_AUDIT = hasattr(sys, "audit")
-
 
 class HTTPConnection(_HTTPConnection):
     """
@@ -139,8 +137,9 @@ class HTTPConnection(_HTTPConnection):
         timeout: _TYPE_TIMEOUT = _DEFAULT_TIMEOUT,
         source_address: tuple[str, int] | None = None,
         blocksize: int = 16384,
-        socket_options: None
-        | (connection._TYPE_SOCKET_OPTIONS) = default_socket_options,
+        socket_options: None | (
+            connection._TYPE_SOCKET_OPTIONS
+        ) = default_socket_options,
         proxy: Url | None = None,
         proxy_config: ProxyConfig | None = None,
     ) -> None:
@@ -215,9 +214,7 @@ class HTTPConnection(_HTTPConnection):
                 self, f"Failed to establish a new connection: {e}"
             ) from e
 
-        # Audit hooks are only available in Python 3.8+
-        if _HAS_SYS_AUDIT:
-            sys.audit("http.client.connect", self, self.host, self.port)
+        sys.audit("http.client.connect", self, self.host, self.port)
 
         return sock
 
@@ -312,6 +309,13 @@ class HTTPConnection(_HTTPConnection):
         Return True if a forwarding proxy is configured, else return False
         """
         return bool(self.proxy) and self._tunnel_host is None
+
+    @property
+    def proxy_is_tunneling(self) -> bool:
+        """
+        Return True if a tunneling proxy is configured, else return False
+        """
+        return self._tunnel_host is not None
 
     def close(self) -> None:
         try:
@@ -503,6 +507,11 @@ class HTTPConnection(_HTTPConnection):
         # This is needed here to avoid circular import errors
         from .response import HTTPResponse
 
+        # Save a reference to the shutdown function before ownership is passed
+        # to httplib_response
+        # TODO should we implement it everywhere?
+        _shutdown = getattr(self.sock, "shutdown", None)
+
         # Get the response from http.client.HTTPConnection
         httplib_response = super().getresponse()
 
@@ -531,6 +540,7 @@ class HTTPConnection(_HTTPConnection):
             enforce_content_length=resp_options.enforce_content_length,
             request_method=resp_options.request_method,
             request_url=resp_options.request_url,
+            sock_shutdown=_shutdown,
         )
         return response
 
@@ -561,8 +571,9 @@ class HTTPSConnection(HTTPConnection):
         timeout: _TYPE_TIMEOUT = _DEFAULT_TIMEOUT,
         source_address: tuple[str, int] | None = None,
         blocksize: int = 16384,
-        socket_options: None
-        | (connection._TYPE_SOCKET_OPTIONS) = HTTPConnection.default_socket_options,
+        socket_options: None | (
+            connection._TYPE_SOCKET_OPTIONS
+        ) = HTTPConnection.default_socket_options,
         proxy: Url | None = None,
         proxy_config: ProxyConfig | None = None,
         cert_reqs: int | str | None = None,
@@ -695,7 +706,7 @@ class HTTPSConnection(HTTPConnection):
             tls_in_tls = False
 
             # Do we need to establish a tunnel?
-            if self._tunnel_host is not None:
+            if self.proxy_is_tunneling:
                 # We're tunneling to an HTTPS origin so need to do TLS-in-TLS.
                 if self._tunnel_scheme == "https":
                     # _connect_tls_proxy will verify and assign proxy_is_verified
@@ -709,7 +720,7 @@ class HTTPSConnection(HTTPConnection):
 
                 self._tunnel()
                 # Override the host with the one we're requesting data from.
-                server_hostname = self._tunnel_host
+                server_hostname = typing.cast(str, self._tunnel_host)
 
             if self.server_hostname is not None:
                 server_hostname = self.server_hostname
