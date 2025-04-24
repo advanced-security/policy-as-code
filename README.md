@@ -61,7 +61,7 @@ The Policy as Code project is a self-contained Python based CLI tool.
 **Bash / Zsh:**
 
 ```bash
-git clone --branch "2.10.0" https://github.com/advanced-security/policy-as-code.git && cd ./policy-as-code
+git clone --branch "v2.10.1" https://github.com/advanced-security/policy-as-code.git && cd ./policy-as-code
 
 ./policy-as-code --help
 ```
@@ -69,7 +69,7 @@ git clone --branch "2.10.0" https://github.com/advanced-security/policy-as-code.
 **Powershell:**
 
 ```Powershell
-git clone --branch "2.10.0" https://github.com/advanced-security/policy-as-code.git
+git clone --branch "v2.10.1" https://github.com/advanced-security/policy-as-code.git
 cd policy-as-code
 
 .\policy-as-code.ps1 --help
