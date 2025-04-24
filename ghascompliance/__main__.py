@@ -24,7 +24,9 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 parser = argparse.ArgumentParser(tool_name)
 
 parser.add_argument(
-    "--debug", action="store_true", default=bool(os.environ.get("DEBUG"))
+    "--debug",
+    action="store_true",
+    default=bool(os.environ.get("RUNNER_DEBUG", os.environ.get("DEBUG", 0))),
 )
 parser.add_argument("--disable-caching", action="store_false")
 parser.add_argument("--disable-code-scanning", action="store_true")
@@ -75,6 +77,8 @@ if __name__ == "__main__":
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
     Octokit.setLevel(logging.DEBUG if arguments.debug else logging.INFO)
+    ghastoolkit_logger = logging.getLogger("ghastoolkit")
+    ghastoolkit_logger.setLevel(logging.DEBUG if arguments.debug else logging.INFO)
 
     if arguments.debug:
         Octokit.debug("Debugging enabled")
