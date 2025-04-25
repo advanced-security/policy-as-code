@@ -39,6 +39,10 @@ class Dependencies:
         """Append is an alias for `.add`, for backwards compatibility."""
         self.add(dependency)
 
+    def extend(self, dependencies: "Dependencies"):
+        """Extends Dependencies with another list of Dependencies."""
+        self._dependencies.update(dependencies._dependencies)
+
     def remove(self, dependency: Dependency):
         """Remove a dependency from the set."""
         if dependency in self._dependencies:
