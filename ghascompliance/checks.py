@@ -96,16 +96,58 @@ class Checks:
             Octokit.info(
                 f"Code Scanning retries enabled :: x{self.retry_count}/{self.retry_sleep}s"
             )
-            pr_base = (
-                GitHub.repository.getPullRequestInfo().get("base", {}).get("ref", "")
-            )
-            alerts = codescanning.getAlertsInPR(pr_base)
+            try:
+                pr_info = GitHub.repository.getPullRequestInfo()
+                pr_base = pr_info.get("base", {}).get("ref", "")
+                
+                # Try different refs in order of preference
+                refs_to_try = [
+                    f"refs/pull/{GitHub.repository.getPullRequestNumber()}/merge",
+                    f"refs/pull/{GitHub.repository.getPullRequestNumber()}/head",
+                    pr_base,
+                    None
+                ]
+                
+                alerts = None
+                for ref in refs_to_try:
+                    try:
+                        if ref:
+                            Octokit.info(f"Attempting to get alerts with ref: {ref}")
+                            alerts = codescanning.getAlerts("open", ref=ref)
+                        else:
+                            Octokit.info("Attempting to get alerts without ref")
+                            alerts = codescanning.getAlertsInPR(pr_base)
+                            
+                        if alerts:
+                            Octokit.info(f"Successfully found {len(alerts)} alerts")
+                            break
+                    except Exception as e:
+                        if "Code scanning alerts" in str(e) and "repository permissions" in str(e):
+                            Octokit.error("Permission error: Ensure token has 'security_events: read' permission")
+                            raise e
+                        Octokit.warning(f"Failed to get alerts with ref {ref}: {str(e)}")
+                        continue
+                
+                if not alerts:
+                    alerts = []
+                    Octokit.warning("No alerts found with any reference method")
+
+            except Exception as e:
+                Octokit.error(f"Failed to check code scanning: {str(e)}")
+                return 1
 
         else:
-            Octokit.debug(
-                f"Code Scanning Alerts from reference :: {GitHub.repository.reference}"
-            )
-            alerts = codescanning.getAlerts("open", ref=GitHub.repository.reference)
+            try:
+                Octokit.debug(
+                    f"Code Scanning Alerts from reference :: {GitHub.repository.reference}"
+                )
+                alerts = codescanning.getAlerts("open", ref=GitHub.repository.reference)
+            except Exception as e:
+                if "Code scanning alerts" in str(e) and "repository permissions" in str(e):
+                    Octokit.error("Permission error: Ensure token has 'security_events: read' permission")
+                    raise e
+                Octokit.error(f"Failed to get alerts: {str(e)}")
+                return 1
 
         Octokit.info("Total Code Scanning Alerts :: " + str(len(alerts)))
 
@@ -117,10 +159,10 @@ class Checks:
             ids = []
             # Rule ID
             ids.append(alert.rule_id)
-            # TODO: CWE?
+            # TODO: CWE?
 
             names = []
-            #  Rule Name
+            # Rule Name
             names.append(rule_name)
 
             alert_creation_time = datetime.strptime(
@@ -245,15 +287,15 @@ class Checks:
                 alert_creation_time = datetime.now()
 
             ids = []
-            #  GitHub Advisory
+            # GitHub Advisory
             ids.append(alert.advisory.ghsa_id.lower())
-            #  CWE support
+            # CWE support
             ids.extend(alert.advisory.cwes)
 
             names = [
                 # org.apache.commons
                 dependency.fullname,
-                #  maven://org.apache.commons
+                # maven://org.apache.commons
                 dependency.getPurl(version=False),
             ]
 
@@ -484,7 +526,7 @@ class Checks:
             # manager + name + version
             names.append(dependency.getPurl())
 
-            #  none is set to just check if the name or pattern is discovered
+            # none is set to just check if the name or pattern is discovered
             if self.policy.checkViolation("none", "dependencies", names=names, ids=ids):
                 dependency_violations.append([dependency.fullname])
                 if self.display:
