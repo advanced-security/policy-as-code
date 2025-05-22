@@ -45,7 +45,7 @@ Here is how you can quickly setup policy-as-code.
 ```yaml
 # Policy as Code
 - name: Advance Security Policy as Code
-  uses: advanced-security/policy-as-code@v2.8.0
+  uses: advanced-security/policy-as-code@v2.10.1
 ```
 
 > [!WARNING]
@@ -61,7 +61,7 @@ The Policy as Code project is a self-contained Python based CLI tool.
 **Bash / Zsh:**
 
 ```bash
-git clone --branch "v2.8.0" https://github.com/advanced-security/policy-as-code.git && cd ./policy-as-code
+git clone --branch "v2.10.1" https://github.com/advanced-security/policy-as-code.git && cd ./policy-as-code
 
 ./policy-as-code --help
 ```
@@ -69,7 +69,7 @@ git clone --branch "v2.8.0" https://github.com/advanced-security/policy-as-code.
 **Powershell:**
 
 ```Powershell
-git clone --branch "v2.8.0" https://github.com/advanced-security/policy-as-code.git
+git clone --branch "v2.10.1" https://github.com/advanced-security/policy-as-code.git
 cd policy-as-code
 
 .\policy-as-code.ps1 --help
@@ -84,23 +84,35 @@ For Policy as Code to work correctly, you need to have the following permissions
 
 - [required] Repository Permissions
   - [`security_events: read`][permissions]
-    - [Dependabot Alerts][permissions-dependabot]
     - [Code Scanning][permissions-codescanning]
-    - [Secret Scanning][permissions-secretscanning]
   - [`content: read`][permissions]
     - [Dependency Graph][permissions-dependencygraph] / [Dependency Licenses][permissions-dependencygraph]
   - [`pull-requests: write`][permissions]
     - Policy as Code Pull Request Summary
+  - ["Secret scanning alerts" repository permissions (read)][permissions-secretscanning]
+    - ⚠️ GitHub App or PAT only, not Actions Token
+  - ["Dependabot alerts" repository permissions (read)][permissions-dependabot]
+    - ⚠️ GitHub App or PAT only, not Actions Token
 - [optional] Policy Repository
   - `content: read` to be able to clone external sources of the policies
+
+> [!WARNING]
+> Secret Scanning and Dependabot Alerts results cannot be accessed using the Actions Token, use a GitHub App
+
+**GitHub App:**
+
+- Contents
+- [Code scanning alerts][permissions-codescanning]
+- [Dependabot alerts][permissions-dependabot]
+- [Secret scanning alerts][permissions-secretscanning]
 
 **[Action Permissions Example][permissions]:**
 
 ```yaml
 # workflow or job level
 permissions:
-  content: read
-  security_events: read
+  contents: read
+  security-events: read
   # pull request summaries
   pull-requests: write
 ```
@@ -128,7 +140,7 @@ Here is an example of using a simple yet cross-organization using Policy as Code
 ```yaml
 # Compliance
 - name: Advance Security Policy as Code
-  uses: advanced-security/policy-as-code@v2.8.0
+  uses: advanced-security/policy-as-code@2.10.0
   with:
     # The owner/repo of where the policy is stored
     policy: GeekMasher/security-queries
