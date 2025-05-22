@@ -1,3 +1,5 @@
+"""Octokit"""
+
 import os
 import inspect
 import logging
@@ -6,6 +8,7 @@ from typing import Any, Callable, Optional, Union
 from dataclasses import field, is_dataclass
 
 from requests import Session
+from requests.adapters import HTTPAdapter, Retry
 from ratelimit import limits, sleep_and_retry
 
 from ghastoolkit.errors import GHASToolkitAuthenticationError, GHASToolkitError
@@ -17,10 +20,12 @@ from ghastoolkit.octokit.graphql import QUERIES
 # a GitHub App which has a higher limit
 # https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#rate-limiting
 REST_MAX_CALLS = 80  # ~5000 per hour
+GRAPHQL_MAX_CALLS = 100  # ~5000 per hour
 
 __OCTOKIT_PATH__ = os.path.dirname(os.path.realpath(__file__))
 
 __OCTOKIT_ERRORS__ = {
+    400: GHASToolkitError("Bad Request", status=400),
     401: GHASToolkitAuthenticationError(
         "Authentication / Permission Issue", status=401
     ),
@@ -28,6 +33,9 @@ __OCTOKIT_ERRORS__ = {
         "Authentication / Permission Issue", status=403
     ),
     404: GHASToolkitError("Not Found", status=404),
+    422: GHASToolkitError(
+        "Validation failed, or the endpoint has been spammed.", status=422
+    ),
     429: GHASToolkitError("Rate limit hit", status=429),
     500: GHASToolkitError("GitHub Server Error", status=500),
 }
@@ -100,15 +108,20 @@ class RestRequest:
     PER_PAGE = 100
     VERSION: str = "2022-11-28"
 
-    def __init__(self, repository: Optional[Repository] = None) -> None:
+    def __init__(
+        self, repository: Optional[Repository] = None, retries: Optional[Retry] = None
+    ) -> None:
         self.repository = repository or GitHub.repository
         self.session = Session()
         # https://docs.github.com/en/rest/overview/authenticating-to-the-rest-api
         self.session.headers = {
             "Accept": "application/vnd.github.v3+json",
             "X-GitHub-Api-Version": RestRequest.VERSION,
-            "Authorization": f"token {GitHub.token}",
+            "Authorization": f"Bearer {GitHub.getToken(masked=False)}",
         }
+
+        if retries:
+            self.session.mount("https://", HTTPAdapter(max_retries=retries))
 
     @staticmethod
     def restGet(url: str, authenticated: bool = False):
@@ -210,6 +223,9 @@ class RestRequest:
                 "GitHub Token required for this request"
             )
 
+        cursor = None
+        page = 1  # Page starts at 1
+
         result = []
         params = {}
         # if the parameter is in the path, ignore it
@@ -219,10 +235,11 @@ class RestRequest:
 
         params["per_page"] = RestRequest.PER_PAGE
 
-        page = 1  # index starts at 1
-
         while True:
-            params["page"] = page
+            if cursor:
+                params["after"] = cursor.replace("%3D", "=")
+            else:
+                params["page"] = page
 
             response = self.session.get(url, params=params)
             # Every response should be a JSON (including errors)
@@ -263,6 +280,17 @@ class RestRequest:
             # if the page is not full, we must have hit the end
             if len(response_json) < RestRequest.PER_PAGE:
                 break
+
+            # Use a cursor for pagination
+            if link := response.headers.get("Link"):
+                if next := [x for x in link.split(", ") if x.endswith('rel="next"')]:
+                    next = next[0].split(">;")[0].replace("<", "")
+                    # If `after` parameter is not in the URL
+                    if after := next.split("&after="):
+                        # We don't want to paginate if the cursor is a URL
+                        if not after[0].startswith("http"):
+                            cursor = after[0]
+                            logger.debug(f"Cursor :: {cursor}")
 
             page += 1
 
@@ -336,9 +364,13 @@ class GraphQLRequest:
         # load in default hardcoded queries
         self.queries = QUERIES
 
+    @sleep_and_retry
+    @limits(calls=GRAPHQL_MAX_CALLS, period=60)
     def query(self, name: str, options: dict[str, Any] = {}) -> dict:
         """Run a GraphQL query.
+
         https://docs.github.com/en/enterprise-cloud@latest/graphql/overview/about-the-graphql-api
+        https://docs.github.com/en/enterprise-cloud@latest/graphql/overview/rate-limits-and-node-limits-for-the-graphql-api#primary-rate-limit
         """
         logger.debug(f"Loading Query by Name :: {name}")
         query_content = self.queries.get(name)
@@ -365,6 +397,7 @@ class GraphQLRequest:
             )
 
         rjson = response.json()
+
         if rjson.get("errors"):
             for err in rjson.get("errors"):
                 logger.warning(f"GraphQL Query failed :: {err.get('message')}")

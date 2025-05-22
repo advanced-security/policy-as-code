@@ -61,7 +61,9 @@ class CodeQLDatabase:
             self.path_download = self.createDownloadPath()
 
         if self.language not in CODEQL_LANGUAGES:
-            raise Exception("Language is not supported by CodeQL Summary Generator")
+            logger.warning(
+                f"Language `{self.language}` is not supported by CodeQL Summary Generator"
+            )
 
     def __str__(self) -> str:
         name = str(self.repository) if self.repository else self.name

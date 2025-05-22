@@ -1,5 +1,6 @@
 """Dependency Graph Octokit."""
 
+import json
 import logging
 from typing import Any, Dict
 import urllib.parse
@@ -8,24 +9,43 @@ from semantic_version import Version
 
 from ghastoolkit.errors import GHASToolkitError, GHASToolkitTypeError
 from ghastoolkit.octokit.github import GitHub, Repository
-from ghastoolkit.supplychain.advisories import Advisory
-from ghastoolkit.supplychain.dependencyalert import DependencyAlert
-from ghastoolkit.supplychain.dependencies import Dependencies, Dependency
+from ghastoolkit.supplychain import (
+    Advisory,
+    Dependencies,
+    Dependency,
+    DependencyAlert,
+    uniqueDependencies,
+)
+from ghastoolkit.octokit.enterprise import Organization
 from ghastoolkit.octokit.octokit import GraphQLRequest, Optional, RestRequest
+from ghastoolkit.utils.cache import Cache
 
 logger = logging.getLogger("ghastoolkit.octokit.dependencygraph")
 
 
 class DependencyGraph:
-    """Dependency Graph API."""
+    """Dependency Graph API.
+
+    This class is used to interact with the Dependency Graph API in GitHub.
+    """
 
     def __init__(
         self,
         repository: Optional[Repository] = None,
         enable_graphql: bool = True,
         enable_clearlydefined: bool = False,
+        cache: bool = False,
     ) -> None:
-        """Initialise Dependency Graph."""
+        """Initialise Dependency Graph.
+
+        Arguments:
+            repository: The repository to use. If not provided, it will use the current
+                        repository in `GitHub`.
+            enable_graphql: Enable GraphQL API. Defaults to True.
+            enable_clearlydefined: Enable ClearlyDefined API. Defaults to False.
+            cache: Enable caching. Defaults to False.
+
+        """
         self.repository = repository or GitHub.repository
         self.rest = RestRequest(repository)
         self.graphql = GraphQLRequest(repository)
@@ -33,27 +53,65 @@ class DependencyGraph:
         self.enable_graphql = enable_graphql
         self.enable_clearlydefined = enable_clearlydefined
 
-    def getOrganizationDependencies(self) -> Dict[Repository, Dependencies]:
-        """Get Organization Dependencies."""
+        self.cache_enabled = cache
+        self.cache = Cache(store="dependencygraph")
+
+    def getOrganizationDependencies(
+        self, owner: Optional[str] = None
+    ) -> Dict[Repository, Dependencies]:
+        """Get Organization Dependencies for all repositories.
+
+        This is done by iterating through all the repositories in the organization
+        and getting the dependencies for each repository. This is done as there is no
+        way to get all the dependencies for an organization in a single request.
+
+        Arguments:
+            owner: The owner of the organization. If not provided, it will use the current
+                   owner of the repository.
+
+        Returns:
+            Dict[Repository, Dependencies]: A dictionary of repositories and their dependencies.
+        """
+        org = Organization(organization=owner or GitHub.owner)
+        logger.debug(f"Processing organization :: {org}")
+
         deps: Dict[Repository, Dependencies] = {}
 
-        repositories = self.rest.get("/orgs/{org}/repos")
-        if not isinstance(repositories, list):
-            raise Exception("Invalid organization")
+        repositories = org.getRepositories()
+        logger.debug(f"Found `{len(repositories)}` repositories in organization")
 
         for repo in repositories:
-            repo = Repository.parseRepository(repo.get("full_name"))
             logger.debug(f"Processing repository :: {repo}")
             try:
-                self.rest = RestRequest(repo)
+                depgraph = DependencyGraph(repo, enable_graphql=self.enable_graphql)
+                logger.debug(f"Using repository :: {depgraph.repository}")
 
-                deps[repo] = self.getDependenciesSbom()
+                deps[repo] = depgraph.getDependenciesSbom()
+
+                if depgraph.enable_graphql:
+                    logger.debug("Enabled GraphQL Dependencies")
+                    graph_deps = depgraph.getDependenciesGraphQL()
+
+                    deps[repo].updateDependencies(graph_deps)
+                    logger.debug("Updated dependencies with GraphQL")
             except Exception as err:
-                logger.warning(f"Failed to get dependencies :: {err}")
+                logger.warning(f"Failed to get `{repo}` dependencies :: {err}")
                 deps[repo] = Dependencies()
 
         self.rest = RestRequest(self.repository)
         return deps
+
+    def getUniqueOrgDependencies(
+        self,
+        version: bool = False,
+    ) -> Dependencies:
+        """Create a unique list of dependencies, this is useful for merging multiple lists for example
+        from an organization.
+
+        Arguments:
+            version: If True, include the version in the unique list. Defaults to False.
+        """
+        return uniqueDependencies(self.getOrganizationDependencies(), version=version)
 
     def getDependencies(self) -> Dependencies:
         """Get Dependencies."""
@@ -88,96 +146,157 @@ class DependencyGraph:
         return deps
 
     def getDependenciesSbom(self) -> Dependencies:
-        """Get Dependencies from SBOM."""
-        result = Dependencies()
-        spdx_bom = self.exportBOM()
+        """Get Dependencies from SBOM.
 
-        for package in spdx_bom.get("sbom", {}).get("packages", []):
-            extref = False
-            dep = Dependency("")
-            for ref in package.get("externalRefs", []):
-                if ref.get("referenceType", "") == "purl":
-                    dep = Dependency.fromPurl(ref.get("referenceLocator"))
-                    extref = True
-                else:
-                    logger.warning(f"Unknown external reference :: {ref}")
+        If cache is enabled, it will use the cached dependencies if they exist.
+        If not, it will download the SBOM and cache it.
+        """
+        cache_key = self.rest.repository.__str__()
 
-            # if get find a PURL or not
-            if extref:
-                dep.license = package.get("licenseConcluded")
+        if self.cache_enabled:
+            cache = self.cache.read(cache_key, file_type="spdx.json")
+            if cache:
+                logger.debug(f"Using cached dependencies for `{self.rest.repository}`")
+                data = json.loads(cache)
+                return Dependencies.loadSpdxSbom(data)
             else:
-                name = package.get("name", "").lower()
-                # manager ':'
-                if ":" in name:
-                    dep.manager, name = name.split(":", 1)
-
-                # HACK: Maven / NuGet
-                if dep.manager in ["maven", "nuget"]:
-                    if "." in name:
-                        dep.namespace, name = name.rsplit(".", 1)
-                # Namespace '/'
-                elif "/" in package:
-                    dep.namespace, name = name.split("/", 1)
-
-                dep.name = name
-                dep.version = package.get("versionInfo")
-                dep.license = package.get("licenseConcluded")
-
-            result.append(dep)
-
-        return result
-
-    def getDependenciesGraphQL(self) -> Dependencies:
-        """Get Dependencies from GraphQL."""
-        deps = Dependencies()
-        data = self.graphql.query(
-            "GetDependencyInfo",
-            {"owner": self.repository.owner, "repo": self.repository.repo},
-        )
-        graph_manifests = (
-            data.get("data", {})
-            .get("repository", {})
-            .get("dependencyGraphManifests", {})
-        )
-        logger.debug(
-            f"Graph Manifests Total Count :: {graph_manifests.get('totalCount')}"
-        )
-
-        for manifest in graph_manifests.get("edges", []):
-            node = manifest.get("node", {})
-            logger.debug(f"Processing :: '{node.get('filename')}'")
-
-            for dep in node.get("dependencies", {}).get("edges", []):
-                dep = dep.get("node", {})
-                license = None
-                repository = None
-
-                if dep.get("repository"):
-                    if dep.get("repository", {}).get("licenseInfo"):
-                        license = (
-                            dep.get("repository", {}).get("licenseInfo", {}).get("name")
-                        )
-                    if dep.get("repository", {}).get("nameWithOwner"):
-                        repository = dep.get("repository", {}).get("nameWithOwner")
-
-                version = dep.get("requirements")
-                if version:
-                    version = version.replace("= ", "")
-
-                deps.append(
-                    Dependency(
-                        name=dep.get("packageName"),
-                        manager=dep.get("packageManager"),
-                        version=version,
-                        license=license,
-                        repository=repository,
-                    )
+                logger.debug(
+                    f"Cache not found for {self.repository.repo}, downloading SBOM"
                 )
 
-        return deps
+        logger.debug(f"Downloading SBOM for {self.repository}")
+        spdx_bom = self.exportBOM()
+
+        if self.cache_enabled:
+            logger.debug(f"Caching dependencies for {self.repository.repo}")
+            self.cache.write(cache_key, spdx_bom, file_type="spdx.json")
+
+        return Dependencies.loadSpdxSbom(spdx_bom)
+
+    def getDependenciesGraphQL(self, dependencies_count: int = 100) -> Dependencies:
+        """Get Dependencies from GraphQL.
+
+        This functions requests each manifest file in the repository and the
+        dependencies associated with it. It then paginates through both the manifests
+        and dependencies.
+
+        This is done to avoid the timeout errors in the GraphQL API when requesting
+        large projects with many manifests and dependencies.
+        """
+        deps = Dependencies()
+
+        if self.cache_enabled:
+            cache_key = self.rest.repository.__str__()
+            cache = self.cache.read(cache_key, file_type="graphql.json")
+            if cache:
+                logger.debug(f"Using cached dependencies for `{self.rest.repository}`")
+                data = json.loads(cache)
+                return self._parseGraphQL(data)
+
+        # Build up a single list of dependencies
+        graphql_data = {}
+
+        manifests = True
+        manifests_cursor = ""
+        dependencies_cursor = ""
+
+        while manifests:
+            # Query a single manifest at a time
+            data = self.graphql.query(
+                "GetDependencyInfo",
+                {
+                    "owner": self.repository.owner,
+                    "repo": self.repository.repo,
+                    "manifests_cursor": manifests_cursor,
+                    "dependencies_first": dependencies_count,
+                    "dependencies_cursor": dependencies_cursor,
+                },
+            )
+
+            graph_manifests = (
+                data.get("data", {})
+                .get("repository", {})
+                .get("dependencyGraphManifests", {})
+            )
+            logger.debug(f"Processing :: '{graph_manifests.get('totalCount')}'")
+
+            # Runs at least once
+            has_next_page = True
+
+            while has_next_page:
+                if not graph_manifests.get("edges"):
+                    logger.debug("No more manifests to be processed")
+                    break
+
+                for manifest in graph_manifests.get("edges", []):
+                    node = manifest.get("node", {})
+
+                    manifestfile = node.get("filename") or node.get("blobPath")
+                    logger.debug(f"Processing :: '{manifestfile}'")
+
+                    dependencies = node.get("dependencies", {})
+
+                    if graphql_data.get(manifestfile):
+                        graphql_data[manifestfile].update(dependencies)
+                    else:
+                        graphql_data[manifestfile] = dependencies
+
+                    # Pagination
+                    has_next_page = dependencies.get("pageInfo", {}).get(
+                        "hasNextPage", False
+                    )
+                    if has_next_page:
+                        dependencies_cursor = f'after: "{dependencies.get("pageInfo", {}).get("endCursor")}"'
+                    else:
+                        dependencies_cursor = ""
+
+                if has_next_page:
+                    logger.debug(
+                        f"Re-run and fetch next data page :: {manifests_cursor} ({dependencies_cursor})"
+                    )
+
+                    data = self.graphql.query(
+                        "GetDependencyInfo",
+                        {
+                            "owner": self.repository.owner,
+                            "repo": self.repository.repo,
+                            "manifests_cursor": manifests_cursor,
+                            "dependencies_first": dependencies_count,
+                            "dependencies_cursor": dependencies_cursor,
+                        },
+                    )
+                    graph_manifests = (
+                        data.get("data", {})
+                        .get("repository", {})
+                        .get("dependencyGraphManifests", {})
+                    )
+
+            # If there are no other manifest files, then we are done
+            if graph_manifests.get("pageInfo", {}).get("hasNextPage"):
+                cursor = graph_manifests.get("pageInfo", {}).get("endCursor")
+                manifests_cursor = f'after: "{cursor}"' if cursor != "" else ""
+                logger.debug(f"Cursor :: {manifests_cursor}")
+            else:
+                manifests = False
+                manifests_cursor = ""
+                logger.debug("No more manifests to be processed")
+
+        if self.cache_enabled:
+            logger.debug(f"Caching dependencies for {self.repository.repo}")
+            self.cache.write(cache_key, graphql_data, file_type="graphql.json")
+
+        return self._parseGraphQL(graphql_data)
 
     def getDependenciesInPR(self, base: str, head: str) -> Dependencies:
-        """Get all the dependencies from a Pull Request."""
+        """Get all the dependencies from a Pull Request.
+
+        Arguments:
+            base: The base branch of the Pull Request.
+            head: The head branch of the Pull Request.
+        Returns:
+            Dependencies: A list of dependencies.
+
+        """
 
         if GitHub.isEnterpriseServer() and GitHub.server_version < Version("3.6.0"):
             raise GHASToolkitError("Enterprise Server version must be >= 3.6")
@@ -207,8 +326,8 @@ class DependencyGraph:
 
             purl = depdata.get("package_url")
             if not purl or purl == "":
-                logger.warn("Package URL is not present, skipping...")
-                logger.warn(f"Package :: {depdata}")
+                logger.warning("Package URL is not present, skipping...")
+                logger.warning(f"Package :: {depdata}")
                 continue
 
             dep = Dependency.fromPurl(purl)
@@ -234,11 +353,12 @@ class DependencyGraph:
 
         return dependencies
 
-    def exportBOM(self) -> Dependencies:
+    def exportBOM(self) -> Dict:
         """Download / Export DependencyGraph SBOM.
 
         https://docs.github.com/en/rest/dependency-graph/sboms#export-a-software-bill-of-materials-sbom-for-a-repository
         """
+        logger.debug(f"Exporting SBOM for {self.repository}")
         result = self.rest.get("/repos/{owner}/{repo}/dependency-graph/sbom")
         if result:
             return result
@@ -246,6 +366,7 @@ class DependencyGraph:
         raise GHASToolkitTypeError(
             "Failed to download SBOM",
             docs="https://docs.github.com/en/rest/dependency-graph/sboms#export-a-software-bill-of-materials-sbom-for-a-repository",
+            permissions=['"Contents" repository permissions (read)'],
         )
 
     def submitDependencies(
@@ -259,6 +380,15 @@ class DependencyGraph:
         url: str = "",
     ):
         """Submit dependencies to GitHub Dependency Graph snapshots API.
+
+        Arguments:
+            dependencies: The dependencies to submit.
+            tool: The tool used to generate the dependencies.
+            path: The path to the dependencies file.
+            sha: The SHA of the commit.
+            ref: The reference of the commit.
+            version: The version of the dependencies.
+            url: The URL of the dependencies file.
 
         https://docs.github.com/en/rest/dependency-graph/dependency-submission?apiVersion=2022-11-28#create-a-snapshot-of-dependencies-for-a-repository
         """
@@ -275,3 +405,45 @@ class DependencyGraph:
             sbom,
             expected=201,
         )
+
+    def _parseGraphQL(self, data: Dict[str, Any]) -> Dependencies:
+        """Parse GraphQL data.
+
+        Arguments:
+            data: The data to parse.
+
+        Returns:
+            Dependencies: A list of dependencies.
+        """
+        deps = Dependencies()
+
+        for manifest, dependencies in data.items():
+            for dep in dependencies.get("edges", []):
+                dep = dep.get("node", {})
+                license = None
+                repository = None
+
+                if dep.get("repository"):
+                    if dep.get("repository", {}).get("licenseInfo"):
+                        license = (
+                            dep.get("repository", {}).get("licenseInfo", {}).get("name")
+                        )
+                    if dep.get("repository", {}).get("nameWithOwner"):
+                        repository = dep.get("repository", {}).get("nameWithOwner")
+
+                version = dep.get("requirements")
+                if version:
+                    version = version.replace("= ", "")
+
+                deps.append(
+                    Dependency(
+                        name=dep.get("packageName"),
+                        manager=dep.get("packageManager"),
+                        version=version,
+                        license=license,
+                        repository=repository,
+                        path=manifest,
+                    )
+                )
+
+        return deps

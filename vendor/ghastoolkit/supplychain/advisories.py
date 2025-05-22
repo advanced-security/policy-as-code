@@ -1,7 +1,7 @@
 import logging
 import os
 import json
-from typing import List, Optional
+from typing import List, Dict, Optional, Any
 from dataclasses import dataclass, field
 
 from semantic_version import SimpleSpec, Version
@@ -139,8 +139,15 @@ class Advisory(OctoItem):
     """CVE ID (if applicable)"""
     cwes: List[str] = field(default_factory=list)
     """List of CWEs"""
+
     cvss: Optional[dict] = None
     """CVSS Score"""
+    cvss_severities: Dict[str, dict] = field(default_factory=dict)
+    """CVSS Severities"""
+
+    epss: List[dict[str, Any]] = field(default_factory=list)
+    """EPS Score"""
+
     identifiers: List[dict] = field(default_factory=list)
     """List of identifiers"""
     references: List[dict] = field(default_factory=list)
@@ -207,6 +214,35 @@ class Advisory(OctoItem):
             if affect.check(dependency):
                 return self
         return
+
+    def cvss_score(self, version: int = 3) -> Optional[float]:
+        """Get CVSS Score."""
+        if version not in [3, 4]:
+            raise Exception(f"Unknown CVSS version :: {version}")
+
+        if version == 3:
+            if cvss := self.cvss_severities.get("cvss_v3"):
+                return cvss.get("score")
+            elif cvss := self.cvss:
+                return cvss.get("score")
+        elif version == 4:
+            if cvss := self.cvss_severities.get("cvss_v4"):
+                return cvss.get("score")
+        return None
+
+    @property
+    def epss_percentile(self) -> Optional[str]:
+        """Get EPSS Percentile."""
+        if epss := self.epss:
+            return epss[0].get("percentile", "0")
+        return None
+
+    @property
+    def epss_percentage(self) -> Optional[float]:
+        """Get EPSS Percentage."""
+        if epss := self.epss:
+            return float(epss[0].get("percentage", 0))
+        return None
 
 
 class Advisories:

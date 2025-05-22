@@ -1,116 +1,106 @@
+import os
+import json
 import logging
-from dataclasses import dataclass, field
+
 from datetime import datetime
 import re
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 from ghastoolkit.octokit.github import Repository
-from ghastoolkit.supplychain.dependencyalert import DependencyAlert
+from ghastoolkit.supplychain.dependency import Dependency
 from ghastoolkit.supplychain.licensing import NO_LICENSES, Licenses
 
 logger = logging.getLogger("ghastoolkit.supplychain.dependencies")
 
 
-@dataclass
-class Dependency:
-    """Dependency."""
+class Dependencies:
+    """Set-like collection of Dependencies with list compatibility."""
 
-    name: str
-    """Name of the Dependency"""
-    namespace: Optional[str] = None
-    """Namespace of the Dependency"""
-    version: Optional[str] = None
-    """Version of the Dependency"""
-    manager: Optional[str] = None
-    """Package Manager"""
-    path: Optional[str] = None
-    """Path to the Dependency"""
-    qualifiers: dict[str, str] = field(default_factory=dict)
-    """Qualifiers"""
-    license: Optional[str] = None
-    """License information"""
-    alerts: list[DependencyAlert] = field(default_factory=list)
-    """Security Alerts"""
+    def __init__(self, iterable=None):
+        """Initialize with an optional iterable."""
+        self._dependencies = set()
+        if iterable:
+            for dep in iterable:
+                self.add(dep)
 
-    repository: Optional[Union[str, Repository]] = None
-    """GitHub Repository for the dependency"""
+    def add(self, dependency: Dependency, repository: Repository = None):
+        """Add a dependency to the set."""
+        self._dependencies.add(dependency)
 
-    def __post_init__(self):
-        # normalize manager
-        if self.manager:
-            self.manager = self.manager.lower()
-        if self.repository and isinstance(self.repository, str):
-            self.repository = Repository.parseRepository(self.repository)
+        if repository:
+            # Find and add repo
+            for dep in self:
+                if dep.name == dependency.name or dep.fullname == dependency.fullname:
+                    dep.repositories.add(repository)
+                    self.add(dep)
+                    return
 
-    def getPurl(self, version: bool = True) -> str:
-        """Create a PURL from the Dependency.
+    def append(self, dependency: Dependency):
+        """Append is an alias for `.add`, for backwards compatibility."""
+        self.add(dependency)
 
-        https://github.com/package-url/purl-spec
-        """
-        result = f"pkg:"
-        if self.manager:
-            result += f"{self.manager.lower()}/"
-        if self.namespace:
-            result += f"{self.namespace}/"
-        result += f"{self.name}"
-        if version and self.version:
-            result += f"@{self.version}"
+    def extend(self, dependencies: "Dependencies"):
+        """Extends Dependencies with another list of Dependencies."""
+        self._dependencies.update(dependencies._dependencies)
 
-        return result
-
-    @staticmethod
-    def fromPurl(purl: str) -> "Dependency":
-        """Create a Dependency from a PURL."""
-        dep = Dependency("")
-        # version (at end)
-        if "@" in purl:
-            pkg, dep.version = purl.split("@", 1)
+    def remove(self, dependency: Dependency):
+        """Remove a dependency from the set."""
+        if dependency in self._dependencies:
+            self._dependencies.remove(dependency)
         else:
-            pkg = purl
+            raise KeyError(f"Dependency {dependency} not found in the collection.")
 
-        slashes = pkg.count("/")
-        if slashes == 0 and pkg.count(":", 1):
-            # basic purl `npm:name`
-            manager, dep.name = pkg.split(":", 1)
-        elif slashes == 2:
-            manager, dep.namespace, dep.name = pkg.split("/", 3)
-        elif slashes == 1:
-            manager, dep.name = pkg.split("/", 2)
-        elif slashes > 2:
-            manager, dep.namespace, dep.name = pkg.split("/", 2)
+    def pop(self, value: Union[str, int, Dependency]) -> Dependency:
+        """Pop allows you to remove an element from the set and return it."""
+        if isinstance(value, int):
+            logger.warning("Index-based access is deprecated. Use iteration instead.")
+            raise Exception("Index-based access is deprecated. Use iteration instead.")
+        elif isinstance(value, str):
+            for dep in self._dependencies:
+                if dep.name == value or dep.fullname == value:
+                    self.remove(dep)
+                    return dep
         else:
-            raise Exception(f"Unable to parse PURL :: {purl}")
+            if value in self._dependencies:
+                self.remove(value)
+                return value
+            else:
+                raise KeyError(f"Dependency {value} not found in the collection.")
 
-        if manager.startswith("pkg:"):
-            _, dep.manager = manager.split(":", 1)
+    def __iter__(self):
+        """Iterator protocol support."""
+        return iter(self._dependencies)
+
+    def __len__(self):
+        """Return count of dependencies."""
+        return len(self._dependencies)
+
+    def __contains__(self, dependency: Dependency) -> bool:
+        """Check if dependency is in the collection."""
+        return dependency in self._dependencies
+
+    def __getitem__(self, key):
+        """Support for index-based access for backward compatibility."""
+        if isinstance(key, int):
+            logger.warning("Index-based access is deprecated. Use iteration instead.")
+            raise Exception("Index-based access is deprecated. Use iteration instead.")
+        # If it's a dependency object, return the actual instance from the set
+        for dep in self._dependencies:
+            if dep == key:
+                return dep
+        raise KeyError(f"Dependency {key} not found")
+
+    def __setitem__(self, key, value):
+        """Support for index-based setting for backward compatibility."""
+        if isinstance(key, int):
+            # This is trickier since sets don't have indexes
+            # We'll remove the old item at that position and add the new one
+            items = list(self._dependencies)
+            self._dependencies.remove(items[key])
+            self._dependencies.add(value)
         else:
-            dep.manager = manager
-
-        return dep
-
-    @property
-    def fullname(self) -> str:
-        """Full Name of the Dependency."""
-        if self.namespace:
-            sep = "/"
-            if self.manager == "maven":
-                sep = ":"
-            return f"{self.namespace}{sep}{self.name}"
-        return self.name
-
-    def __str__(self) -> str:
-        """To String (PURL)."""
-        return self.getPurl()
-
-    def __repr__(self) -> str:
-        return self.getPurl()
-
-    def __hash__(self) -> int:
-        return hash(self.getPurl())
-
-
-class Dependencies(list[Dependency]):
-    """List of Dependencies."""
+            # Not supported
+            raise TypeError("Setting with non-integer indices not supported")
 
     def exportBOM(
         self,
@@ -146,6 +136,65 @@ class Dependencies(list[Dependency]):
             },
         }
         return data
+
+    @staticmethod
+    def loadSpdx(
+        path: str,
+    ) -> "Dependencies":
+        """Load a SPDX file into the Dependencies list."""
+        if not os.path.exists(path):
+            raise ValueError(f"File does not exist: {path}")
+        if not os.path.isfile(path):
+            raise ValueError(f"Path is not a file: {path}")
+
+        with open(path, "r") as file:
+            data = json.load(file)
+
+        return Dependencies.loadSpdxSbom(data)
+
+    @staticmethod
+    def loadSpdxSbom(
+        data: dict,
+    ) -> "Dependencies":
+        """Load a SBOM into the Dependencies list."""
+        if not isinstance(data, dict):
+            raise ValueError("Data must be a dictionary")
+
+        result = Dependencies()
+
+        for package in data.get("sbom", {}).get("packages", []):
+            extref = False
+            dep = Dependency("")
+            for ref in package.get("externalRefs", []):
+                if ref.get("referenceType", "") == "purl":
+                    dep = Dependency.fromPurl(ref.get("referenceLocator"))
+                    extref = True
+                else:
+                    logger.warning(f"Unknown external reference :: {ref}")
+
+            # if get find a PURL or not
+            if extref:
+                dep.license = package.get("licenseConcluded")
+            else:
+                name = package.get("name", "").lower()
+                # manager ':'
+                if ":" in name:
+                    dep.manager, name = name.split(":", 1)
+
+                # HACK: Maven / NuGet
+                if dep.manager in ["maven", "nuget"]:
+                    if "." in name:
+                        dep.namespace, name = name.rsplit(".", 1)
+                # Namespace '/'
+                elif "/" in package:
+                    dep.namespace, name = name.split("/", 1)
+
+                dep.name = name
+                dep.version = package.get("versionInfo")
+                dep.license = package.get("licenseConcluded")
+
+            result.append(dep)
+        return result
 
     def findLicenses(self, licenses: list[str]) -> "Dependencies":
         """Find dependencies with a given license."""
@@ -190,11 +239,19 @@ class Dependencies(list[Dependency]):
                 dep.license = " OR ".join(licenses)
                 self[i] = dep
 
-    def contains(self, dependency: Dependency) -> bool:
-        """Contains the dependency."""
-        purl = dependency.getPurl(version=False)
+    def contains(self, dependency: Dependency, version: bool = False) -> bool:
+        """Contains the dependency.
+
+        Arguments:
+            dependency: Dependency to check
+            version: Check the version as well
+
+        Returns:
+            bool: True if the dependency is in the list
+        """
+        purl = dependency.getPurl(version=version)
         for dep in self:
-            if dep.name == dependency.name or dep.getPurl(version=False) == purl:
+            if dep.getPurl(version=version) == purl:
                 return True
         return False
 
@@ -232,3 +289,30 @@ class Dependencies(list[Dependency]):
         """Update a list of dependencies."""
         for dep in dependencies:
             self.updateDependency(dep)
+
+    def findDirectDependencies(self) -> "Dependencies":
+        """Find all the direct dependencies."""
+        return Dependencies([dep for dep in self if dep.isDirect()])
+
+
+def uniqueDependencies(
+    dependencies: Dict[Repository, Dependencies],
+    version: bool = False,
+) -> Dependencies:
+    """Create a unique list of dependencies, this is useful for merging multiple lists for example
+    from an organization.
+
+    Arguments:
+        dependencies: List of dependencies to merge
+        version: Check the version as well
+
+    Returns:
+        Dependencies: Unique list of dependencies
+    """
+    unique_deps = Dependencies()
+
+    for repo, deps in dependencies.items():
+        for dep in deps:
+            unique_deps.add(dep, repo)
+
+    return unique_deps
