@@ -73,22 +73,24 @@ class DependencyGraph:
             Dict[Repository, Dependencies]: A dictionary of repositories and their dependencies.
         """
         org = Organization(organization=owner or GitHub.owner)
+        logger.debug(f"Processing organization :: {org}")
 
         deps: Dict[Repository, Dependencies] = {}
 
         repositories = org.getRepositories()
-        logger.debug(f"Found {len(repositories)} repositories in organization")
+        logger.debug(f"Found `{len(repositories)}` repositories in organization")
 
         for repo in repositories:
             logger.debug(f"Processing repository :: {repo}")
             try:
-                self.rest = RestRequest(repo)
+                depgraph = DependencyGraph(repo, enable_graphql=self.enable_graphql)
+                logger.debug(f"Using repository :: {depgraph.repository}")
 
-                deps[repo] = self.getDependenciesSbom()
+                deps[repo] = depgraph.getDependenciesSbom()
 
-                if self.enable_graphql:
+                if depgraph.enable_graphql:
                     logger.debug("Enabled GraphQL Dependencies")
-                    graph_deps = self.getDependenciesGraphQL()
+                    graph_deps = depgraph.getDependenciesGraphQL()
 
                     deps[repo].updateDependencies(graph_deps)
                     logger.debug("Updated dependencies with GraphQL")
@@ -162,6 +164,7 @@ class DependencyGraph:
                     f"Cache not found for {self.repository.repo}, downloading SBOM"
                 )
 
+        logger.debug(f"Downloading SBOM for {self.repository}")
         spdx_bom = self.exportBOM()
 
         if self.cache_enabled:
@@ -221,6 +224,10 @@ class DependencyGraph:
             has_next_page = True
 
             while has_next_page:
+                if not graph_manifests.get("edges"):
+                    logger.debug("No more manifests to be processed")
+                    break
+
                 for manifest in graph_manifests.get("edges", []):
                     node = manifest.get("node", {})
 

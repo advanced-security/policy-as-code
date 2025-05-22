@@ -123,13 +123,22 @@ class Dependency:
         This is a bit of a hack to determine if this is a direct dependency or not.
         In the future we will have this data as part of the API (SBOM).
 
-        Only supports `npm`
+        **Supports:**
+
+        - `npm`
+        - `maven`
+        - `pip`
         """
         if self.relationship and self.relationship.lower() == "direct":
             return True
-        # package.json has the direct dependencies and no transitive dependencies
-        if self.manager == "npm" and self.path.endswith("package.json"):
-            return True
+        if manifest_file := self.path:
+            # Use the manifest file to determine if this is a direct dependency
+            if self.manager == "npm" and manifest_file.endswith("package.json"):
+                return True
+            elif self.manager == "maven" and manifest_file.endswith("pom.xml"):
+                return True
+            elif self.manager == "pip" and manifest_file.endswith("requirements.txt"):
+                return True
 
         return False
 
