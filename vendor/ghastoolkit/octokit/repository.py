@@ -53,6 +53,12 @@ class Repository:
             if not self.isInPullRequest():
                 _, _, branch = self.reference.split("/", 2)
                 self.branch = branch
+            else:
+                # For PRs, try to get the head branch
+                pr_info = self.getPullRequestInfo()
+                if pr_info and "head" in pr_info:
+                    self.branch = pr_info["head"].get("ref")
+                    
         if self.branch and not self.reference:
             self.reference = f"refs/heads/{self.branch}"
 
