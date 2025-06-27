@@ -132,7 +132,8 @@ class TestPolicyLoading(unittest.TestCase):
             self.policy.policy.get("general", {}).get("remediate"),
         )
         self.assertEqual(
-            self.policy.policy.get("dependabot", {}).get("remediate", {}).get("error"), 1
+            self.policy.policy.get("dependabot", {}).get("remediate", {}).get("error"),
+            1,
         )
 
         five_days_ago = datetime.datetime.now() - datetime.timedelta(days=5)
@@ -150,19 +151,13 @@ class TestPolicyLoading(unittest.TestCase):
         five_days_ago = datetime.datetime.now() - datetime.timedelta(days=5)
 
         result = self.policy.checkViolation(
-            "error",
-            "dependabot",
-            names=["test"],
-            creation_time=five_days_ago
+            "error", "dependabot", names=["test"], creation_time=five_days_ago
         )
         self.assertTrue(result)
 
         today = datetime.datetime.now()
 
         result = self.policy.checkViolation(
-            "error",
-            "dependabot",
-            names=["test"],
-            creation_time=today
+            "error", "dependabot", names=["test"], creation_time=today
         )
         self.assertFalse(result)
