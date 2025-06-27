@@ -328,7 +328,7 @@ class Policy:
                 severity, remediate_policy, creation_time
             )
             if self.policy.get(technology, {}).get("level"):
-                return violation_remediation and self.checkViolationAgainstPolicy(
+                return violation_remediation or self.checkViolationAgainstPolicy(
                     severity, technology, names=names, ids=ids
                 )
             else:
