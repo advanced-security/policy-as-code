@@ -19,6 +19,7 @@ class TestPolicyLoading(unittest.TestCase):
         self.example = {
             "general": {"remediate": {"error": 1}},
             "codescanning": {"level": "error"},
+            "dependabot": {"level": "critical"},
         }
 
         return super().setUp()
@@ -45,6 +46,12 @@ class TestPolicyLoading(unittest.TestCase):
         self.assertEqual(
             self.policy.policy.get("dependabot", {}).get("remediate"),
             my_policy.get("dependabot", {}).get("remediate"),
+        )
+        self.assertEqual(
+            self.policy.policy.get("codescanning", {})
+            .get("remediate", {})
+            .get("error"),
+            1,
         )
 
         self.assertEqual(
@@ -116,3 +123,41 @@ class TestPolicyLoading(unittest.TestCase):
             sevendaysago,
         )
         self.assertTrue(result)
+
+    def testDepdendabotRemediationUsingGeneral(self):
+        self.policy.loadPolicy(self.example)
+
+        self.assertEqual(
+            self.policy.policy.get("dependabot", {}).get("remediate"),
+            self.policy.policy.get("general", {}).get("remediate"),
+        )
+        self.assertEqual(
+            self.policy.policy.get("dependabot", {}).get("remediate", {}).get("error"),
+            1,
+        )
+
+        five_days_ago = datetime.datetime.now() - datetime.timedelta(days=5)
+
+        result = self.policy.checkViolationRemediation(
+            "error",
+            self.policy.policy.get("dependabot", {}).get("remediate"),
+            five_days_ago,
+        )
+        self.assertTrue(result)
+
+    def testCheckViolationWithRemediationUsingDependabotAlert(self):
+        self.policy.loadPolicy(self.example)
+
+        five_days_ago = datetime.datetime.now() - datetime.timedelta(days=5)
+
+        result = self.policy.checkViolation(
+            "error", "dependabot", names=["test"], creation_time=five_days_ago
+        )
+        self.assertTrue(result)
+
+        today = datetime.datetime.now()
+
+        result = self.policy.checkViolation(
+            "error", "dependabot", names=["test"], creation_time=today
+        )
+        self.assertFalse(result)
