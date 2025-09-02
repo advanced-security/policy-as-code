@@ -4,7 +4,7 @@ Thank you for your interest in contributing to Policy as Code!
 
 ## Getting Started
 
-- Ensure you have Python 3.10+ and [Pipenv](https://pipenv.pypa.io/en/latest/) installed.
+- Ensure you have Python 3.9+ and [Pipenv](https://pipenv.pypa.io/en/latest/) installed.
 
 **Install dependencies:**
 
