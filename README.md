@@ -42,7 +42,7 @@ You can run it as a GitHub Action or locally via CLI.
 
 ## ⚡️ Requirements
 
-- Python +3.9
+- Python >= 3.9
 
 ## 📦 Project Structure
 
