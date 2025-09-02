@@ -13,10 +13,12 @@
 
 ## Overview
 
-[GitHub's Policy as Code][github] project is designed to allow users and organizations to configure their Risk
-threshold for security issues reported by GitHub Advanced Security Platform.
-The main goal is to help make sure that before publishing your application to productions, development, etc.
-you can validate if the application has any security issues that need to be addressed.
+[GitHub's Policy as Code][github] project is designed to allow users and organizations to configure their Risk threshold for security issues reported by GitHub Advanced Security Platform.
+The main goal is to help make sure that before publishing your application to productions, development, etc. you can validate if the application has any security issues that need to be addressed.
+
+Policy as Code lets you define compliance and risk rules for your repositories using YAML configuration files.
+It supports code scanning, secret scanning, dependency checks, licensing, and more.
+You can run it as a GitHub Action or locally via CLI.
 
 ## ✨ Features
 
@@ -29,9 +31,26 @@ you can validate if the application has any security issues that need to be addr
 - Supports GitHub Enterprise Cloud or Server ([see supported features list](#supported-features))
 - Pull Request Summary
 
+## 💡 Key Features
+
+- **Highly Configurable:** Write custom rules for your organization or repository.
+- **Multi-Platform:** Works with GitHub.com and GitHub Enterprise Server.
+- **Comprehensive Security:** Supports code scanning, secret scanning, dependency and license checks.
+- **Pull Request Summaries:** Adds compliance results to PRs.
+- **Vendored Dependencies:** All Python dependencies are included for reliability.
+- **Extensive Examples:** See [`examples/policies/`](./examples/policies/) and [`examples/workflows/`](./examples/workflows/).
+
 ## ⚡️ Requirements
 
-- Python +3.9
+- Python >= 3.9
+
+## 📦 Project Structure
+
+- `ghascompliance/` — Main Python source code
+- `examples/` — Example policies, workflows, and scripts
+- `tests/` — Unit tests
+- `docs/` — Sphinx documentation
+- `vendor/` — Vendored Python dependencies
 
 ## Usage
 
@@ -294,6 +313,11 @@ Some things to consider when using imports:
   - `Cloned Repository Directory`
 - Imports are only allowed from a number of predefined paths to prevent loading data on the system (AKA, path traversal).
 
+## 🛠️ Development & Contributing
+
+We welcome contributions from the community!
+Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on setting up your environment, code style, testing, and submitting changes.
+
 ## Maintainers / Contributors
 
 - [@GeekMasher](https://github.com/GeekMasher) - Author / Core Maintainer
@@ -315,17 +339,14 @@ Please refer to [MIT][license] for the full terms.
 [github]: https://github.com/advanced-security/policy-as-code
 [github-issues]: https://github.com/advanced-security/policy-as-code/issues
 [github-actions]: https://github.com/advanced-security/policy-as-code/actions
-
 [advanced-security]: https://github.com/features/security
 [github-codescanning]: https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning
 [github-secretscanning]: https://docs.github.com/en/code-security/secret-scanning/about-secret-scanning
 [github-supplychain]: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-supply-chain-security
-
 [python-setup]: https://github.com/actions/setup-python
 [vendored]: https://github.com/advanced-security/policy-as-code/tree/main/vendor/README.md
 [examples-actions]: https://github.com/advanced-security/policy-as-code/tree/main/examples/workflows
 [examples-cli]: https://github.com/advanced-security/policy-as-code/tree/main/examples/scripts
-
 [permissions]: https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs#overview
 [permissions-codescanning]: https://docs.github.com/en/rest/code-scanning/code-scanning#list-code-scanning-alerts-for-a-repository
 [permissions-secretscanning]: https://docs.github.com/en/rest/secret-scanning/secret-scanning#list-secret-scanning-alerts-for-a-repository
