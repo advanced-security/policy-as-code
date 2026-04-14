@@ -42,6 +42,7 @@ jobs:
 
   e2e-tests:
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
     needs: run 
 
     steps:
@@ -57,6 +58,7 @@ jobs:
 
   action-test:
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
     needs: run 
 
     steps:

@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   run:
+    if: ${{ github.actor != 'dependabot[bot]' }}
     strategy:
       fail-fast: false
       matrix:
