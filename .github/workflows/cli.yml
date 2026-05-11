@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   run:
+    if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
     strategy:
       fail-fast: false
       matrix:
