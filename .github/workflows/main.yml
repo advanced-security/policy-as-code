@@ -68,9 +68,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
-    - name: Skip action-test when token is unavailable
-      if: ${{ env.POLICY_AS_CODE_TESTING_TOKEN == '' }}
-      run: echo "Skipping action-test because POLICY_AS_CODE_TESTING_TOKEN is not configured for this event."
     - name: Run action
       if: ${{ env.POLICY_AS_CODE_TESTING_TOKEN != '' }}
       uses: ./
