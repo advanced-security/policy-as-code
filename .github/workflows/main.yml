@@ -58,17 +58,21 @@ jobs:
       with:
         action: continue
         token: "${{ env.POLICY_AS_CODE_TESTING_TOKEN }}"
-        policy-repo-token: "${{ env.POLICY_AS_CODE_TESTING_TOKEN }}"
-        policy: advanced-security/policy-as-code-testing
-        policy-path: policy.yml
-        argvs: --display --github-repository advanced-security/policy-as-code-testing --github-ref refs/heads/main
 
   action-test:
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
     needs: run 
+    env:
+      POLICY_AS_CODE_TESTING_TOKEN: ${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}
 
     steps:
     - uses: actions/checkout@v5
+    - name: Skip action-test when token is unavailable
+      if: ${{ env.POLICY_AS_CODE_TESTING_TOKEN == '' }}
+      run: echo "Skipping action-test because POLICY_AS_CODE_TESTING_TOKEN is not configured for this event."
     - name: Run action
+      if: ${{ env.POLICY_AS_CODE_TESTING_TOKEN != '' }}
       uses: ./
+      with:
+        token: "${{ env.POLICY_AS_CODE_TESTING_TOKEN }}"
