@@ -9,6 +9,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3
     reviewers:
       - "advanced-security/oss-maintainers"
     target-branch: "main"
@@ -18,15 +20,15 @@ updates:
     labels:
       - "Dependencies"
     groups:
-      production-dependencies:
-        dependency-type: "production"
-      development-dependencies:
-        dependency-type: "development"
+      actions:
+        patterns: ["*"]
 
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3
     reviewers:
       - "advanced-security/oss-maintainers"
     target-branch: "main"

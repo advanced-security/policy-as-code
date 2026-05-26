@@ -14,7 +14,9 @@ import os
 import sys
 from sphinx.application import Sphinx
 
-sys.path.append(os.path.join(os.getcwd(), ".."))
+DOCS_DIR = os.path.abspath(os.path.dirname(__file__))
+REPO_ROOT = os.path.abspath(os.path.join(DOCS_DIR, ".."))
+sys.path.extend([REPO_ROOT, os.path.join(REPO_ROOT, "vendor")])
 
 
 # -- Project information -----------------------------------------------------

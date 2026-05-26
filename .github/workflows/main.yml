@@ -28,8 +28,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip pipenv
-          pipenv sync -d
+          python -m pip install 'pip==26.0.1' 'pipenv==2025.0.4'
+          pipenv sync --dev
 
       # Unit tests
       - name: Run Unit tests
@@ -44,26 +44,32 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
     needs: run 
+    env:
+      POLICY_AS_CODE_TESTING_TOKEN: ${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}
 
     steps:
     - uses: actions/checkout@v5
+    - name: Skip e2e when token is unavailable
+      if: ${{ env.POLICY_AS_CODE_TESTING_TOKEN == '' }}
+      run: echo "Skipping e2e-tests because POLICY_AS_CODE_TESTING_TOKEN is not configured for this event."
     - name: Run action
+      if: ${{ env.POLICY_AS_CODE_TESTING_TOKEN != '' }}
       uses: ./
       with:
         action: continue
-        token: "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
-        policy: advanced-security/policy-as-code-testing
-        policy-path: policy.yml
-        argvs: --display --github-repository advanced-security/policy-as-code-testing --github-ref refs/heads/main
+        token: "${{ env.POLICY_AS_CODE_TESTING_TOKEN }}"
 
   action-test:
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
     needs: run 
+    env:
+      POLICY_AS_CODE_TESTING_TOKEN: ${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}
 
     steps:
     - uses: actions/checkout@v5
     - name: Run action
+      if: ${{ env.POLICY_AS_CODE_TESTING_TOKEN != '' }}
       uses: ./
       with:
-        token: "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
+        token: "${{ env.POLICY_AS_CODE_TESTING_TOKEN }}"
