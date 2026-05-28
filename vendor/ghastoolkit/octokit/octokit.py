@@ -3,6 +3,8 @@
 import os
 import inspect
 import logging
+import random
+import time
 from string import Template
 from typing import Any, Callable, Optional, Union
 from dataclasses import field, is_dataclass
@@ -21,6 +23,7 @@ from ghastoolkit.octokit.graphql import QUERIES
 # https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#rate-limiting
 REST_MAX_CALLS = 80  # ~5000 per hour
 GRAPHQL_MAX_CALLS = 100  # ~5000 per hour
+GRAPHQL_RETRY_ATTEMPTS = 3
 
 __OCTOKIT_PATH__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -385,10 +388,23 @@ class GraphQLRequest:
 
         query = self.formatQuery(query_content, cursor=cursor, **options)
 
-        response = self.session.post(
-            GitHub.api_graphql, json={"query": query}, timeout=30
-        )
-        if response.status_code != 200:
+        for attempt in range(1, GRAPHQL_RETRY_ATTEMPTS + 1):
+            response = self.session.post(
+                GitHub.api_graphql, json={"query": query}, timeout=30
+            )
+            if response.status_code == 200:
+                break
+
+            if (
+                response.status_code in [502, 503, 504]
+                and attempt < GRAPHQL_RETRY_ATTEMPTS
+            ):
+                logger.warning(
+                    f"GraphQL API transient error :: {response.status_code} (attempt {attempt}/{GRAPHQL_RETRY_ATTEMPTS})"
+                )
+                time.sleep((2 ** (attempt - 1)) + random.uniform(0, 1))
+                continue
+
             logger.error(f"GraphQL API Status :: {response.status_code}")
             logger.error(f"GraphQL Content :: {response.content}")
             raise GHASToolkitError(

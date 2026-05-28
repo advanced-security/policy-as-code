@@ -12,6 +12,7 @@ from ghastoolkit import (
     SecretScanning,
     Licenses,
 )
+from ghastoolkit.errors import GHASToolkitError
 
 from ghascompliance.policy import Policy
 from ghascompliance.octokit import Octokit
@@ -212,7 +213,18 @@ class Checks:
 
         else:
             # Alerts
-            alerts = dependabot.getAlerts("open")
+            try:
+                alerts = dependabot.getAlerts("open")
+            except GHASToolkitError as err:
+                if err.status != 400:
+                    Octokit.debug(
+                        f"Dependabot REST API request failed with status {err.status}; no GraphQL fallback for this error type"
+                    )
+                    raise
+                Octokit.warning(
+                    "Dependabot REST API returned 400; retrying with GraphQL alerts API"
+                )
+                alerts = dependabot.getAlertsGraphQL()
             # Dependencies
             dependencies = depgraph.getDependencies()
 
