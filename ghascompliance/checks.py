@@ -217,6 +217,9 @@ class Checks:
                 alerts = dependabot.getAlerts("open")
             except GHASToolkitError as err:
                 if err.status != 400:
+                    Octokit.debug(
+                        f"Dependabot REST API request failed with status {err.status}; no GraphQL fallback for this error type"
+                    )
                     raise
                 Octokit.warning(
                     "Dependabot REST API returned 400; retrying with GraphQL alerts API"
