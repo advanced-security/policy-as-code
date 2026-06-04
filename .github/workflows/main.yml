@@ -21,7 +21,7 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6.0.2
       - uses: actions/setup-python@v6
         with:
           python-version: '${{ matrix.python-version }}'
@@ -48,7 +48,7 @@ jobs:
       POLICY_AS_CODE_TESTING_TOKEN: ${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6.0.2
     - name: Skip e2e when token is unavailable
       if: ${{ env.POLICY_AS_CODE_TESTING_TOKEN == '' }}
       run: echo "Skipping e2e-tests because POLICY_AS_CODE_TESTING_TOKEN is not configured for this event."
@@ -67,7 +67,7 @@ jobs:
       POLICY_AS_CODE_TESTING_TOKEN: ${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6.0.2
     - name: Run action
       if: ${{ env.POLICY_AS_CODE_TESTING_TOKEN != '' }}
       uses: ./
