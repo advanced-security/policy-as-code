@@ -560,7 +560,7 @@ class Policy:
     ) -> bool:
         """Check if an alert is covered by a Security Campaign policy.
 
-        Alerts created after the campaign was created are not part of the campaign.
+        Alerts created after the campaign was published are not part of the campaign.
         """
         section = campaign.get(technology)
         if not section:
