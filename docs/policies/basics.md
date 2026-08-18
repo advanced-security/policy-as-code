@@ -50,7 +50,6 @@ There are a number of levels are [specified in the standard and are constant](ht
 - `note`
 - `notes`
 
-
 ### Conditional Policy
 
 The conditional policy attributes allow users to write more complex conditional checks.

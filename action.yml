@@ -48,7 +48,7 @@ inputs:
 
 outputs:
   results:
-    description: Structured JSON results, with schema_version, total_violations, and per-check counts
+    description: Structured JSON results, with schema_version, total_violations, total_errors, and per-check results
     value: ${{ steps.results.outputs.results }}
 
 runs:
@@ -75,12 +75,14 @@ runs:
     - id: results
       if: always()
       shell: bash
+      env:
+        RESULTS_FILE: ${{ inputs.output }}
       run: |
-        if [ -f "${{ inputs.output }}" ]; then
-          delimiter="$(openssl rand -hex 8)"
+        if [ -f "$RESULTS_FILE" ]; then
+          delimiter="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
           {
-           echo "results<<$delimiter"
-           cat "${{ inputs.output }}"
-           echo "$delimiter"
+            printf 'results<<%s\n' "$delimiter"
+            cat "$RESULTS_FILE"
+            printf '\n%s\n' "$delimiter"
           } >> "$GITHUB_OUTPUT"
         fi

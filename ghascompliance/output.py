@@ -1,9 +1,14 @@
 import json
 import os
-from typing import Dict
+from typing import Any, Dict
 
 
-def write_results(path: str, total_violations: int, checks: Dict[str, int]) -> None:
+def write_results(
+    path: str,
+    total_violations: int,
+    total_errors: int,
+    checks: Dict[str, Dict[str, Any]],
+) -> None:
     """Write policy check results to a JSON file."""
     output_directory = os.path.dirname(path)
     if output_directory:
@@ -14,8 +19,10 @@ def write_results(path: str, total_violations: int, checks: Dict[str, int]) -> N
             {
                 "schema_version": 1,
                 "total_violations": total_violations,
+                "total_errors": total_errors,
                 "checks": checks,
             },
             handle,
             indent=2,
         )
+        handle.write("\n")

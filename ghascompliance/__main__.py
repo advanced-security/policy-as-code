@@ -203,9 +203,11 @@ if __name__ == "__main__":
     )
 
     errors = 0
+    total_violations = 0
+    total_errors = 0
     check_results = {}
 
-    checks = [
+    checks_to_run = [
         ("code_scanning", checks.checkCodeScanning),
         ("dependabot", checks.checkDependabot),
         ("dependencies", checks.checkDependencies),
@@ -213,18 +215,28 @@ if __name__ == "__main__":
         ("secret_scanning", checks.checkSecretScanning),
     ]
 
-    for check in checks:
+    for check in checks_to_run:
         try:
             if not getattr(arguments, f"disable_{check[0]}"):
                 violations = check[1]()
                 errors += violations
-                check_results[check[0]] = violations
+                total_violations += violations
+                check_results[check[0]] = {
+                    "status": "success",
+                    "violations": violations,
+                }
 
         except GHASToolkitAuthenticationError as err:
             Octokit.error("Authentication Error")
             Octokit.error(str(err))
 
             errors += 1
+            total_errors += 1
+            check_results[check[0]] = {
+                "status": "error",
+                "violations": 0,
+                "error": str(err),
+            }
             # Add to summary
             Summary.addLine(f"{Summary.__ICONS__['cross']} :: Authentication Error")
             Summary.addLine(Summary.formatItalics(str(err)))
@@ -234,6 +246,12 @@ if __name__ == "__main__":
             Octokit.error(str(err))
 
             errors += 1  # add to error count
+            total_errors += 1
+            check_results[check[0]] = {
+                "status": "error",
+                "violations": 0,
+                "error": str(err),
+            }
 
             # Add to summary
             Summary.addHeader(f"{Summary.__ICONS__['cross']} :: Error Encountered", 2)
@@ -246,7 +264,11 @@ if __name__ == "__main__":
                 raise err
 
     Octokit.endGroup()
-    write_results(arguments.output, errors, check_results)
+
+    try:
+        write_results(arguments.output, total_violations, total_errors, check_results)
+    except OSError as err:
+        Octokit.warning(f"Unable to write results file :: {err}")
 
     Octokit.createGroup("Summary")
 

@@ -74,7 +74,7 @@ output. It also writes the same JSON to `.compliance/results.json` by default.
 Set the `output` input to use a different file location.
 
 ```yaml
-- name: Advance Security Policy as Code
+- name: Advanced Security Policy as Code
   id: policy
   uses: advanced-security/policy-as-code@v2.11.1
 
@@ -88,14 +88,28 @@ The JSON schema is:
 {
   "schema_version": 1,
   "total_violations": 2,
+  "total_errors": 1,
   "checks": {
-    "code_scanning": 1,
-    "dependabot": 1
+    "code_scanning": {
+      "status": "success",
+      "violations": 1
+    },
+    "dependabot": {
+      "status": "success",
+      "violations": 1
+    },
+    "secret_scanning": {
+      "status": "error",
+      "violations": 0,
+      "error": "Authentication Error"
+    }
   }
 }
 ```
 
-`checks` includes each enabled check and its violation count.
+`checks` includes each enabled check with its `status` (`success` or `error`) and
+violation count. Checks that fail with an error also include an `error` message,
+are counted in `total_errors`, and are not included in `total_violations`.
 
 > [!WARNING]
 > The GitHub Action does not install Python on the runner. Please checkout at [the `actions/setup-python` Action][python-setup]
