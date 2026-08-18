@@ -52,8 +52,17 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run unit tests against the new dependency set
+      - name: Run unit tests against the regenerated vendor/ tree
         if: steps.diff.outputs.changed == 'true'
+        env:
+          # pipenv run test alone exercises the pipenv virtualenv install,
+          # NOT the vendor/ tree we just regenerated - those are two
+          # separate installs of the same Pipfile.lock versions, so a
+          # broken vendor/ (bad --target install, missing files, etc.)
+          # could pass silently. Mirror action.yml's runtime PYTHONPATH
+          # (repo root, then vendor/) so imports resolve the same way
+          # production does, and this actually validates vendor/.
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/vendor
         run: pipenv run test
 
       # TODO(#94): This step opens the PR using the default GITHUB_TOKEN.
