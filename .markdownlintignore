@@ -1,0 +1,7 @@
+# Vendored third-party dependencies (see vendor/README.md) aren't authored
+# or maintained by this repo, so their files shouldn't be treated as this
+# project's documentation. This keeps a stray upstream *.md file (e.g. a
+# LICENSE.md, README.md, or CHANGELOG.md bundled inside a vendored package)
+# from being parsed - and failing - as if it were a doc in this repo.
+vendor/**
+!vendor/README.md
