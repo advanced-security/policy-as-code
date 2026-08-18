@@ -247,9 +247,10 @@ class Checks:
                 continue
 
             # Find the dependency from the graph
-            alert_purl = Dependency.fromPurl(alert.purl).getPurl(version=False)
-            dependency = (
-                next(
+            dependency = None
+            if dependencies:
+                alert_purl = Dependency.fromPurl(alert.purl).getPurl(version=False)
+                dependency = next(
                     (
                         dep
                         for dep in dependencies
@@ -257,9 +258,6 @@ class Checks:
                     ),
                     None,
                 )
-                if dependencies
-                else None
-            )
             if not dependency and dependencies is not None:
                 Octokit.warning(
                     f"Unable to find alert in DependencyGraph :: {alert.purl}. Continuing with alert package URL"
