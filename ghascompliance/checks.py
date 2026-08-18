@@ -225,7 +225,13 @@ class Checks:
                 )
                 alerts = dependabot.getAlertsGraphQL()
             # Dependencies
-            dependencies = depgraph.getDependencies()
+            try:
+                dependencies = depgraph.getDependencies()
+            except GHASToolkitError as err:
+                Octokit.warning(
+                    f"Dependency Graph API request failed with status {err.status}; processing Dependabot alerts without dependency enrichment"
+                )
+                dependencies = None
 
         Octokit.info("Total Dependabot Alerts :: " + str(len(alerts)))
 
@@ -240,13 +246,11 @@ class Checks:
                 continue
 
             # Find the dependency from the graph
-            dependency = dependencies.findPurl(alert.purl)
-
+            dependency = dependencies.findPurl(alert.purl) if dependencies else None
             if not dependency:
-                Octokit.error(
-                    f"Unable to find alert in DependencyGraph :: {alert.purl}"
+                Octokit.warning(
+                    f"Unable to find alert in DependencyGraph :: {alert.purl}. Continuing with alert package URL"
                 )
-                continue
 
             severity = alert.severity.lower()
 
@@ -263,9 +267,9 @@ class Checks:
 
             names = [
                 # org.apache.commons
-                dependency.fullname,
+                dependency.fullname if dependency else alert.purl,
                 #  maven://org.apache.commons
-                dependency.getPurl(version=False),
+                dependency.getPurl(version=False) if dependency else alert.purl,
             ]
 
             if self.policy.checkViolation(
