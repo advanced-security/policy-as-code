@@ -18,7 +18,6 @@ from ghascompliance.policy import Policy
 from ghascompliance.octokit import Octokit
 from ghascompliance.octokit.summary import Summary
 
-
 __HERE__ = os.path.dirname(os.path.realpath(__file__))
 LICENSES = [os.path.join(__HERE__, "data", "clearlydefined.json")]
 GRAPHQL_QUERIES = [os.path.join(__HERE__, "octokit", "graphql")]
