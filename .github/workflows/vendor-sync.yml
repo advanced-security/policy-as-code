@@ -36,7 +36,11 @@ jobs:
       - name: Sync environment
         run: pipenv sync --dev
 
-      - name: Regenerate vendor/ from Pipfile.lock
+      # `pipenv run vendor` is a Pipfile script alias - see the [scripts]
+      # section in Pipfile: `vendor = "./vendor/update.sh"`. So this step
+      # runs vendor/update.sh, just indirectly through pipenv/Pipfile
+      # instead of calling the .sh file directly.
+      - name: Regenerate vendor/ from Pipfile.lock (runs vendor/update.sh)
         run: pipenv run vendor
 
       - name: Check for vendor changes
