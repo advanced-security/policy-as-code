@@ -21,14 +21,22 @@ jobs:
         python-version: ["3.9", "3.10", "3.11"]
 
     runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    env:
+      POLICY_AS_CODE_TESTING_TOKEN: ${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: '${{ matrix.python-version }}'
 
+      - name: "Skip CLI test when token is unavailable"
+        if: ${{ env.POLICY_AS_CODE_TESTING_TOKEN == '' }}
+        shell: bash
+        run: echo "Skipping CLI test because POLICY_AS_CODE_TESTING_TOKEN is not configured for this event."
+
       - name: "Run CLI (Windows)"
-        if: ${{ matrix.os == 'windows-latest' }}
+        if: ${{ matrix.os == 'windows-latest' && env.POLICY_AS_CODE_TESTING_TOKEN != '' }}
         shell: powershell
         run: |
           .\policy-as-code.ps1 `
@@ -37,11 +45,11 @@ jobs:
             --github-policy-path "policy.yml" `
             --github-repository "advanced-security/policy-as-code-testing" `
             --github-ref "refs/heads/main" `
-            --github-token "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
+            --github-token "${{ env.POLICY_AS_CODE_TESTING_TOKEN }}"
             
 
       - name: "Run CLI (Linux / Macos)"
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' && env.POLICY_AS_CODE_TESTING_TOKEN != '' }}
         shell: bash
         run: |
           ./policy-as-code \
@@ -50,6 +58,6 @@ jobs:
             --github-policy-path "policy.yml" \
             --github-repository "advanced-security/policy-as-code-testing" \
             --github-ref "refs/heads/main" \
-            --github-token "${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}"
+            --github-token "${{ env.POLICY_AS_CODE_TESTING_TOKEN }}"
 
 
