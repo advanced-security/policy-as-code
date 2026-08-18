@@ -302,6 +302,43 @@ secretscanning:
 
 - [Time to Remediate Example](examples/policies/time-to-remediate.yml)
 
+#### Security Campaigns
+
+[GitHub Security Campaigns](https://docs.github.com/en/code-security/securing-your-organization/fixing-security-alerts-at-scale/about-security-campaigns) group alerts together for developers to fix by a due date.
+This opt-in section enforces that response by raising a violation for the alerts covered by a campaign once the campaign's due date has passed.
+
+By default, if the `campaigns` section is not defined then no campaign checks are done.
+
+```yaml
+campaigns:
+  # The name of the campaign in the organization (wildcards are supported)
+  - name: "Critical CodeQL Alerts"
+    # Optional number of days after the campaign due date before violations
+    #  are raised (defaults to 0)
+    grace: 7
+
+    # The alerts the campaign covers (`codescanning` and / or `dependabot`).
+    #  These use the same `level`, `conditions` and `ignores` blocks as the
+    #  main policy blocks.
+    codescanning:
+      level: critical
+      conditions:
+        ids:
+          - "*/sql-injection"
+```
+
+> [!NOTE]
+> GitHub does not expose which alerts belong to a campaign, so the campaign's filter
+> is defined in the policy and applied by Policy as Code. Only open alerts created
+> before the campaign was published are considered to be part of the campaign.
+
+The organization's campaigns are read using the [Campaigns REST API](https://docs.github.com/en/rest/campaigns/campaigns) which requires a token with the `security_events` scope (or `Code scanning alerts` read permission) belonging to an organization owner or security manager.
+If the campaigns cannot be read, or a campaign in the policy does not exist in the organization, a warning is raised instead of a violation.
+
+##### Security Campaign Examples
+
+- [Security Campaigns Example](examples/policies/security-campaigns.yml)
+
 #### Data Importing
 
 Some things to consider when using imports:

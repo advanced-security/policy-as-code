@@ -34,6 +34,7 @@ parser.add_argument("--disable-dependabot", action="store_true")
 parser.add_argument("--disable-dependency-licensing", action="store_true")
 parser.add_argument("--disable-dependencies", action="store_true")
 parser.add_argument("--disable-secret-scanning", action="store_true")
+parser.add_argument("--disable-campaigns", action="store_true")
 parser.add_argument("--is-github-app-token", action="store_true", default=False)
 parser.add_argument("--is-policy-github-app-token", action="store_true", default=False)
 parser.add_argument("--pr-comment", action="store_true", default=False)
@@ -177,7 +178,7 @@ if __name__ == "__main__":
         for plcy, data in policy.policy.items():
             if plcy == "name":
                 Octokit.info(f"name: {data}")
-            else:
+            elif isinstance(data, dict):
                 Octokit.info(
                     "{policy}: '{level}'".format(policy=plcy, level=data.get("level"))
                 )
@@ -204,6 +205,7 @@ if __name__ == "__main__":
         ("dependencies", checks.checkDependencies),
         ("dependency_licensing", checks.checkDependencyLicensing),
         ("secret_scanning", checks.checkSecretScanning),
+        ("campaigns", checks.checkCampaigns),
     ]
 
     for check in checks:

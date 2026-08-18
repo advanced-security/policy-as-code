@@ -1,0 +1,36 @@
+name: Security Campaigns Policy
+
+codescanning:
+  level: error
+
+dependabot:
+  level: high
+
+# Security Campaigns (opt-in)
+# Alerts covered by an organization Security Campaign become violations once
+#  the campaign due date (plus any grace period) has passed.
+campaigns:
+  # The campaign name in the organization, wildcards are supported
+  - name: "Critical CodeQL Alerts"
+    # Number of days after the campaign due date before violations are raised
+    grace: 7
+
+    # The alerts the campaign covers, using the same `level`, `conditions` and
+    #  `ignores` blocks as the main policy blocks
+    codescanning:
+      level: critical
+
+  - name: "SQL Injection *"
+    codescanning:
+      # only the alerts matching the conditions are part of the campaign
+      level: none
+      conditions:
+        ids:
+          - "*/sql-injection"
+
+  - name: "Critical Dependencies"
+    dependabot:
+      level: critical
+      ignores:
+        names:
+          - "pkg:npm/lodash"

@@ -80,3 +80,37 @@ codescanning:
   #  reports an issue if the level matches or higher (see PaC Levels for more info)
   level: error
 ```
+
+## Security Campaigns
+
+[Security Campaigns](https://docs.github.com/en/code-security/securing-your-organization/fixing-security-alerts-at-scale/about-security-campaigns) group alerts together for developers to fix by a due date.
+The `campaigns` block is opt-in and raises a violation for the alerts covered by a campaign once the campaign due date has passed.
+
+```yaml
+campaigns:
+  # Name of the campaign in the organization (wildcards supported)
+  - name: "Critical CodeQL Alerts"
+    # Days of grace after the campaign due date (defaults to 0)
+    grace: 7
+
+    # Alerts covered by the campaign (`codescanning` and / or `dependabot`)
+    codescanning:
+      level: critical
+      conditions:
+        ids:
+          - "*/sql-injection"
+      ignores:
+        ids:
+          - "*/unused-local-variable"
+```
+
+GitHub does not expose which alerts belong to a campaign, so the campaign filter is
+defined in the policy and applied by Policy as Code.
+Only open alerts created before the campaign was published are considered part of
+the campaign, and closed campaigns are never enforced.
+
+The campaigns are loaded from the organization using the
+[Campaigns REST API](https://docs.github.com/en/rest/campaigns/campaigns) which
+requires an organization owner or security manager token.
+If a campaign in the policy is not found, or the campaigns cannot be read, a warning
+is raised instead of a violation.

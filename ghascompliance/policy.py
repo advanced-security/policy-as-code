@@ -16,10 +16,35 @@ __ROOT__ = os.path.dirname(os.path.basename(__file__))
 __SCHEMA_VALIDATION__ = "Schema Validation Failed :: {msg} - {value}"
 
 
+def parseDateTime(value: Optional[str]) -> Optional[datetime.datetime]:
+    """Parse an ISO 8601 timestamp into a naive UTC datetime."""
+    if not value or not isinstance(value, str):
+        return None
+
+    value = value.strip()
+    if value.endswith("Z"):
+        value = value[:-1] + "+00:00"
+
+    try:
+        result = datetime.datetime.fromisoformat(value)
+    except ValueError:
+        Octokit.warning(f"Unable to parse datetime :: {value}")
+        return None
+
+    if result.tzinfo is not None:
+        result = result.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+
+    return result
+
+
 class Policy:
     __BLOCK_ITEMS__ = ["ids", "names", "imports", "remediate"]
     __SECTION_ITEMS__ = ["level", "remediate", "conditions", "warnings", "ignores"]
     __IMPORT_ALLOWED_TYPES__ = ["txt"]
+    #  Technologies supported by GitHub Security Campaigns
+    __CAMPAIGN_TECHNOLOGIES__ = ["codescanning", "dependabot"]
+    __CAMPAIGN_ITEMS__ = ["name", "grace"] + __CAMPAIGN_TECHNOLOGIES__
+    __CAMPAIGN_SECTION_ITEMS__ = ["level", "conditions", "ignores"]
 
     def __init__(
         self,
@@ -38,6 +63,7 @@ class Policy:
 
         self.policy = {}
         self.remediate = None
+        self.campaigns: List[Dict] = []
 
         self.instance = instance
         self.token = token
@@ -128,6 +154,11 @@ class Policy:
                 tech, policy.get(tech, policy["general"])
             )
 
+        # Security Campaigns (opt-in)
+        self.campaigns = self.loadPolicyCampaigns(policy.get("campaigns"))
+        if self.campaigns:
+            policy["campaigns"] = self.campaigns
+
         Octokit.info("Policy loaded successfully")
 
         self.policy = policy
@@ -192,6 +223,88 @@ class Policy:
             data["remediate"] = self.remediate
 
         return data
+
+    def loadPolicyCampaigns(self, campaigns: Optional[List[Dict]] = None) -> List[Dict]:
+        """Load and validate the (opt-in) Security Campaigns policy section."""
+        if not campaigns:
+            return []
+
+        if not isinstance(campaigns, list):
+            raise Exception(
+                __SCHEMA_VALIDATION__.format(
+                    msg="Campaigns must be a list", value=str(campaigns)
+                )
+            )
+
+        results = []
+
+        for campaign in campaigns:
+            if not isinstance(campaign, dict):
+                raise Exception(
+                    __SCHEMA_VALIDATION__.format(
+                        msg="Campaign must be a map", value=str(campaign)
+                    )
+                )
+
+            name = campaign.get("name")
+            if not name or not isinstance(name, str):
+                raise Exception(
+                    __SCHEMA_VALIDATION__.format(
+                        msg="Campaign requires a name", value=str(campaign)
+                    )
+                )
+
+            for section in campaign:
+                if section not in Policy.__CAMPAIGN_ITEMS__:
+                    raise Exception(
+                        __SCHEMA_VALIDATION__.format(
+                            msg="Disallowed Campaign Section present", value=section
+                        )
+                    )
+
+            grace = campaign.get("grace", 0)
+            if isinstance(grace, bool) or not isinstance(grace, int) or grace < 0:
+                raise Exception(
+                    __SCHEMA_VALIDATION__.format(
+                        msg="Campaign grace must be a positive number of days",
+                        value=str(grace),
+                    )
+                )
+
+            for technology in Policy.__CAMPAIGN_TECHNOLOGIES__:
+                section_data = campaign.get(technology)
+                if section_data is None:
+                    continue
+
+                if not isinstance(section_data, dict):
+                    raise Exception(
+                        __SCHEMA_VALIDATION__.format(
+                            msg="Campaign technology must be a map", value=technology
+                        )
+                    )
+
+                for section, blocks in section_data.items():
+                    if section not in Policy.__CAMPAIGN_SECTION_ITEMS__:
+                        raise Exception(
+                            __SCHEMA_VALIDATION__.format(
+                                msg="Disallowed Campaign Block present", value=section
+                            )
+                        )
+                    if section == "level":
+                        continue
+
+                    for block in list(blocks):
+                        if block not in Policy.__BLOCK_ITEMS__:
+                            raise Exception(
+                                __SCHEMA_VALIDATION__.format(
+                                    msg="Disallowed Block present", value=block
+                                )
+                            )
+
+            Octokit.debug(f"Enabling Security Campaign policy :: {name}")
+            results.append(campaign)
+
+        return results
 
     def loadPolicyImport(self, path: str):
         results = []
@@ -351,46 +464,54 @@ class Policy:
     def checkViolationAgainstPolicy(
         self, severity: str, technology: str, names: List[str] = [], ids: List[str] = []
     ):
+        if technology:
+            return self.checkSectionViolation(
+                severity, self.policy.get(technology), names=names, ids=ids
+            )
+
+        return severity in SEVERITIES
+
+    def checkSectionViolation(
+        self,
+        severity: str,
+        policy: Optional[Dict],
+        names: List[str] = [],
+        ids: List[str] = [],
+    ) -> bool:
+        """Check an alert against a single policy section (level / conditions / ignores)."""
         severities = []
         level = "all"
 
-        if technology:
-            policy = self.policy.get(technology)
-            if policy:
-                for name in names:
-                    check_name = str(name).lower()
-                    condition_names = [
-                        ign.lower()
-                        for ign in policy.get("conditions", {}).get("names", [])
-                    ]
-                    ingores_names = [
-                        ign.lower()
-                        for ign in policy.get("ignores", {}).get("names", [])
-                    ]
-                    if self.matchContent(check_name, ingores_names):
-                        return False
-                    elif self.matchContent(check_name, condition_names):
-                        return True
+        if policy:
+            for name in names:
+                check_name = str(name).lower()
+                condition_names = [
+                    ign.lower() for ign in policy.get("conditions", {}).get("names", [])
+                ]
+                ingores_names = [
+                    ign.lower() for ign in policy.get("ignores", {}).get("names", [])
+                ]
+                if self.matchContent(check_name, ingores_names):
+                    return False
+                elif self.matchContent(check_name, condition_names):
+                    return True
 
-                for id in ids:
-                    check_id = str(id).lower()
-                    condition_ids = [
-                        ign.lower()
-                        for ign in policy.get("conditions", {}).get("ids", [])
-                    ]
-                    ingores_ids = [
-                        ign.lower() for ign in policy.get("ignores", {}).get("ids", [])
-                    ]
-                    if self.matchContent(check_id, ingores_ids):
-                        return False
-                    elif self.matchContent(check_id, condition_ids):
-                        return True
+            for id in ids:
+                check_id = str(id).lower()
+                condition_ids = [
+                    ign.lower() for ign in policy.get("conditions", {}).get("ids", [])
+                ]
+                ingores_ids = [
+                    ign.lower() for ign in policy.get("ignores", {}).get("ids", [])
+                ]
+                if self.matchContent(check_id, ingores_ids):
+                    return False
+                elif self.matchContent(check_id, condition_ids):
+                    return True
 
-            if self.policy.get(technology, {}).get("level"):
-                level = self.policy.get(technology, {}).get("level")
+            if policy.get("level"):
+                level = policy.get("level")
                 severities = self._buildSeverityList(level)
-        else:
-            severities = self.severities
 
         if level == "all":
             severities = SEVERITIES
@@ -398,6 +519,59 @@ class Policy:
             severities = []
 
         return severity in severities
+
+    def getCampaignPolicies(self, name: str) -> List[Dict]:
+        """Get all the campaign policies matching a campaign name (wildcards supported)."""
+        matches = []
+        for campaign in self.campaigns:
+            patterns = [str(campaign.get("name", "")).lower()]
+            if self.matchContent(str(name).lower(), patterns):
+                matches.append(campaign)
+        return matches
+
+    def checkCampaignOverdue(self, campaign: Dict, grace: int = 0) -> bool:
+        """Check if a Security Campaign is past its due date (including grace period)."""
+        if campaign.get("state", "open") != "open":
+            Octokit.debug(
+                "Skipping closed Security Campaign :: " + str(campaign.get("name"))
+            )
+            return False
+
+        ends_at = parseDateTime(campaign.get("ends_at"))
+        if not ends_at:
+            Octokit.warning(
+                "Security Campaign has no due date :: " + str(campaign.get("name"))
+            )
+            return False
+
+        due_date = (ends_at + datetime.timedelta(days=grace)).date()
+
+        return datetime.datetime.now(datetime.timezone.utc).date() > due_date
+
+    def checkCampaignViolation(
+        self,
+        severity: str,
+        technology: str,
+        campaign: Dict,
+        names: List[str] = [],
+        ids: List[str] = [],
+        creation_time: Optional[datetime.datetime] = None,
+        campaign_start: Optional[datetime.datetime] = None,
+    ) -> bool:
+        """Check if an alert is covered by a Security Campaign policy.
+
+        Alerts created after the campaign was created are not part of the campaign.
+        """
+        section = campaign.get(technology)
+        if not section:
+            return False
+
+        if creation_time and campaign_start and creation_time > campaign_start:
+            return False
+
+        return self.checkSectionViolation(
+            severity.lower(), section, names=names, ids=ids
+        )
 
     def checkLicensingViolation(self, license: str, dependency: dict = {}):
         license = license.lower()
