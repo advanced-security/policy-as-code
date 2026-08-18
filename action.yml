@@ -77,9 +77,10 @@ runs:
       shell: bash
       run: |
         if [ -f "${{ inputs.output }}" ]; then
+          delimiter="$(openssl rand -hex 8)"
           {
-           echo 'results<<EOF'
+           echo "results<<$delimiter"
            cat "${{ inputs.output }}"
-           echo EOF
+           echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
         fi

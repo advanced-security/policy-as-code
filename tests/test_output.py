@@ -7,7 +7,7 @@ from ghascompliance.output import write_results
 
 
 class TestOutput(unittest.TestCase):
-    def testWriteResultsCreatesStructuredJson(self):
+    def test_write_results_creates_structured_json(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "results", "output.json")
 
