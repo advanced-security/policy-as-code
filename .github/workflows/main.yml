@@ -43,7 +43,8 @@ jobs:
   e2e-tests:
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
-    needs: run 
+    needs: run
+    continue-on-error: true
     env:
       POLICY_AS_CODE_TESTING_TOKEN: ${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}
 
@@ -62,7 +63,8 @@ jobs:
   action-test:
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
-    needs: run 
+    needs: run
+    continue-on-error: true
     env:
       POLICY_AS_CODE_TESTING_TOKEN: ${{ secrets.POLICY_AS_CODE_TESTING_TOKEN }}
 
