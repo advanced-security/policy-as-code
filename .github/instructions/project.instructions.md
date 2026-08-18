@@ -2,6 +2,8 @@
 applyTo: "**/*.py"
 ---
 
+# Project Guidelines
+
 This project is a Python CLI and GitHub Action policy-as-code engine and toolkit.
 It uses Python 3.10+ and Pipenv for dependency management, Black for code formatting, and unittest for testing.
 
