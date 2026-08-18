@@ -9,7 +9,17 @@ def write_results(
     total_errors: int,
     checks: Dict[str, Dict[str, Any]],
 ) -> None:
-    """Write policy check results to a JSON file."""
+    """Write policy check results to a JSON file.
+
+    Args:
+        path: File path to write the JSON results to. Missing parent
+            directories are created.
+        total_violations: Total number of policy violations found by the
+            checks that ran successfully.
+        total_errors: Number of checks that failed with an error.
+        checks: Per-check results, keyed by check name, each containing the
+            check `status`, its `violations` count and, on failure, an `error`.
+    """
     output_directory = os.path.dirname(path)
     if output_directory:
         os.makedirs(output_directory, exist_ok=True)
