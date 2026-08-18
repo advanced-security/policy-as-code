@@ -9,6 +9,7 @@ from ghascompliance.consts import SEVERITIES
 from ghascompliance.octokit import Octokit, PullRequest, Summary
 from ghascompliance.policy import Policy
 from ghascompliance.checks import *
+from ghascompliance.output import write_results
 
 # https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
@@ -65,6 +66,11 @@ thresholds.add_argument("--action", default="break")
 thresholds.add_argument("--severity", default="Error")
 thresholds.add_argument("--list-severities", action="store_true")
 thresholds.add_argument("--count", type=int, default=-1)
+parser.add_argument(
+    "--output",
+    default=os.path.join(".compliance", "results.json"),
+    help="Path to write structured policy check results as JSON",
+)
 
 
 if __name__ == "__main__":
@@ -197,6 +203,7 @@ if __name__ == "__main__":
     )
 
     errors = 0
+    check_results = {}
 
     checks = [
         ("code_scanning", checks.checkCodeScanning),
@@ -209,7 +216,9 @@ if __name__ == "__main__":
     for check in checks:
         try:
             if not getattr(arguments, f"disable_{check[0]}"):
-                errors += check[1]()
+                violations = check[1]()
+                errors += violations
+                check_results[check[0]] = violations
 
         except GHASToolkitAuthenticationError as err:
             Octokit.error("Authentication Error")
@@ -237,6 +246,7 @@ if __name__ == "__main__":
                 raise err
 
     Octokit.endGroup()
+    write_results(arguments.output, errors, check_results)
 
     Octokit.createGroup("Summary")
 

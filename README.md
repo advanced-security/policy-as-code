@@ -67,6 +67,36 @@ Here is how you can quickly setup policy-as-code.
   uses: advanced-security/policy-as-code@v2.11.1
 ```
 
+#### Structured results
+
+The action exposes its results as JSON for downstream steps through the `results`
+output. It also writes the same JSON to `.compliance/results.json` by default.
+Set the `output` input to use a different file location.
+
+```yaml
+- name: Advance Security Policy as Code
+  id: policy
+  uses: advanced-security/policy-as-code@v2.11.1
+
+- name: Read total violations
+  run: echo '${{ fromJSON(steps.policy.outputs.results).total_violations }}'
+```
+
+The JSON schema is:
+
+```json
+{
+  "schema_version": 1,
+  "total_violations": 2,
+  "checks": {
+    "code_scanning": 1,
+    "dependabot": 1
+  }
+}
+```
+
+`checks` includes each enabled check and its violation count.
+
 > [!WARNING]
 > The GitHub Action does not install Python on the runner. Please checkout at [the `actions/setup-python` Action][python-setup]
 
