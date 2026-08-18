@@ -1,0 +1,56 @@
+name: Release
+
+# Handles all release mechanics via advanced-security/reusable-workflows,
+# replacing the previous fully-manual process (hand-bump .release.yml +
+# ghascompliance/__version__.py, then hand-run `gh release create`).
+#
+# Two paths, both calling into the same reusable release tooling:
+#   - auto-release: fires when .release.yml's version changes on main (the
+#     normal release flow) - reuses python-release.yml's existing
+#     cooldown-aware version-vs-latest-release check, so it's a no-op if
+#     .release.yml changed without an actual version bump. Always a full
+#     release (never a pre-release), since a committed .release.yml bump
+#     represents a finalized version.
+#   - manual-release: workflow_dispatch for on-demand releases, including
+#     pre-releases (e.g. a beta cut ahead of finalizing .release.yml).
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.release.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Explicit version to release (e.g. 2.12.0 or 2.12.0-beta.1). Leave blank to auto-bump from the latest release.'
+        required: false
+        type: string
+      bump:
+        description: 'Auto-bump type, used only when "version" above is left blank.'
+        required: false
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      prerelease:
+        description: 'Publish as a pre-release (tags vX.Y.Z only; skips moving the floating vX/vX.Y tags and skips --latest).'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-release:
+    if: ${{ github.event_name == 'push' && github.repository == 'advanced-security/policy-as-code' }}
+    uses: advanced-security/reusable-workflows/.github/workflows/python-release.yml@v0.3.5
+    secrets: inherit
+
+  manual-release:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'advanced-security/policy-as-code' }}
+    uses: advanced-security/reusable-workflows/.github/workflows/release.yml@v0.3.5
+    with:
+      version: ${{ inputs.version }}
+      bump: ${{ inputs.bump }}
+      prerelease: ${{ inputs.prerelease }}
+    secrets: inherit
