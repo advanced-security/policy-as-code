@@ -2,6 +2,8 @@
 applyTo: "**/*.md"
 ---
 
+# Markdown Linting
+
 This project lints Markdown with `markdownlint-cli` (config: `--disable MD013` only; see [CONTRIBUTING.md](../../CONTRIBUTING.md)).
 
 ## Important: the CI check lints the whole repo, not your diff
