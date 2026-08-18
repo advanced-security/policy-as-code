@@ -26,8 +26,9 @@ class TestChecks(unittest.TestCase):
     @patch("ghascompliance.checks.GitHub.repository")
     @patch("ghascompliance.checks.DependencyGraph")
     @patch("ghascompliance.checks.Dependabot")
+    @patch("ghascompliance.checks.Octokit.warning")
     def test_check_dependabot_dependency_graph_400_still_processes_alerts(
-        self, dependabot_cls, depgraph_cls, repository_mock
+        self, warning_mock, dependabot_cls, depgraph_cls, repository_mock
     ):
         repository_mock.isInPullRequest.return_value = False
 
@@ -47,6 +48,12 @@ class TestChecks(unittest.TestCase):
         checks = Checks(policy)
         self.assertEqual(checks.checkDependabot(), 1)
         policy.checkViolation.assert_called_once()
+        self.assertFalse(
+            any(
+                "Unable to find alert in DependencyGraph" in call.args[0]
+                for call in warning_mock.call_args_list
+            )
+        )
 
     @patch("ghascompliance.checks.GitHub.repository")
     @patch("ghascompliance.checks.DependencyGraph")
