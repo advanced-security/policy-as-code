@@ -6,7 +6,9 @@ from unittest.mock import MagicMock, patch
 
 sys.path.append(".")
 
+from ghastoolkit import Dependencies
 from ghastoolkit.errors import GHASToolkitError
+from ghastoolkit.supplychain.dependency import Dependency
 from ghascompliance.checks import Checks
 
 
@@ -69,8 +71,8 @@ class TestChecks(unittest.TestCase):
         dependabot.graphql = MagicMock()
         dependabot.getAlerts.return_value = [alert]
 
-        dependencies = MagicMock()
-        dependencies.findPurl.return_value = None
+        alert.purl = "pkg:pip/flask@3.0.0"
+        dependencies = Dependencies([Dependency(name="requests", manager="pip")])
         depgraph = depgraph_cls.return_value
         depgraph.getDependencies.return_value = dependencies
 

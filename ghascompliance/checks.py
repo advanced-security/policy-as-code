@@ -6,6 +6,7 @@ from typing import *
 from ghastoolkit import (
     GitHub,
     CodeScanning,
+    Dependency,
     Dependencies,
     DependencyGraph,
     Dependabot,
@@ -246,7 +247,19 @@ class Checks:
                 continue
 
             # Find the dependency from the graph
-            dependency = dependencies.findPurl(alert.purl) if dependencies else None
+            alert_purl = Dependency.fromPurl(alert.purl).getPurl(version=False)
+            dependency = (
+                next(
+                    (
+                        dep
+                        for dep in dependencies
+                        if dep.getPurl(version=False) == alert_purl
+                    ),
+                    None,
+                )
+                if dependencies
+                else None
+            )
             if not dependency and dependencies is not None:
                 Octokit.warning(
                     f"Unable to find alert in DependencyGraph :: {alert.purl}. Continuing with alert package URL"
