@@ -215,13 +215,13 @@ if __name__ == "__main__":
         ("secret_scanning", checks.checkSecretScanning),
     ]
 
-    for check in checks_to_run:
+    for check_name, check_fn in checks_to_run:
         try:
-            if not getattr(arguments, f"disable_{check[0]}"):
-                violations = check[1]()
+            if not getattr(arguments, f"disable_{check_name}"):
+                violations = check_fn()
                 errors += violations
                 total_violations += violations
-                check_results[check[0]] = {
+                check_results[check_name] = {
                     "status": "success",
                     "violations": violations,
                 }
@@ -232,7 +232,7 @@ if __name__ == "__main__":
 
             errors += 1
             total_errors += 1
-            check_results[check[0]] = {
+            check_results[check_name] = {
                 "status": "error",
                 "violations": 0,
                 "error": str(err),
@@ -247,7 +247,7 @@ if __name__ == "__main__":
 
             errors += 1  # add to error count
             total_errors += 1
-            check_results[check[0]] = {
+            check_results[check_name] = {
                 "status": "error",
                 "violations": 0,
                 "error": str(err),

@@ -79,10 +79,10 @@ runs:
         RESULTS_FILE: ${{ inputs.output }}
       run: |
         if [ -f "$RESULTS_FILE" ]; then
-          delimiter="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
+          delimiter="$(python -c 'import secrets; print(secrets.token_hex(16))' 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
           {
             printf 'results<<%s\n' "$delimiter"
             cat "$RESULTS_FILE"
-            printf '\n%s\n' "$delimiter"
+            printf '%s\n' "$delimiter"
           } >> "$GITHUB_OUTPUT"
         fi
