@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Advance Security Compliance Action
+      - name: Advanced Security Compliance Action
         uses: advanced-security/policy-as-code@main
         with:
           # Set the severity levels which to set the threshold. All previous
