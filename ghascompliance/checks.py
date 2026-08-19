@@ -20,7 +20,6 @@ from ghascompliance.octokit.summary import Summary
 
 __HERE__ = os.path.dirname(os.path.realpath(__file__))
 LICENSES = [os.path.join(__HERE__, "data", "clearlydefined.json")]
-GRAPHQL_QUERIES = [os.path.join(__HERE__, "octokit", "graphql")]
 
 
 class Checks:
@@ -193,8 +192,6 @@ class Checks:
         dependabot_violations = []
 
         dependabot = Dependabot()
-        # Load the GraphQL Queries from the repo
-        dependabot.graphql.loadQueries(GRAPHQL_QUERIES)
 
         depgraph = DependencyGraph()
 
@@ -224,8 +221,16 @@ class Checks:
                     "Dependabot REST API returned 400; retrying with GraphQL alerts API"
                 )
                 alerts = dependabot.getAlertsGraphQL()
-            # Dependencies
-            dependencies = depgraph.getDependencies()
+
+            # Dependencies are only needed to resolve the alerts, skip the
+            # (expensive) Dependency Graph requests if there are no alerts
+            if alerts:
+                dependencies = depgraph.getDependencies()
+            else:
+                Octokit.debug(
+                    "No Dependabot alerts, skipping Dependency Graph requests"
+                )
+                dependencies = Dependencies()
 
         Octokit.info("Total Dependabot Alerts :: " + str(len(alerts)))
 
