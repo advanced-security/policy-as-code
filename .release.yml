@@ -12,4 +12,5 @@ locations:
       - "docs/*.md"
     patterns:
       - "{repository}@v{version}"
+      - "{repository}@{version}"
       - '--branch "v{version}"'
