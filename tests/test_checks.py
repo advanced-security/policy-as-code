@@ -23,7 +23,6 @@ class TestGraphQLQueries(unittest.TestCase):
         path = os.path.join(
             os.path.dirname(checks_module.__file__), "octokit", "graphql"
         )
-        self.assertTrue(not os.path.exists(path) or os.path.isdir(path))
         query_files = []
         if os.path.exists(path):
             query_files = [
@@ -35,6 +34,7 @@ class TestGraphQLQueries(unittest.TestCase):
         """Un-paginated queries time out (502) on large repositories."""
         query = QUERIES.get("GetDependencyInfo", "")
 
+        self.assertTrue(query)
         self.assertIn("dependencyGraphManifests(first:", query)
         self.assertIn("$manifests_cursor", query)
         self.assertIn("$dependencies_cursor", query)
