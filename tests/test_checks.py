@@ -38,7 +38,7 @@ class TestDependabotChecks(unittest.TestCase):
             retrieve_metadata=False,
         )
         self.checks = Checks(Policy("error"))
-        return super().setUp()
+        super().setUp()
 
     def testSkipDependencyGraphWithoutAlerts(self):
         depgraph = MagicMock()
