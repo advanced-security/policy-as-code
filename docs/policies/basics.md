@@ -50,7 +50,6 @@ There are a number of levels are [specified in the standard and are constant](ht
 - `note`
 - `notes`
 
-
 ### Conditional Policy
 
 The conditional policy attributes allow users to write more complex conditional checks.
@@ -58,13 +57,13 @@ There are four main rules types to do everything you need to do for all things c
 
 ```yaml
 codescanning:
-  # Warnings will always occur if the rule applies and continues executing to 
+  # Warnings will always occur if the rule applies and continues executing to
   #  other rules.
   warnings:
     ids:
       - Other
       - NA
-  # Ignores are run next so if an ignored rule is hit that matches the level, 
+  # Ignores are run next so if an ignored rule is hit that matches the level,
   #  it will be skipped
   ignores:
     ids:
