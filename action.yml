@@ -78,11 +78,13 @@ runs:
       env:
         RESULTS_FILE: ${{ inputs.output }}
       run: |
-        if [ -f "$RESULTS_FILE" ]; then
-          delimiter="$(python -c 'import secrets; print(secrets.token_hex(16))' 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
-          {
-            printf 'results<<%s\n' "$delimiter"
+        delimiter="$(python -c 'import secrets; print(secrets.token_hex(16))' 2>/dev/null || python3 -c 'import secrets; print(secrets.token_hex(16))')"
+        {
+          printf 'results<<%s\n' "$delimiter"
+          if [ -f "$RESULTS_FILE" ]; then
             cat "$RESULTS_FILE"
-            printf '%s\n' "$delimiter"
-          } >> "$GITHUB_OUTPUT"
-        fi
+          else
+            printf '%s\n' '{"schema_version":1,"total_violations":0,"total_errors":0,"checks":{}}'
+          fi
+          printf '%s\n' "$delimiter"
+        } >> "$GITHUB_OUTPUT"
