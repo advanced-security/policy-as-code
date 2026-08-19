@@ -11,7 +11,7 @@ The main use case using GitHub Action uses an [automatic token authentication](h
 
 [GitHub Code Scanning API](https://docs.github.com/en/rest/reference/code-scanning) requires the ability to read Code Scanning results which can be accessed using Action generated Tokens.
 
-*Versions:* GHES <= 3.0
+*Note:* Versions: GHES <= 3.0
 
 ### Dependencies
 
@@ -29,4 +29,4 @@ Source: [GitHub docs](https://docs.github.com/en/rest/reference/secret-scanning#
 
 *Note:* Default Action generated Tokens don't support accessing this API.
 
-*Versions:* GHES <= 3.1
+*Note:* Versions: GHES <= 3.1

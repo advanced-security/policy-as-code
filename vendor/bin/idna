@@ -1,6 +1,6 @@
 #!/home/runner/.local/share/virtualenvs/policy-as-code-60-4XQbQ/bin/python
 import sys
-from charset_normalizer.cli import cli_detect
+from idna.cli import main
 if __name__ == '__main__':
     sys.argv[0] = sys.argv[0].removesuffix('.exe')
-    sys.exit(cli_detect())
+    sys.exit(main())
