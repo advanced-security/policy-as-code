@@ -249,12 +249,14 @@ class Checks:
             # Find the dependency from the graph
             dependency = None
             if dependencies:
-                alert_purl = Dependency.fromPurl(alert.purl).getPurl(version=False)
+                alert_purl = (
+                    Dependency.fromPurl(alert.purl).getPurl(version=False).lower()
+                )
                 dependency = next(
                     (
                         dep
                         for dep in dependencies
-                        if dep.getPurl(version=False) == alert_purl
+                        if dep.getPurl(version=False).lower() == alert_purl
                     ),
                     None,
                 )

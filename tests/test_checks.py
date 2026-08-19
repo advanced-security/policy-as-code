@@ -89,6 +89,37 @@ class TestChecks(unittest.TestCase):
             f"Unable to find alert in DependencyGraph :: {alert.purl}. Continuing with alert package URL"
         )
 
+    @patch("ghascompliance.checks.GitHub.repository")
+    @patch("ghascompliance.checks.DependencyGraph")
+    @patch("ghascompliance.checks.Dependabot")
+    @patch("ghascompliance.checks.Octokit.warning")
+    def test_check_dependabot_purl_match_is_case_insensitive(
+        self, warning_mock, dependabot_cls, depgraph_cls, repository_mock
+    ):
+        repository_mock.isInPullRequest.return_value = False
+
+        alert = self._create_alert()
+        alert.purl = "pkg:nuget/newtonsoft.json@13.0.3"
+        dependabot = dependabot_cls.return_value
+        dependabot.graphql = MagicMock()
+        dependabot.getAlerts.return_value = [alert]
+
+        dependency = Dependency(name="Newtonsoft.Json", manager="nuget")
+        dependencies = Dependencies([dependency])
+        depgraph = depgraph_cls.return_value
+        depgraph.getDependencies.return_value = dependencies
+
+        policy = MagicMock()
+        policy.checkViolation.return_value = True
+
+        checks = Checks(policy)
+        self.assertEqual(checks.checkDependabot(), 1)
+        self.assertEqual(
+            policy.checkViolation.call_args.kwargs["names"],
+            [dependency.fullname, dependency.getPurl(version=False)],
+        )
+        warning_mock.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
