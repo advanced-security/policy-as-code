@@ -9,6 +9,7 @@ from ghascompliance.consts import SEVERITIES
 from ghascompliance.octokit import Octokit, PullRequest, Summary
 from ghascompliance.policy import Policy
 from ghascompliance.checks import *
+from ghascompliance.output import write_results
 
 # https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
@@ -65,6 +66,11 @@ thresholds.add_argument("--action", default="break")
 thresholds.add_argument("--severity", default="Error")
 thresholds.add_argument("--list-severities", action="store_true")
 thresholds.add_argument("--count", type=int, default=-1)
+parser.add_argument(
+    "--output",
+    default=os.path.join(".compliance", "results.json"),
+    help="Path to write structured policy check results as JSON",
+)
 
 
 if __name__ == "__main__":
@@ -197,8 +203,11 @@ if __name__ == "__main__":
     )
 
     errors = 0
+    total_violations = 0
+    total_errors = 0
+    check_results = {}
 
-    checks = [
+    checks_to_run = [
         ("code_scanning", checks.checkCodeScanning),
         ("dependabot", checks.checkDependabot),
         ("dependencies", checks.checkDependencies),
@@ -206,16 +215,28 @@ if __name__ == "__main__":
         ("secret_scanning", checks.checkSecretScanning),
     ]
 
-    for check in checks:
+    for check_name, check_fn in checks_to_run:
         try:
-            if not getattr(arguments, f"disable_{check[0]}"):
-                errors += check[1]()
+            if not getattr(arguments, f"disable_{check_name}"):
+                violations = check_fn()
+                errors += violations
+                total_violations += violations
+                check_results[check_name] = {
+                    "status": "success",
+                    "violations": violations,
+                }
 
         except GHASToolkitAuthenticationError as err:
             Octokit.error("Authentication Error")
             Octokit.error(str(err))
 
             errors += 1
+            total_errors += 1
+            check_results[check_name] = {
+                "status": "error",
+                "violations": 0,
+                "error": str(err),
+            }
             # Add to summary
             Summary.addLine(f"{Summary.__ICONS__['cross']} :: Authentication Error")
             Summary.addLine(Summary.formatItalics(str(err)))
@@ -225,6 +246,12 @@ if __name__ == "__main__":
             Octokit.error(str(err))
 
             errors += 1  # add to error count
+            total_errors += 1
+            check_results[check_name] = {
+                "status": "error",
+                "violations": 0,
+                "error": str(err),
+            }
 
             # Add to summary
             Summary.addHeader(f"{Summary.__ICONS__['cross']} :: Error Encountered", 2)
@@ -237,6 +264,11 @@ if __name__ == "__main__":
                 raise err
 
     Octokit.endGroup()
+
+    try:
+        write_results(arguments.output, total_violations, total_errors, check_results)
+    except OSError as err:
+        Octokit.warning(f"Unable to write results file :: {err}")
 
     Octokit.createGroup("Summary")
 
