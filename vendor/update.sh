@@ -60,7 +60,12 @@ preserve_dist_info_licenses() {
 }
 
 echo "[+] Delete all folders in vendor"
-rm -rf "$VENDOR/*/"
+# NOTE: the glob must stay outside the quotes so the shell expands it to each
+# top-level directory; quoting it (e.g. "$VENDOR/*/") makes rm look for a
+# literal path named "*" and silently deletes nothing, leaving stale/removed
+# packages behind on every run. Only directories are matched (trailing "/"),
+# so vendor/README.md and vendor/update.sh itself are left alone.
+rm -rf "$VENDOR"/*/
 
 if [ -f $PWD/Pipfile ]; then
     echo "[+] Install all dependencies (pipenv)"

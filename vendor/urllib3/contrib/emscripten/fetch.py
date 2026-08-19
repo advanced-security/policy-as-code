@@ -67,12 +67,6 @@ SUCCESS_EOF = -2
 ERROR_TIMEOUT = -3
 ERROR_EXCEPTION = -4
 
-_STREAMING_WORKER_CODE = (
-    files(__package__)
-    .joinpath("emscripten_fetch_worker.js")
-    .read_text(encoding="utf-8")
-)
-
 
 class _RequestError(Exception):
     def __init__(
@@ -207,9 +201,13 @@ class _StreamingFetcher:
     def __init__(self) -> None:
         # make web-worker and data buffer on startup
         self.streaming_ready = False
-
+        streaming_worker_code = (
+            files(__package__)
+            .joinpath("emscripten_fetch_worker.js")
+            .read_text(encoding="utf-8")
+        )
         js_data_blob = js.Blob.new(
-            to_js([_STREAMING_WORKER_CODE], create_pyproxies=False),
+            to_js([streaming_worker_code], create_pyproxies=False),
             _obj_from_dict({"type": "application/javascript"}),
         )
 
@@ -573,6 +571,11 @@ def send_jspi_request(
         "method": request.method,
         "signal": js_abort_controller.signal,
     }
+    # Node.js returns the whole response (unlike opaqueredirect in browsers),
+    # so urllib3 can set `redirect: manual` to control redirects itself.
+    # https://stackoverflow.com/a/78524615
+    if _is_node_js():
+        fetch_data["redirect"] = "manual"
     # Call JavaScript fetch (async api, returns a promise)
     fetcher_promise_js = js.fetch(request.url, _obj_from_dict(fetch_data))
     # Now suspend WebAssembly until we resolve that promise
@@ -691,6 +694,21 @@ def has_jspi() -> bool:
         return bool(can_run_sync())
     except ImportError:
         return False
+
+
+def _is_node_js() -> bool:
+    """
+    Check if we are in Node.js.
+
+    :return: True if we are in Node.js.
+    :rtype: bool
+    """
+    return (
+        hasattr(js, "process")
+        and hasattr(js.process, "release")
+        # According to the Node.js documentation, the release name is always "node".
+        and js.process.release.name == "node"
+    )
 
 
 def streaming_ready() -> bool | None:

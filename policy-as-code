@@ -9,7 +9,7 @@ if command -v python3 &> /dev/null; then
     export PYTHONPATH=$SCRIPT_DIR/vendor:$SCRIPT_DIR
     python3 -m ghascompliance "$@"
 else 
-    echo "Python is not installed. Please install Python (+3.9) and try again."
+    echo "Python is not installed. Please install Python (+3.10) and try again."
     echo "Make sure that Python is added to the PATH environment variable."
     exit 1
 fi

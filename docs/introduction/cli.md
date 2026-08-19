@@ -17,4 +17,3 @@ pipenv run main --help
 # ... or
 pipenv run python -m ghascompliance
 ```
-
