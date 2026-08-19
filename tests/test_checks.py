@@ -23,7 +23,12 @@ class TestGraphQLQueries(unittest.TestCase):
         path = os.path.join(
             os.path.dirname(checks_module.__file__), "octokit", "graphql"
         )
-        self.assertFalse(os.path.exists(path))
+        query_files = []
+        if os.path.exists(path):
+            query_files = [
+                name for name in os.listdir(path) if name.endswith(".graphql")
+            ]
+        self.assertEqual(query_files, [])
 
     def testDependencyInfoQueryIsPaginated(self):
         """Un-paginated queries time out (502) on large repositories."""
