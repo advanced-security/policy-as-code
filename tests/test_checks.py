@@ -1,3 +1,4 @@
+import os
 import sys
 import unittest
 from datetime import datetime
@@ -6,13 +7,43 @@ from unittest.mock import MagicMock, patch
 
 sys.path.append(".")
 
-from ghastoolkit import Dependencies
+from ghastoolkit import Dependencies, GitHub
 from ghastoolkit.errors import GHASToolkitError
+from ghastoolkit.octokit.graphql import QUERIES
 from ghastoolkit.supplychain.dependency import Dependency
+
+from ghascompliance import checks as checks_module
 from ghascompliance.checks import Checks
+from ghascompliance.policy import Policy
 
 
-class TestChecks(unittest.TestCase):
+class TestGraphQLQueries(unittest.TestCase):
+    def testNoLocalQueryOverrides(self):
+        """Local queries would override the paginated ghastoolkit queries."""
+        path = os.path.join(
+            os.path.dirname(checks_module.__file__), "octokit", "graphql"
+        )
+        self.assertFalse(os.path.exists(path))
+
+    def testDependencyInfoQueryIsPaginated(self):
+        """Un-paginated queries time out (502) on large repositories."""
+        query = QUERIES.get("GetDependencyInfo", "")
+
+        self.assertIn("dependencyGraphManifests(first:", query)
+        self.assertIn("$manifests_cursor", query)
+        self.assertIn("$dependencies_cursor", query)
+
+
+class TestDependabotChecks(unittest.TestCase):
+    def setUp(self) -> None:
+        GitHub.init(
+            "advanced-security/policy-as-code",
+            reference="refs/heads/main",
+            retrieve_metadata=False,
+        )
+        self.checks = Checks(Policy("error"))
+        super().setUp()
+
     def _create_alert(self):
         advisory = SimpleNamespace(ghsa_id="GHSA-test-1234", cwes=["CWE-79"])
         alert = MagicMock()
@@ -24,6 +55,33 @@ class TestChecks(unittest.TestCase):
             key, default
         )
         return alert
+
+    def testSkipDependencyGraphWithoutAlerts(self):
+        depgraph = MagicMock()
+        dependabot = MagicMock()
+        dependabot.getAlerts.return_value = []
+
+        with patch.object(checks_module, "Dependabot", return_value=dependabot):
+            with patch.object(checks_module, "DependencyGraph", return_value=depgraph):
+                violations = self.checks.checkDependabot()
+
+        self.assertEqual(violations, 0)
+        depgraph.getDependencies.assert_not_called()
+
+    def testFetchDependencyGraphWithAlerts(self):
+        alert = self._create_alert()
+
+        depgraph = MagicMock()
+        depgraph.getDependencies.return_value = Dependencies()
+        dependabot = MagicMock()
+        dependabot.getAlerts.return_value = [alert]
+
+        with patch.object(checks_module, "Dependabot", return_value=dependabot):
+            with patch.object(checks_module, "DependencyGraph", return_value=depgraph):
+                violations = self.checks.checkDependabot()
+
+        self.assertEqual(violations, 1)
+        depgraph.getDependencies.assert_called_once()
 
     @patch("ghascompliance.checks.GitHub.repository")
     @patch("ghascompliance.checks.DependencyGraph")
