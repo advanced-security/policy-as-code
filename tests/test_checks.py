@@ -36,13 +36,13 @@ class TestGraphQLQueries(unittest.TestCase):
 
 class TestDependabotChecks(unittest.TestCase):
     def setUp(self) -> None:
+        super().setUp()
         GitHub.init(
             "advanced-security/policy-as-code",
             reference="refs/heads/main",
             retrieve_metadata=False,
         )
         self.checks = Checks(Policy("error"))
-        super().setUp()
 
     def _create_alert(self):
         advisory = SimpleNamespace(ghsa_id="GHSA-test-1234", cwes=["CWE-79"])
