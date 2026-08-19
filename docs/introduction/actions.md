@@ -6,14 +6,14 @@ To do this, you can simply add the following to your workflow:
 
 ```yaml
 # Compliance
-- name: Advance Security Compliance Action
+- name: Advanced Security Compliance Action
   uses: advanced-security/policy-as-code@v2.7.0
 ```
 
 This runs the policy-as-code action with the default configuration. You can also specify a configuration file to use:
 
 ```yaml
-- name: Advance Security Compliance Action
+- name: Advanced Security Compliance Action
   uses: advanced-security/policy-as-code@v2.7.0
   with:
     policy: GeekMaherOrg/security
@@ -31,6 +31,6 @@ Policy as Code is written in Python, so you will need to setup Python in your wo
   with:
     python-version: '3.10'  # minimum supported Python version
 
-- name: Advance Security Compliance Action
+- name: Advanced Security Compliance Action
   uses: advanced-security/policy-as-code@v2.7.0
 ```

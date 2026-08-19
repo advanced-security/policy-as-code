@@ -63,7 +63,7 @@ Here is how you can quickly setup policy-as-code.
 
 ```yaml
 # Policy as Code
-- name: Advance Security Policy as Code
+- name: Advanced Security Policy as Code
   uses: advanced-security/policy-as-code@v2.11.1
 ```
 
@@ -158,7 +158,7 @@ Here is an example of using a simple yet cross-organization using Policy as Code
 
 ```yaml
 # Compliance
-- name: Advance Security Policy as Code
+- name: Advanced Security Policy as Code
   uses: advanced-security/policy-as-code@v2.11.1
   with:
     # The owner/repo of where the policy is stored

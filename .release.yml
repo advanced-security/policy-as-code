@@ -9,8 +9,7 @@ locations:
   - name: "Update Docs"
     paths:
       - "*.md"
-      - "docs/*.md"
+      - "docs/**/*.md"
     patterns:
       - "{repository}@v{version}"
-      - "{repository}@{version}"
       - '--branch "v{version}"'
