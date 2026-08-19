@@ -155,6 +155,37 @@ class TestChecks(unittest.TestCase):
         )
         warning_mock.assert_not_called()
 
+    @patch("ghascompliance.checks.GitHub.repository")
+    @patch("ghascompliance.checks.DependencyGraph")
+    @patch("ghascompliance.checks.Dependabot")
+    @patch("ghascompliance.checks.Octokit.warning")
+    def test_check_dependabot_scoped_npm_alert_matches_dependency_fullname(
+        self, warning_mock, dependabot_cls, depgraph_cls, repository_mock
+    ):
+        repository_mock.isInPullRequest.return_value = False
+
+        alert = self._create_alert()
+        alert.purl = "pkg:npm/@scope/name@1.2.3"
+        dependabot = dependabot_cls.return_value
+        dependabot.graphql = MagicMock()
+        dependabot.getAlerts.return_value = [alert]
+
+        dependency = Dependency(name="name", namespace="@scope", manager="npm")
+        dependencies = Dependencies([dependency])
+        depgraph = depgraph_cls.return_value
+        depgraph.getDependencies.return_value = dependencies
+
+        policy = MagicMock()
+        policy.checkViolation.return_value = True
+
+        checks = Checks(policy)
+        self.assertEqual(checks.checkDependabot(), 1)
+        self.assertEqual(
+            policy.checkViolation.call_args.kwargs["names"],
+            [dependency.fullname, dependency.getPurl(version=False)],
+        )
+        warning_mock.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

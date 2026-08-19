@@ -2,6 +2,7 @@ import os
 import json
 from datetime import datetime
 from typing import *
+from urllib.parse import unquote
 
 from ghastoolkit import (
     GitHub,
@@ -22,6 +23,30 @@ from ghascompliance.octokit.summary import Summary
 __HERE__ = os.path.dirname(os.path.realpath(__file__))
 LICENSES = [os.path.join(__HERE__, "data", "clearlydefined.json")]
 GRAPHQL_QUERIES = [os.path.join(__HERE__, "octokit", "graphql")]
+
+
+def _parse_alert_purl(purl: str) -> Tuple[str, str, str]:
+    """Parse a versionless (manager, namespace, name) tuple from a Dependabot alert PURL.
+
+    Unlike ``Dependency.fromPurl()``, this does not treat the first ``@`` in the
+    PURL as a version delimiter, so scoped npm packages such as
+    ``pkg:npm/@scope/name`` are parsed correctly even when a version is
+    present. The version, if any, is always the last ``@``-delimited segment
+    and never contains a ``/``, so only that trailing segment is stripped.
+    Percent-encoding is also normalized.
+    """
+    pkg = unquote(purl)
+    if pkg.startswith("pkg:"):
+        pkg = pkg[len("pkg:") :]
+
+    if "@" in pkg:
+        candidate, _, version = pkg.rpartition("@")
+        if candidate and "/" not in version:
+            pkg = candidate
+
+    manager, _, rest = pkg.partition("/")
+    namespace, _, name = rest.rpartition("/")
+    return manager.lower(), namespace.lower(), name.lower()
 
 
 class Checks:
@@ -249,18 +274,25 @@ class Checks:
             # Find the dependency from the graph
             dependency = None
             if dependencies:
-                alert_dependency = Dependency.fromPurl(alert.purl)
-                alert_purl = alert_dependency.getPurl(version=False).lower()
-                alert_manager = (alert_dependency.manager or "").lower()
-                alert_fullname = alert_dependency.fullname.lower()
+                alert_manager, alert_namespace, alert_name = _parse_alert_purl(
+                    alert.purl
+                )
+                alert_purl = (
+                    f"pkg:{alert_manager}/{alert_namespace}/{alert_name}"
+                    if alert_namespace
+                    else f"pkg:{alert_manager}/{alert_name}"
+                )
+                alert_fullname = (
+                    f"{alert_namespace}/{alert_name}" if alert_namespace else alert_name
+                )
                 dependency = next(
                     (
                         dep
                         for dep in dependencies
-                        if dep.getPurl(version=False).lower() == alert_purl
+                        if unquote(dep.getPurl(version=False)).lower() == alert_purl
                         or (
                             (dep.manager or "").lower() == alert_manager
-                            and dep.fullname.lower() == alert_fullname
+                            and unquote(dep.fullname).lower() == alert_fullname
                         )
                     ),
                     None,
