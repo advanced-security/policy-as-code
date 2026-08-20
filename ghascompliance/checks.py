@@ -9,12 +9,13 @@ from ghastoolkit import (
     Dependencies,
     DependencyGraph,
     Dependabot,
+    RestRequest,
     SecretScanning,
     Licenses,
 )
 from ghastoolkit.errors import GHASToolkitError
 
-from ghascompliance.policy import Policy
+from ghascompliance.policy import Policy, parseDateTime
 from ghascompliance.octokit import Octokit
 from ghascompliance.octokit.summary import Summary
 
@@ -596,6 +597,184 @@ class Checks:
             )
 
         return violation_count
+
+    def getSecurityCampaigns(self) -> List[Dict]:
+        """Get the published Security Campaigns for the organization.
+
+        https://docs.github.com/en/rest/campaigns/campaigns
+        """
+        campaigns = RestRequest().get("/orgs/{org}/campaigns", {"state": "open"})
+        if not isinstance(campaigns, list):
+            return []
+        return campaigns
+
+    def checkCampaigns(self) -> int:
+        """Check open alerts covered by an overdue GitHub Security Campaign.
+
+        This is an opt-in check which requires a `campaigns` policy section.
+        """
+        if not self.policy.campaigns:
+            Octokit.debug("No Security Campaign policies set, skipping")
+            return 0
+
+        Octokit.createGroup("Security Campaign Results")
+        Summary.addHeader("Security Campaign Results", 2)
+        campaign_violation_headers = [
+            "Campaign",
+            "Due Date",
+            "Technology",
+            "Severity",
+            "Alert",
+        ]
+        campaign_violations = []
+
+        try:
+            campaigns = self.getSecurityCampaigns()
+        except GHASToolkitError as err:
+            Octokit.warning(f"Unable to load Security Campaigns :: {err}")
+            Octokit.endGroup()
+            Summary.addLine(
+                f"{Summary.__ICONS__['warning']} Unable to load Security Campaigns"
+            )
+            return 0
+
+        Octokit.info("Total Security Campaigns :: " + str(len(campaigns)))
+
+        matched = []
+
+        for campaign in campaigns:
+            campaign_name = campaign.get("name") or f"#{campaign.get('number')}"
+            policies = self.policy.getCampaignPolicies(campaign_name)
+
+            if not policies:
+                Octokit.debug(f"Security Campaign not in policy :: {campaign_name}")
+                continue
+
+            for campaign_policy in policies:
+                matched.append(campaign_policy.get("name"))
+
+                if not self.policy.checkCampaignOverdue(
+                    campaign, campaign_policy.get("grace", 0)
+                ):
+                    Octokit.info(
+                        f"Security Campaign is not overdue :: {campaign_name} ({campaign.get('ends_at')})"
+                    )
+                    continue
+
+                Octokit.info(
+                    f"Security Campaign is overdue :: {campaign_name} ({campaign.get('ends_at')})"
+                )
+                campaign_violations.extend(
+                    self.checkCampaignAlerts(campaign, campaign_policy)
+                )
+
+        for campaign_policy in self.policy.campaigns:
+            if campaign_policy.get("name") not in matched:
+                Octokit.warning(
+                    "Security Campaign not found in organization :: "
+                    + str(campaign_policy.get("name"))
+                )
+
+        violation_count = len(campaign_violations)
+        Octokit.info(f"Security Campaign violations :: {violation_count}")
+
+        Octokit.endGroup()
+
+        if violation_count == 0:
+            Summary.addLine(
+                f"{Summary.__ICONS__['check']} 0 Security Campaign violations"
+            )
+        else:
+            Summary.addLine(
+                f"{Summary.__ICONS__['cross']} {violation_count} Security Campaign violation{'s' if violation_count > 1 else ''}"
+            )
+
+        if self.display and violation_count > 0:
+            Summary.addCollapsed(
+                Summary.formatTable(campaign_violation_headers, campaign_violations),
+                summary=Summary.formatItalics("Security Campaign violations"),
+            )
+
+        return violation_count
+
+    def checkCampaignAlerts(self, campaign: Dict, campaign_policy: Dict) -> List[List]:
+        """Check the open alerts in the repository against a Security Campaign policy."""
+        violations = []
+        campaign_name = campaign.get("name") or f"#{campaign.get('number')}"
+        due_date = str(campaign.get("ends_at", ""))
+        #  Alerts created after the campaign was created are not part of it
+        campaign_start = parseDateTime(
+            campaign.get("published_at") or campaign.get("created_at")
+        )
+
+        if campaign_policy.get("codescanning"):
+            codescanning = CodeScanning(
+                retry_count=self.retry_count, retry_sleep=self.retry_sleep
+            )
+            alerts = codescanning.getAlerts("open", ref=GitHub.repository.reference)
+            Octokit.debug(f"Code Scanning Alerts :: {len(alerts)}")
+
+            for alert in alerts:
+                if self.policy.checkCampaignViolation(
+                    alert.severity,
+                    "codescanning",
+                    campaign_policy,
+                    names=[alert.description],
+                    ids=[alert.rule_id],
+                    creation_time=parseDateTime(alert.get("created_at")),
+                    campaign_start=campaign_start,
+                ):
+                    violations.append(
+                        [
+                            campaign_name,
+                            due_date,
+                            "Code Scanning",
+                            alert.severity,
+                            alert.rule_id,
+                        ]
+                    )
+                    if self.display:
+                        Octokit.error(
+                            f"Security Campaign Alert :: {campaign_name} ({due_date}) - {alert.rule_id}"
+                        )
+
+        if campaign_policy.get("dependabot"):
+            dependabot = Dependabot()
+            dependabot.graphql.loadQueries(GRAPHQL_QUERIES)
+            alerts = dependabot.getAlerts("open")
+            Octokit.debug(f"Dependabot Alerts :: {len(alerts)}")
+
+            for alert in alerts:
+                if alert.get("dismissReason") is not None:
+                    continue
+
+                ids = [alert.advisory.ghsa_id.lower()]
+                ids.extend(alert.advisory.cwes)
+
+                if self.policy.checkCampaignViolation(
+                    alert.severity,
+                    "dependabot",
+                    campaign_policy,
+                    names=[alert.purl],
+                    ids=ids,
+                    creation_time=alert.createdAt(),
+                    campaign_start=campaign_start,
+                ):
+                    violations.append(
+                        [
+                            campaign_name,
+                            due_date,
+                            "Dependabot",
+                            alert.severity,
+                            alert.advisory.ghsa_id,
+                        ]
+                    )
+                    if self.display:
+                        Octokit.error(
+                            f"Security Campaign Alert :: {campaign_name} ({due_date}) - {alert.advisory.ghsa_id}"
+                        )
+
+        return violations
 
     def isRemediationPolicy(self, technology: str = "general") -> bool:
         return self.policy.policy.get(technology, {}).get("remediate") is not None
