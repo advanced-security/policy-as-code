@@ -84,7 +84,7 @@ runs:
           if [ -f "$RESULTS_FILE" ]; then
             cat "$RESULTS_FILE"
           else
-            printf '%s\n' '{"schema_version":1,"total_violations":0,"total_errors":0,"checks":{}}'
+            printf '%s\n' '{"schema_version":1,"total_violations":null,"total_errors":1,"checks":{},"error":"Results file was not found; the run may have failed before writing results"}'
           fi
           printf '%s\n' "$delimiter"
         } >> "$GITHUB_OUTPUT"
