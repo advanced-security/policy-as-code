@@ -97,6 +97,30 @@ class TestPullRequest(unittest.TestCase):
             comment,
         )
 
+    @patch.dict(
+        os.environ,
+        {
+            "GITHUB_SERVER_URL": "https://github.example.com/",
+            "GITHUB_REPOSITORY": "/advanced-security/policy-as-code",
+            "GITHUB_RUN_ID": " 123456 ",
+        },
+        clear=True,
+    )
+    @patch("ghascompliance.octokit.pullrequest.GitHub.repository")
+    def testAddPrCommentNormalisesWorkflowRunContext(self, repository_mock) -> None:
+        repository_mock.isInPullRequest.return_value = True
+        repository_mock.getPullRequestComments.return_value = []
+
+        PullRequest.addPrComment("Test policy")
+
+        comment = repository_mock.createPullRequestComment.call_args.args[0]
+        self.assertIn(
+            "[View workflow run summary]"
+            "(https://github.example.com/advanced-security/policy-as-code/"
+            "actions/runs/123456)",
+            comment,
+        )
+
     @patch.dict(os.environ, {"GITHUB_RUN_ID": "123456"}, clear=True)
     @patch("ghascompliance.octokit.pullrequest.GitHub.repository")
     def testAddPrCommentOmitsLinkWithoutWorkflowRunContext(
