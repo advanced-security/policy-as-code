@@ -61,7 +61,7 @@ jobs:
     needs: [codeql, ossar]
 
     steps:
-      - name: Advance Security Compliance Action
+      - name: Advanced Security Compliance Action
         uses: advanced-security/policy-as-code@policy
         with:
           policy: GeekMasher/security-queries
