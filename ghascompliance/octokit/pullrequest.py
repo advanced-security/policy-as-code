@@ -1,4 +1,5 @@
 import datetime
+import os
 from typing import Union
 
 from ghastoolkit import GitHub
@@ -27,6 +28,14 @@ class PullRequest:
 
         policy_name = policy_name if policy_name else "Unknown"
         comment_marker = PullRequest.__COMMENT_MARKER__.format(id=policy_name)
+        server_url = os.environ.get("GITHUB_SERVER_URL")
+        repository = os.environ.get("GITHUB_REPOSITORY")
+        run_id = os.environ.get("GITHUB_RUN_ID")
+        if server_url and repository and run_id:
+            Summary.addRaw(
+                f"[View workflow run summary]"
+                f"({server_url}/{repository}/actions/runs/{run_id})"
+            )
         Summary.addRaw(comment_marker)
 
         try:

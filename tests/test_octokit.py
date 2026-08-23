@@ -4,10 +4,13 @@ import yaml
 import uuid
 import unittest
 import tempfile
+from unittest.mock import patch
 
 sys.path.append(".")
 
 from ghascompliance.octokit.octokit import GitHub
+from ghascompliance.octokit.pullrequest import PullRequest
+from ghascompliance.octokit.summary import Summary
 
 
 class TestPolicyLoading(unittest.TestCase):
@@ -57,3 +60,52 @@ class TestPolicyLoading(unittest.TestCase):
         # not a pull request
         GitHub.init("advanced-security/policy-as-code", reference="refs/heads/main")
         self.assertFalse(GitHub.repository.isInPullRequest())
+
+
+class TestPullRequest(unittest.TestCase):
+    def setUp(self) -> None:
+        PullRequest.add_pr_comment = True
+        Summary.summary = "Policy results\n"
+
+    def tearDown(self) -> None:
+        PullRequest.add_pr_comment = False
+        Summary.summary = ""
+
+    @patch.dict(
+        os.environ,
+        {
+            "GITHUB_SERVER_URL": "https://github.example.com",
+            "GITHUB_REPOSITORY": "advanced-security/policy-as-code",
+            "GITHUB_RUN_ID": "123456",
+        },
+        clear=True,
+    )
+    @patch("ghascompliance.octokit.pullrequest.GitHub.repository")
+    def testAddPrCommentIncludesWorkflowRunSummaryLink(
+        self, repository_mock
+    ) -> None:
+        repository_mock.isInPullRequest.return_value = True
+        repository_mock.getPullRequestComments.return_value = []
+
+        PullRequest.addPrComment("Test policy")
+
+        comment = repository_mock.createPullRequestComment.call_args.args[0]
+        self.assertIn(
+            "[View workflow run summary]"
+            "(https://github.example.com/advanced-security/policy-as-code/"
+            "actions/runs/123456)",
+            comment,
+        )
+
+    @patch.dict(os.environ, {"GITHUB_RUN_ID": "123456"}, clear=True)
+    @patch("ghascompliance.octokit.pullrequest.GitHub.repository")
+    def testAddPrCommentOmitsLinkWithoutWorkflowRunContext(
+        self, repository_mock
+    ) -> None:
+        repository_mock.isInPullRequest.return_value = True
+        repository_mock.getPullRequestComments.return_value = []
+
+        PullRequest.addPrComment("Test policy")
+
+        comment = repository_mock.createPullRequestComment.call_args.args[0]
+        self.assertNotIn("workflow run summary", comment)
