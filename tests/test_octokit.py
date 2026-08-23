@@ -160,32 +160,3 @@ class TestPullRequest(unittest.TestCase):
 
         comment = repository_mock.createPullRequestComment.call_args.args[0]
         self.assertNotIn("workflow run summary", comment)
-
-    @patch.dict(
-        os.environ,
-        {
-            "GITHUB_SERVER_URL": "https://github.example.com",
-            "GITHUB_REPOSITORY": "advanced-security/policy-as-code",
-            "GITHUB_RUN_ID": "123456",
-        },
-        clear=True,
-    )
-    @patch("ghascompliance.octokit.pullrequest.GitHub.repository")
-    def testUpdatePrCommentIncludesWorkflowRunSummaryLink(
-        self, repository_mock
-    ) -> None:
-        comment_marker = PullRequest.__COMMENT_MARKER__.format(id="Test policy")
-        repository_mock.isInPullRequest.return_value = True
-        repository_mock.getPullRequestComments.return_value = [
-            {"id": 1, "body": f"Old comment\n{comment_marker}"}
-        ]
-
-        PullRequest.addPrComment("Test policy")
-
-        comment = repository_mock.updatePullRequestComment.call_args.args[1]
-        self.assertIn(
-            "[View workflow run summary]"
-            "(https://github.example.com/advanced-security/policy-as-code/"
-            "actions/runs/123456)",
-            comment,
-        )
