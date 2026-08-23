@@ -2,10 +2,12 @@ import os
 import json
 from datetime import datetime
 from typing import *
+from urllib.parse import unquote
 
 from ghastoolkit import (
     GitHub,
     CodeScanning,
+    Dependency,
     Dependencies,
     DependencyGraph,
     Dependabot,
@@ -20,6 +22,30 @@ from ghascompliance.octokit.summary import Summary
 
 __HERE__ = os.path.dirname(os.path.realpath(__file__))
 LICENSES = [os.path.join(__HERE__, "data", "clearlydefined.json")]
+
+
+def _parse_alert_purl(purl: str) -> Tuple[str, str, str]:
+    """Parse a versionless (manager, namespace, name) tuple from a Dependabot alert PURL.
+
+    Unlike ``Dependency.fromPurl()``, this does not treat the first ``@`` in the
+    PURL as a version delimiter, so scoped npm packages such as
+    ``pkg:npm/@scope/name`` are parsed correctly even when a version is
+    present. The version, if any, is always the last ``@``-delimited segment
+    and never contains a ``/``, so only that trailing segment is stripped.
+    Percent-encoding is also normalized.
+    """
+    pkg = unquote(purl)
+    if pkg.startswith("pkg:"):
+        pkg = pkg[len("pkg:") :]
+
+    if "@" in pkg:
+        candidate, _, version = pkg.rpartition("@")
+        if candidate and "/" not in version:
+            pkg = candidate
+
+    manager, _, rest = pkg.partition("/")
+    namespace, _, name = rest.rpartition("/")
+    return manager.lower(), namespace.lower(), name.lower()
 
 
 class Checks:
@@ -221,11 +247,16 @@ class Checks:
                     "Dependabot REST API returned 400; retrying with GraphQL alerts API"
                 )
                 alerts = dependabot.getAlertsGraphQL()
-
             # Dependencies are only needed to resolve the alerts, skip the
             # (expensive) Dependency Graph requests if there are no alerts
             if alerts:
-                dependencies = depgraph.getDependencies()
+                try:
+                    dependencies = depgraph.getDependencies()
+                except GHASToolkitError as err:
+                    Octokit.warning(
+                        f"Dependency Graph API request failed with status {err.status}; processing Dependabot alerts without dependency enrichment"
+                    )
+                    dependencies = None
             else:
                 Octokit.debug(
                     "No Dependabot alerts, skipping Dependency Graph requests"
@@ -245,13 +276,35 @@ class Checks:
                 continue
 
             # Find the dependency from the graph
-            dependency = dependencies.findPurl(alert.purl)
-
-            if not dependency:
-                Octokit.error(
-                    f"Unable to find alert in DependencyGraph :: {alert.purl}"
+            dependency = None
+            if dependencies:
+                alert_manager, alert_namespace, alert_name = _parse_alert_purl(
+                    alert.purl
                 )
-                continue
+                alert_purl = (
+                    f"pkg:{alert_manager}/{alert_namespace}/{alert_name}"
+                    if alert_namespace
+                    else f"pkg:{alert_manager}/{alert_name}"
+                )
+                alert_fullname = (
+                    f"{alert_namespace}/{alert_name}" if alert_namespace else alert_name
+                )
+                dependency = next(
+                    (
+                        dep
+                        for dep in dependencies
+                        if unquote(dep.getPurl(version=False)).lower() == alert_purl
+                        or (
+                            (dep.manager or "").lower() == alert_manager
+                            and unquote(dep.fullname).lower() == alert_fullname
+                        )
+                    ),
+                    None,
+                )
+            if not dependency and dependencies is not None:
+                Octokit.warning(
+                    f"Unable to find alert in DependencyGraph :: {alert.purl}. Continuing with alert package URL"
+                )
 
             severity = alert.severity.lower()
 
@@ -268,9 +321,9 @@ class Checks:
 
             names = [
                 # org.apache.commons
-                dependency.fullname,
+                dependency.fullname if dependency else alert.purl,
                 #  maven://org.apache.commons
-                dependency.getPurl(version=False),
+                dependency.getPurl(version=False) if dependency else alert.purl,
             ]
 
             if self.policy.checkViolation(
