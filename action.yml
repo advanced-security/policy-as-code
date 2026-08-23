@@ -48,7 +48,7 @@ inputs:
 
 outputs:
   results:
-    description: Structured JSON results, with schema_version, total_violations, total_errors, and per-check results
+    description: Structured JSON results, with schema_version, total_violations, total_errors, and per-check results. If the results file is missing (for example, the run failed before writing it), a fallback payload is emitted instead with total_violations and total_errors set to null and a top-level error message describing the failure.
     value: ${{ steps.results.outputs.results }}
 
 runs:
@@ -84,7 +84,7 @@ runs:
           if [ -f "$RESULTS_FILE" ]; then
             cat "$RESULTS_FILE"
           else
-            printf '%s\n' '{"schema_version":1,"total_violations":null,"total_errors":1,"checks":{},"error":"Results file was not found; the run may have failed before writing results"}'
+            printf '%s\n' '{"schema_version":1,"total_violations":null,"total_errors":null,"checks":{},"error":"Results file was not found; the run may have failed before writing results"}'
           fi
           printf '%s\n' "$delimiter"
         } >> "$GITHUB_OUTPUT"

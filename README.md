@@ -111,6 +111,21 @@ The JSON schema is:
 violation count. Checks that fail with an error also include an `error` message,
 are counted in `total_errors`, and are not included in `total_violations`.
 
+If the results file is missing, for example because the run failed before writing
+it, the action emits a fallback payload instead. `total_violations` and
+`total_errors` are `null` since the real counts are unknown, `checks` is empty,
+and a top-level `error` describes the failure:
+
+```json
+{
+  "schema_version": 1,
+  "total_violations": null,
+  "total_errors": null,
+  "checks": {},
+  "error": "Results file was not found; the run may have failed before writing results"
+}
+```
+
 > [!WARNING]
 > The GitHub Action does not install Python on the runner. Please checkout at [the `actions/setup-python` Action][python-setup]
 
