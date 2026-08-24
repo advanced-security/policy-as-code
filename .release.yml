@@ -1,6 +1,6 @@
 name: "policy-as-code"
 repository: "advanced-security/policy-as-code"
-version: "2.11.1"
+version: "2.12.1"
 
 ecosystems:
   - Python
@@ -13,3 +13,9 @@ locations:
     patterns:
       - "{repository}@v{version}"
       - '--branch "v{version}"'
+
+  - name: "Version Module"
+    paths:
+      - "ghascompliance/__version__.py"
+    patterns:
+      - '__version__ = "{version}"'

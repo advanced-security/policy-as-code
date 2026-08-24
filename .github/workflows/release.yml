@@ -4,15 +4,37 @@ name: Release
 # replacing the previous fully-manual process (hand-bump .release.yml +
 # ghascompliance/__version__.py, then hand-run `gh release create`).
 #
-# Two paths, both calling into the same reusable release tooling:
-#   - auto-release: fires when .release.yml's version changes on main (the
-#     normal release flow) - reuses python-release.yml's existing
-#     cooldown-aware version-vs-latest-release check, so it's a no-op if
-#     .release.yml changed without an actual version bump. Always a full
-#     release (never a pre-release), since a committed .release.yml bump
-#     represents a finalized version.
-#   - manual-release: workflow_dispatch for on-demand releases, including
-#     pre-releases (e.g. a beta cut ahead of finalizing .release.yml).
+# Modeled on advanced-security/spdx-dependency-submission-action's release.yml
+# (which itself works around a patch-release-me bug - see the bump-version
+# job below). Three paths:
+#
+#   - bump-version: workflow_dispatch with "bump" (patch/minor/major) - opens
+#     a PR that bumps .release.yml and every location it tracks (README.md,
+#     ghascompliance/__version__.py) via patch-release-me. This is the
+#     "normal" way to cut a release: merging that PR pushes a .release.yml
+#     change to main, which triggers auto-release below. Does not itself
+#     create a GitHub Release.
+#   - auto-release: fires when .release.yml's version changes on main (e.g.
+#     the bump-version PR above gets merged) - reuses python-release.yml's
+#     existing cooldown-aware version-vs-latest-release check, so it's a
+#     no-op if .release.yml changed without an actual version bump (e.g. a
+#     locations-only edit). Always a full release (never a pre-release),
+#     since a committed .release.yml bump represents a finalized version.
+#   - manual-release: workflow_dispatch with an explicit "version" - cuts a
+#     release immediately, bypassing .release.yml entirely. For ad hoc
+#     releases and pre-releases (e.g. a beta cut ahead of finalizing
+#     .release.yml). Does NOT bump .release.yml/README.md/__version__.py -
+#     follow up with a "bump" run (or manual edit) to keep them in sync.
+#
+# auto-release and manual-release (the two paths that actually publish a
+# release) depend on check-vendor-sync first: action.yml runs the action
+# directly out of the committed vendor/ tree (PYTHONPATH includes vendor/),
+# so vendor/ IS the shipped runtime artifact, not just a repo nicety. If
+# Pipfile.lock moved on main (e.g. a merged Dependabot PR) but the resulting
+# Vendor Sync PR (vendor-sync.yml) hasn't been merged yet, vendor/ is stale -
+# releasing in that window would ship mismatched dependencies.
+# check-vendor-sync regenerates vendor/ and fails the run if that produces a
+# diff, instead of releasing silently against a stale tree.
 on:
   push:
     branches: [ main ]
@@ -20,18 +42,18 @@ on:
       - '.release.yml'
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Explicit version to release (e.g. 2.12.0 or 2.12.0-beta.1). Leave blank to auto-bump from the latest release.'
-        required: false
-        type: string
       bump:
-        description: 'Auto-bump type, used only when "version" above is left blank.'
+        description: 'Opens a PR bumping .release.yml (and README.md/ghascompliance/__version__.py). Ignored if "version" is set.'
         required: false
         type: choice
-        options: [patch, minor, major]
-        default: patch
+        options: [none, patch, minor, major]
+        default: none
+      version:
+        description: 'Explicit version to release right now (e.g. 2.12.0 or 2.12.0-beta.1), bypassing .release.yml. Takes priority over "bump".'
+        required: false
+        type: string
       prerelease:
-        description: 'Publish as a pre-release (tags vX.Y.Z only; skips moving the floating vX/vX.Y tags and skips --latest).'
+        description: 'Publish as a pre-release (only used with "version"; tags vX.Y.Z only, skips moving the floating vX/vX.Y tags and skips --latest).'
         required: false
         type: boolean
         default: false
@@ -41,16 +63,111 @@ permissions:
   pull-requests: write
 
 jobs:
+  # Opens a PR bumping .release.yml (+ tracked locations) - does not release.
+  bump-version:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.version == '' && inputs.bump != 'none' && github.repository == 'advanced-security/policy-as-code' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+
+      # Invokes the pinned patch-release-me image directly via `docker run`
+      # instead of `uses: 42ByteLabs/patch-release-me@...`. That action's own
+      # action.yml builds its Docker CMD as a single YAML list item
+      # (`-m "${{ inputs.bump }}"`); container actions don't go through a
+      # shell, so the literal quote characters end up baked into ONE argv
+      # token (`-m "minor"`). clap can't match that against
+      # "patch"/"minor"/"major" and silently falls back to its own default
+      # (patch) - so `bump: minor`/`major` would always quietly produce a
+      # patch bump instead (see
+      # https://github.com/42ByteLabs/patch-release-me/issues/161, fixed
+      # upstream in https://github.com/42ByteLabs/patch-release-me/pull/162,
+      # not yet merged/released). advanced-security/reusable-workflows'
+      # own self-release.yml still uses the buggy wrapped-action form, so
+      # don't copy that pattern - a plain shell `run:` step naturally splits
+      # `-m` and the mode value into separate argv entries, avoiding the bug
+      # entirely. Pinned by digest (not just tag) so the exact image content
+      # can't change out from under us - digest corresponds to the 0.6.5 tag,
+      # the last one with a published image (0.6.6 has none - see
+      # https://github.com/42ByteLabs/patch-release-me/issues/159).
+      - name: Patch Release Me
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "${{ github.workspace }}:/repo" \
+            -w /repo \
+            ghcr.io/42bytelabs/patch-release-me@sha256:d9d7abe7051855d0c395fec99d931acc002fb6b299ca16b8123e2c8ef0c7e750 \
+            --disable-banner bump -m ${{ inputs.bump }}
+
+      - name: Create Release PR
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ github.token }}
+          commit-message: "chore: bump version (${{ inputs.bump }})"
+          title: "chore: bump version (${{ inputs.bump }})"
+          branch: chore/release-${{ inputs.bump }}
+          labels: version
+          body: |
+            Automated PR to bump the version tracked in `.release.yml`, and every location it
+            patches (`README.md`, `ghascompliance/__version__.py`).
+
+            Merging this to `main` automatically publishes a GitHub Release for the new version,
+            once `check-vendor-sync` confirms `vendor/` is still in sync with `Pipfile.lock`.
+
+            > [!WARNING]
+            > This PR was opened with the default `GITHUB_TOKEN`, so GitHub will **not**
+            > auto-trigger required status checks (`run (3.10)`, `run (3.11)`, `run (3.12)`,
+            > `run (3.13)`, `e2e-tests`). A maintainer needs to manually re-run them (or push an
+            > empty commit) before merging - see the `TODO(#94)` note in `vendor-sync.yml` for
+            > the long-term fix (same root cause).
+
+  check-vendor-sync:
+    if: >-
+      github.repository == 'advanced-security/policy-as-code' &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.version != ''))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install pipenv
+        run: python -m pip install 'pip==26.0.1' 'pipenv==2025.0.4'
+
+      - name: Sync environment
+        run: pipenv sync --dev
+
+      # `pipenv run vendor` is a Pipfile script alias - see the [scripts]
+      # section in Pipfile: `vendor = "./vendor/update.sh"`. Same step
+      # vendor-sync.yml runs to regenerate vendor/ from Pipfile.lock.
+      - name: Regenerate vendor/ from Pipfile.lock (runs vendor/update.sh)
+        run: pipenv run vendor
+
+      - name: Fail if vendor/ is out of sync with Pipfile.lock
+        run: |
+          if git status --porcelain -- vendor | grep -q .; then
+            echo "::error::vendor/ is out of sync with Pipfile.lock - releasing now would ship a stale vendor/ tree."
+            git status --porcelain -- vendor
+            echo "Merge the pending 'chore/vendor-sync' PR (see .github/workflows/vendor-sync.yml) before releasing."
+            exit 1
+          fi
+
   auto-release:
+    needs: check-vendor-sync
     if: ${{ github.event_name == 'push' && github.repository == 'advanced-security/policy-as-code' }}
     uses: advanced-security/reusable-workflows/.github/workflows/python-release.yml@v0.3.5
     secrets: inherit
 
   manual-release:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'advanced-security/policy-as-code' }}
+    needs: check-vendor-sync
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.version != '' && github.repository == 'advanced-security/policy-as-code' }}
     uses: advanced-security/reusable-workflows/.github/workflows/release.yml@v0.3.5
     with:
       version: ${{ inputs.version }}
-      bump: ${{ inputs.bump }}
       prerelease: ${{ inputs.prerelease }}
     secrets: inherit
