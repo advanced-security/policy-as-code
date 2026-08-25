@@ -125,9 +125,7 @@ jobs:
             > the long-term fix (same root cause).
 
   check-vendor-sync:
-    if: >-
-      github.repository == 'advanced-security/policy-as-code' &&
-      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.version != ''))
+    if: ${{ github.repository == 'advanced-security/policy-as-code' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
