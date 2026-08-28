@@ -73,34 +73,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Invokes the pinned patch-release-me image directly via `docker run`
-      # instead of `uses: 42ByteLabs/patch-release-me@...`. That action's own
-      # action.yml builds its Docker CMD as a single YAML list item
-      # (`-m "${{ inputs.bump }}"`); container actions don't go through a
-      # shell, so the literal quote characters end up baked into ONE argv
-      # token (`-m "minor"`). clap can't match that against
-      # "patch"/"minor"/"major" and silently falls back to its own default
-      # (patch) - so `bump: minor`/`major` would always quietly produce a
-      # patch bump instead (see
-      # https://github.com/42ByteLabs/patch-release-me/issues/161, fixed
-      # upstream in https://github.com/42ByteLabs/patch-release-me/pull/162,
-      # not yet merged/released). advanced-security/reusable-workflows'
-      # own self-release.yml still uses the buggy wrapped-action form, so
-      # don't copy that pattern - a plain shell `run:` step naturally splits
-      # `-m` and the mode value into separate argv entries, avoiding the bug
-      # entirely. Pinned by digest (not just tag) so the exact image content
-      # can't change out from under us - digest corresponds to the 0.6.5 tag,
-      # the last one with a published image (0.6.6 has none - see
-      # https://github.com/42ByteLabs/patch-release-me/issues/159).
       - name: Patch Release Me
-        run: |
-          set -euo pipefail
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "${{ github.workspace }}:/repo" \
-            -w /repo \
-            ghcr.io/42bytelabs/patch-release-me@sha256:d9d7abe7051855d0c395fec99d931acc002fb6b299ca16b8123e2c8ef0c7e750 \
-            --disable-banner bump -m ${{ inputs.bump }}
+        # TODO: Return to the upstream action after its runtime image is digest-pinned:
+        # https://github.com/42ByteLabs/patch-release-me/issues/169
+        uses: docker://ghcr.io/42bytelabs/patch-release-me:0.6.7@sha256:b9624359ce08707dfb4d22bcbf9d1a75f7f4718ccec610ddaa62280ffea98958
+        with:
+          args: --disable-banner bump -m ${{ inputs.bump }}
 
       - name: Create Release PR
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
