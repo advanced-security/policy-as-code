@@ -98,8 +98,8 @@ jobs:
             > [!WARNING]
             > This PR was opened with the default `GITHUB_TOKEN`, so GitHub will **not**
             > auto-trigger required status checks (`run (3.10)`, `run (3.11)`, `run (3.12)`,
-            > `run (3.13)`, `e2e-tests`). A maintainer needs to manually re-run them (or push an
-            > empty commit) before merging - see the `TODO(#94)` note in `vendor-sync.yml` for
+            > `run (3.13)`, `e2e-tests`). A maintainer needs to select **Approve workflows to
+            > run** on this PR before merging. See the `TODO(#94)` note in `vendor-sync.yml` for
             > the long-term fix (same root cause).
 
   check-vendor-sync:

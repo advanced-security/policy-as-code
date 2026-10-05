@@ -22,7 +22,7 @@ If security alert are present / found by a Static Code Analysis tool (CodeQL for
 Dependabot only ever updates `Pipfile`/`Pipfile.lock` - it never touches this folder (see [#94][issue-94]). The [`Vendor Sync`][vendor-sync-workflow] workflow closes that gap: after `Pipfile.lock` changes on `main` (typically a merged Dependabot PR), it runs `pipenv run vendor` and opens/updates a PR with the resulting `vendor/` diff.
 
 > [!WARNING]
-> **TODO(#94):** That PR is opened with the default `GITHUB_TOKEN`, which GitHub deliberately prevents from triggering other workflow runs. The branch-protection-required checks on `main` will **not** start automatically on it, so a maintainer must manually re-run them (or push an empty commit) before merging. Fixing this for good requires a PAT/GitHub App token stored as a repo secret - see the `TODO(#94)` comment in `vendor-sync.yml` for details.
+> **TODO(#94):** That PR is opened with the default `GITHUB_TOKEN`, which GitHub deliberately prevents from triggering other workflow runs. The branch-protection-required checks on `main` will **not** start automatically on it, so a maintainer must select **Approve workflows to run** on the PR before merging. Fixing this for good requires a PAT/GitHub App token stored as a repo secret. See the `TODO(#94)` comment in `vendor-sync.yml` for details.
 
 <!-- -->
 
