@@ -20,7 +20,7 @@ name: GitHub App Authentication
         app_id: ${{ secrets.GIT_APP_ID }}
 
     - name: Security Compliance Action
-      uses: advanced-security/policy-as-code@v2.12.2
+      uses: advanced-security/policy-as-code@v2.12.3
 # ...
 
       with:
