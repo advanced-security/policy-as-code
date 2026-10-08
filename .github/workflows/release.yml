@@ -136,13 +136,13 @@ jobs:
   auto-release:
     needs: check-vendor-sync
     if: ${{ github.event_name == 'push' && github.repository == 'advanced-security/policy-as-code' }}
-    uses: advanced-security/reusable-workflows/.github/workflows/python-release.yml@v0.3.6
+    uses: advanced-security/reusable-workflows/.github/workflows/python-release.yml@v0.3.7
     secrets: inherit
 
   manual-release:
     needs: check-vendor-sync
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.version != '' && github.repository == 'advanced-security/policy-as-code' }}
-    uses: advanced-security/reusable-workflows/.github/workflows/release.yml@v0.3.6
+    uses: advanced-security/reusable-workflows/.github/workflows/release.yml@v0.3.7
     with:
       version: ${{ inputs.version }}
       prerelease: ${{ inputs.prerelease }}
