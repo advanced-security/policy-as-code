@@ -81,7 +81,7 @@ jobs:
           args: --disable-banner bump -m ${{ inputs.bump }}
 
       - name: Create Release PR
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: peter-evans/create-pull-request@15733dbdfeedb4f7fdb73d13c6f5ac83b710fab8 # v8.1.2
         with:
           token: ${{ github.token }}
           commit-message: "chore: bump version (${{ inputs.bump }})"
@@ -136,13 +136,13 @@ jobs:
   auto-release:
     needs: check-vendor-sync
     if: ${{ github.event_name == 'push' && github.repository == 'advanced-security/policy-as-code' }}
-    uses: advanced-security/reusable-workflows/.github/workflows/python-release.yml@v0.3.6
+    uses: advanced-security/reusable-workflows/.github/workflows/python-release.yml@v0.3.8
     secrets: inherit
 
   manual-release:
     needs: check-vendor-sync
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.version != '' && github.repository == 'advanced-security/policy-as-code' }}
-    uses: advanced-security/reusable-workflows/.github/workflows/release.yml@v0.3.6
+    uses: advanced-security/reusable-workflows/.github/workflows/release.yml@v0.3.8
     with:
       version: ${{ inputs.version }}
       prerelease: ${{ inputs.prerelease }}
